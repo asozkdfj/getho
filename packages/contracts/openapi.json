@@ -474,6 +474,13 @@
             "title": "Daily Picks",
             "type": "array"
           },
+          "daily_picks_leagues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Daily Picks Leagues",
+            "type": "array"
+          },
           "dataset": {
             "title": "Dataset",
             "type": "string"
@@ -485,6 +492,13 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueEvaluationOut"
+            },
+            "title": "Leagues",
+            "type": "array"
           },
           "license": {
             "anyOf": [
@@ -1045,6 +1059,73 @@
         "title": "HighlightOut",
         "type": "object"
       },
+      "LeagueEvaluationOut": {
+        "properties": {
+          "base_rate": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "data_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Warnings",
+            "type": "array"
+          },
+          "elo_only": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueModelMetricOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gain_vs_base_rate": {
+            "description": "[mean, ci_low, ci_high] log-loss improvement over the base rate",
+            "items": {
+              "type": "number"
+            },
+            "title": "Gain Vs Base Rate",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "production": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "test_matches": {
+            "title": "Test Matches",
+            "type": "integer"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "country",
+          "test_matches",
+          "production",
+          "base_rate",
+          "gain_vs_base_rate",
+          "verified"
+        ],
+        "title": "LeagueEvaluationOut",
+        "type": "object"
+      },
       "LeagueListOut": {
         "properties": {
           "data_provider": {
@@ -1082,6 +1163,34 @@
           "regions"
         ],
         "title": "LeagueListOut",
+        "type": "object"
+      },
+      "LeagueModelMetricOut": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "ece": {
+            "title": "Ece",
+            "type": "number"
+          },
+          "log_loss": {
+            "title": "Log Loss",
+            "type": "number"
+          }
+        },
+        "required": [
+          "log_loss",
+          "brier",
+          "accuracy",
+          "ece"
+        ],
+        "title": "LeagueModelMetricOut",
         "type": "object"
       },
       "LeagueRefOut": {
@@ -1610,6 +1719,14 @@
             "title": "Hit Rate Ci",
             "type": "array"
           },
+          "leagues": {
+            "description": "Leagues pooled in the replay",
+            "items": {
+              "type": "string"
+            },
+            "title": "Leagues",
+            "type": "array"
+          },
           "match_days": {
             "title": "Match Days",
             "type": "integer"
@@ -1697,6 +1814,17 @@
             "format": "date-time",
             "title": "Kickoff At",
             "type": "string"
+          },
+          "league": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "League"
           }
         },
         "required": [
@@ -2393,6 +2521,35 @@
           "is_demo": {
             "title": "Is Demo",
             "type": "boolean"
+          },
+          "league_scope": {
+            "default": "verified",
+            "description": "verified | all | explicit league ids",
+            "title": "League Scope",
+            "type": "string"
+          },
+          "matches_in_scope": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Today's matches in leagues the pick may come from",
+            "title": "Matches In Scope"
+          },
+          "matches_today": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matches Today"
           },
           "model": {
             "anyOf": [

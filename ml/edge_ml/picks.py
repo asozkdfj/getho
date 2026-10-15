@@ -68,6 +68,7 @@ def backtest_daily_picks(
 ) -> list[dict[str, Any]]:
     """Apply the daily rule to walk-forward predictions, for several thresholds."""
     zone = ZoneInfo(tz)
+    position = {k: i for i, k in enumerate(keys)}
     days: dict[Any, list[int]] = defaultdict(list)
     for i, k in enumerate(kickoffs):
         days[k.astimezone(zone).date()].append(i)
@@ -82,7 +83,7 @@ def backtest_daily_picks(
             choice = select_pick(cands, t)
             if choice is None:
                 continue
-            i = keys.index(choice.candidate.key)
+            i = position[choice.candidate.key]
             picked += 1
             probs_sum += choice.probability
             hits += int(list(Outcome).index(choice.outcome) == outcomes[i])

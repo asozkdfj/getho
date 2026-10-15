@@ -209,3 +209,37 @@ def test_published_pick_cites_the_backtest_of_the_current_model(session_factory,
         pick = publish_daily_pick(s, settings(pick_min_probability=0.55), pick_now)
         bt = pick.evidence["backtest"]
         assert bt is not None and bt["threshold"] <= 0.55 and bt["days_with_pick"] > 0
+
+
+def test_pick_scope_limits_candidate_leagues(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(pick_leagues="esp-1"), pick_now)
+        ev = pick.evidence
+        assert ev["eligible_leagues"] == ["esp-1"] and ev["league_scope"] == "esp-1"
+        assert ev["matches_today"] >= ev["matches_in_scope"]
+        assert {c["league"] for c in ev["candidates"]} <= {"La Liga"}
+        if pick.fixture is not None:
+            assert pick.fixture.league.provider_id == "esp-1"
+
+
+def test_verified_scope_on_mock_is_demo_wide(session_factory, seeded, now):
+    from edge_api.services.picks import eligible_league_ids
+
+    with session_factory() as s:
+        assert eligible_league_ids(s, settings(pick_leagues="verified")) is None
+        assert eligible_league_ids(s, settings(pick_leagues="all")) is None
+
+
+def test_verified_leagues_come_from_the_backtest_report(session_factory):
+    from edge_api.services.leagues import verified_league_ids
+    from edge_api.services.picks import eligible_league_ids
+
+    with session_factory() as s:
+        assert verified_league_ids(s, "api_football") == frozenset()  # no report yet
+        import_report(s)
+        verified = verified_league_ids(s, "api_football")
+        assert {"39", "140", "78"} <= verified  # league ids of the backtested leagues
+        assert verified_league_ids(s, "mock") == frozenset()  # synthetic data is never verified
+        real = settings(data_provider="api_football", pick_leagues="verified")
+        assert eligible_league_ids(s, real) == verified

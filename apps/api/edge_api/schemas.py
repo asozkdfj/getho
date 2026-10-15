@@ -300,10 +300,12 @@ class PickBacktestOut(ApiModel):
     hit_rate: float
     hit_rate_ci: list[float]
     mean_pick_probability: float
+    leagues: list[str] = Field(default_factory=list, description="Leagues pooled in the replay")
 
 
 class PickCandidateOut(ApiModel):
     fixture_id: int
+    league: str | None = None
     home: str
     away: str
     kickoff_at: datetime
@@ -348,6 +350,13 @@ class TodayPickOut(ApiModel):
     features: dict[str, Any] = Field(default_factory=dict)
     quality_checks: list[QualityCheckOut] = Field(default_factory=list)
     candidates: list[PickCandidateOut] = Field(default_factory=list)
+    league_scope: str = Field(
+        default="verified", description="verified | all | explicit league ids"
+    )
+    matches_today: int | None = None
+    matches_in_scope: int | None = Field(
+        default=None, description="Today's matches in leagues the pick may come from"
+    )
     backtest: PickBacktestOut | None = None
     result: PickResultOut | None = None
     disclaimer: str = PICK_DISCLAIMER
@@ -430,6 +439,28 @@ class DailyPickBacktestRowOut(ApiModel):
     mean_pick_probability: float | None
 
 
+class LeagueModelMetricOut(ApiModel):
+    log_loss: float
+    brier: float
+    accuracy: float
+    ece: float
+
+
+class LeagueEvaluationOut(ApiModel):
+    code: str
+    name: str
+    country: str
+    test_matches: int
+    production: LeagueModelMetricOut
+    base_rate: LeagueModelMetricOut
+    elo_only: LeagueModelMetricOut | None = None
+    gain_vs_base_rate: list[float] = Field(
+        description="[mean, ci_low, ci_high] log-loss improvement over the base rate"
+    )
+    verified: bool
+    data_warnings: list[str] = Field(default_factory=list)
+
+
 class EvaluationOut(ApiModel):
     id: int
     created_at: datetime
@@ -445,6 +476,8 @@ class EvaluationOut(ApiModel):
     test_per_season: list[SeasonMetricOut]
     calibration: list[CalibrationBinOut]
     daily_picks: list[DailyPickBacktestRowOut]
+    daily_picks_leagues: list[str] = Field(default_factory=list)
+    leagues: list[LeagueEvaluationOut] = Field(default_factory=list)
     promotion_decisions: dict[str, list[str]]
 
 

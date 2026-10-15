@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     pick_tz: str = "Asia/Seoul"
     pick_publish_hour: int = 9  # local hour (pick_tz) when the day's pick is decided
     pick_replace_on_void: bool = False  # publish a new pick if the chosen match is voided
+    # Leagues the pick may come from: "verified" (accuracy measured by the backtest),
+    # "all" (every predicted league) or comma-separated provider league ids.
+    pick_leagues: str = "verified"
 
     # --- data quality gates
     odds_max_age_hours: float | None = None  # None -> provider default

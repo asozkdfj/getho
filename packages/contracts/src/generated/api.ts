@@ -392,12 +392,16 @@ export interface components {
             created_at: string;
             /** Daily Picks */
             daily_picks: components["schemas"]["DailyPickBacktestRowOut"][];
+            /** Daily Picks Leagues */
+            daily_picks_leagues?: string[];
             /** Dataset */
             dataset: string;
             /** Has Odds */
             has_odds: boolean;
             /** Id */
             id: number;
+            /** Leagues */
+            leagues?: components["schemas"]["LeagueEvaluationOut"][];
             /** License */
             license: string | null;
             /** N Matches */
@@ -589,6 +593,29 @@ export interface components {
             model_probability: number;
             outcome: components["schemas"]["Outcome"];
         };
+        /** LeagueEvaluationOut */
+        LeagueEvaluationOut: {
+            base_rate: components["schemas"]["LeagueModelMetricOut"];
+            /** Code */
+            code: string;
+            /** Country */
+            country: string;
+            /** Data Warnings */
+            data_warnings?: string[];
+            elo_only?: components["schemas"]["LeagueModelMetricOut"] | null;
+            /**
+             * Gain Vs Base Rate
+             * @description [mean, ci_low, ci_high] log-loss improvement over the base rate
+             */
+            gain_vs_base_rate: number[];
+            /** Name */
+            name: string;
+            production: components["schemas"]["LeagueModelMetricOut"];
+            /** Test Matches */
+            test_matches: number;
+            /** Verified */
+            verified: boolean;
+        };
         /** LeagueListOut */
         LeagueListOut: {
             /** Data Provider */
@@ -601,6 +628,17 @@ export interface components {
             regions: components["schemas"]["RegionGroupOut"][];
             /** Total Leagues */
             total_leagues: number;
+        };
+        /** LeagueModelMetricOut */
+        LeagueModelMetricOut: {
+            /** Accuracy */
+            accuracy: number;
+            /** Brier */
+            brier: number;
+            /** Ece */
+            ece: number;
+            /** Log Loss */
+            log_loss: number;
         };
         /** LeagueRefOut */
         LeagueRefOut: {
@@ -833,6 +871,11 @@ export interface components {
             hit_rate: number;
             /** Hit Rate Ci */
             hit_rate_ci: number[];
+            /**
+             * Leagues
+             * @description Leagues pooled in the replay
+             */
+            leagues?: string[];
             /** Match Days */
             match_days: number;
             /** Mean Pick Probability */
@@ -862,6 +905,8 @@ export interface components {
              * Format: date-time
              */
             kickoff_at: string;
+            /** League */
+            league?: string | null;
         };
         /** PickHistoryItemOut */
         PickHistoryItemOut: {
@@ -1081,6 +1126,19 @@ export interface components {
             input_data_as_of?: string | null;
             /** Is Demo */
             is_demo: boolean;
+            /**
+             * League Scope
+             * @description verified | all | explicit league ids
+             * @default verified
+             */
+            league_scope: string;
+            /**
+             * Matches In Scope
+             * @description Today's matches in leagues the pick may come from
+             */
+            matches_in_scope?: number | null;
+            /** Matches Today */
+            matches_today?: number | null;
             model?: components["schemas"]["ModelVersionOut"] | null;
             outcome?: components["schemas"]["Outcome"] | null;
             /** Pick Id */

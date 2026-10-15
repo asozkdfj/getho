@@ -24,6 +24,7 @@ const pick: TodayPick = {
   is_demo: false,
   publish_at: "2026-10-17T00:00:00Z",
   threshold: 0.55,
+  league_scope: "verified",
   pick_id: 1,
   revision: 1,
   published_at: "2026-10-17T00:00:05Z",

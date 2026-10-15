@@ -34,6 +34,7 @@ from edge_api.db.models import (
     ModelEvaluation,
 )
 from edge_api.services import queries
+from edge_api.services.leagues import verified_league_ids
 from edge_api.services.quality import assess, last_successful_run
 from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
@@ -98,6 +99,7 @@ def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | N
     if not eligible:
         return None
     row = max(eligible, key=lambda r: r["min_probability"])
+    names = {lg.get("code"): lg.get("name") for lg in ev.report.get("leagues") or []}
     return {
         "evaluation_id": ev.id,
         "dataset": ev.dataset,
@@ -108,6 +110,7 @@ def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | N
         "hit_rate": row["hit_rate"],
         "hit_rate_ci": row["hit_rate_ci"],
         "mean_pick_probability": row["mean_pick_probability"],
+        "leagues": [names.get(c, c) for c in block.get("leagues") or []],
     }
 
 
@@ -128,6 +131,18 @@ def _insert_pick(session: Session, values: dict[str, Any]) -> DailyPick:
     ).one()
 
 
+def eligible_league_ids(session: Session, settings: Settings) -> frozenset[str] | None:
+    """Provider league ids the pick may come from (None = every predicted league)."""
+    mode = settings.pick_leagues.strip().lower()
+    if mode == "all":
+        return None
+    if mode == "verified":
+        if settings.data_provider == "mock":
+            return None  # synthetic leagues cannot be verified; mock picks are demo-only
+        return verified_league_ids(session, settings.data_provider)
+    return frozenset(v.strip() for v in settings.pick_leagues.split(",") if v.strip())
+
+
 def publish_daily_pick(
     session: Session, settings: Settings, now: datetime, revision: int = 1
 ) -> DailyPick:
@@ -144,7 +159,9 @@ def publish_daily_pick(
     if existing is not None:
         return existing
 
-    fixtures = queries.fixtures_between(session, ld.start_utc, ld.end_utc, provider)
+    all_fixtures = queries.fixtures_between(session, ld.start_utc, ld.end_utc, provider)
+    scope = eligible_league_ids(session, settings)
+    fixtures = [f for f in all_fixtures if scope is None or f.league.provider_id in scope]
     preds = queries.latest_predictions_by_fixture(session, [f.id for f in fixtures])
     last_run = last_successful_run(session, provider)
 
@@ -158,6 +175,7 @@ def publish_daily_pick(
         quality_by_fixture[f.id] = checks
         entry: dict[str, Any] = {
             "fixture_id": f.id,
+            "league": f.league.name,
             "home": f.home_team.name,
             "away": f.away_team.name,
             "kickoff_at": f.kickoff_at.isoformat(),
@@ -180,7 +198,10 @@ def publish_daily_pick(
         "is_demo": provider == "mock",
         "threshold": settings.pick_min_probability,
         "window_utc": [ld.start_utc.isoformat(), ld.end_utc.isoformat()],
-        "matches_today": len(fixtures),
+        "matches_today": len(all_fixtures),
+        "league_scope": settings.pick_leagues,
+        "eligible_leagues": sorted(scope) if scope is not None else "all",
+        "matches_in_scope": len(fixtures),
         "candidates": considered,
         "backtest": backtest_reference(session, settings.pick_min_probability),
         "model": {"version": MODEL_VERSION, "feature_set": FEATURE_SET},
@@ -197,7 +218,7 @@ def publish_daily_pick(
     if choice is None:
         values["status"] = (
             DailyPickStatus.NO_MATCHES.value
-            if not fixtures
+            if not all_fixtures
             else DailyPickStatus.NO_QUALIFYING_MATCH.value
         )
         return _insert_pick(session, values)

@@ -70,6 +70,9 @@ def today(
         published_at=pick.published_at,
         factors_used=ev.get("factors_used", []),
         candidates=[PickCandidateOut(**c) for c in ev.get("candidates", [])],
+        league_scope=ev.get("league_scope", "verified"),
+        matches_today=ev.get("matches_today"),
+        matches_in_scope=ev.get("matches_in_scope", ev.get("matches_today")),
         backtest=PickBacktestOut(**ev["backtest"]) if ev.get("backtest") else None,
         result=_result(pick),
     )
