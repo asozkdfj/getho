@@ -1,0 +1,25 @@
+[project]
+name = "edge-ingestion"
+version = "0.1.0"
+description = "EPL Edge Lab - data providers, idempotent ingestion jobs, Celery worker, CLI"
+requires-python = ">=3.12"
+dependencies = [
+  "edge-api",
+  "edge-ml",
+  "celery[redis]>=5.4",
+  "numpy>=2.0",
+]
+
+[tool.uv.sources]
+edge-api = { workspace = true }
+edge-ml = { workspace = true }
+
+[project.scripts]
+edge = "edge_ingestion.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["edge_ingestion"]

@@ -1,0 +1,6 @@
+**/.next
+**/node_modules
+packages/contracts/src/generated
+packages/contracts/openapi.json
+# rewritten by `next build`
+apps/web/tsconfig.json

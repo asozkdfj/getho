@@ -1,0 +1,45 @@
+[project]
+name = "epl-edge-lab"
+version = "0.1.0"
+description = "EPL Edge Lab - Python workspace root (api, ml, ingestion worker)"
+requires-python = ">=3.12"
+dependencies = ["edge-api", "edge-ml", "edge-ingestion"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.8",
+  "httpx2>=2.13",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["ml", "apps/api", "workers/ingestion"]
+
+[tool.uv.sources]
+edge-ml = { workspace = true }
+edge-api = { workspace = true }
+edge-ingestion = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["apps/web", "packages", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "DTZ"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # allow Korean text / unicode in strings & comments
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/versions/*.py" = ["E501"]
+"**/tests/**/*.py" = ["B018"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["edge_ml", "edge_api", "edge_ingestion"]
+
+[tool.pytest.ini_options]
+testpaths = ["ml/tests", "apps/api/tests", "workers/ingestion/tests", "tests/integration"]
+addopts = "-ra --import-mode=importlib"
+markers = ["db: requires a PostgreSQL database (TEST_DATABASE_URL)"]

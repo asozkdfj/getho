@@ -1,0 +1,31 @@
+{
+  // GitHub Codespaces / Dev Containers: open the repo in a browser and the
+  // whole stack (postgres, redis, api, worker, web) starts with docker compose.
+  // See README "다른 PC에서 보기 (GitHub Codespaces)".
+  "name": "EPL Edge Lab",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  // .env from the template (local-only defaults, no secrets)
+  "postCreateCommand": "bash .devcontainer/setup-env.sh",
+  // runs on every (re)start of the codespace; idempotent
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [3000, 8000],
+  "portsAttributes": {
+    "3000": { "label": "Web", "onAutoForward": "notify" },
+    "8000": { "label": "API (docs at /docs)", "onAutoForward": "silent" },
+    "5432": { "onAutoForward": "ignore" },
+    "6379": { "onAutoForward": "ignore" }
+  },
+  // API_FOOTBALL_KEY / DATA_PROVIDER come from Codespaces secrets as env vars;
+  // they are never written into the repository or .env.
+  "secrets": {
+    "API_FOOTBALL_KEY": {
+      "description": "API-Football key (optional; without it the demo mock data is used)"
+    },
+    "DATA_PROVIDER": {
+      "description": "Optional: mock or api_football (defaults to api_football when a key is set)"
+    }
+  }
+}

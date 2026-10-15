@@ -1,0 +1,26 @@
+[project]
+name = "edge-api"
+version = "0.1.0"
+description = "EPL Edge Lab - FastAPI service, DB models, prediction job"
+requires-python = ">=3.12"
+dependencies = [
+  "edge-ml",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "sqlalchemy>=2.0.36",
+  "alembic>=1.14",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.7",
+  "redis>=5.2",
+]
+
+[tool.uv.sources]
+edge-ml = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["edge_api"]
