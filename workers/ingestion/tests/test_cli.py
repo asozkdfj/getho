@@ -55,3 +55,21 @@ def test_check_provider_counts_pinned_past_season_outside_ingest_window(monkeypa
     assert report["fixtures"] == 760
     assert report["fixtures_in_ingest_window"] == 0
     assert report["upcoming_14d"] == 0
+
+
+def test_main_prints_check_provider_report_as_json(monkeypatch, capsys):
+    """End-to-end through main(): the report (with datetimes) must serialise."""
+    provider = ApiFootballProvider(
+        "k",
+        reference_time=REF,
+        transport=FakeApiFootball(),
+        min_interval_seconds=0,
+        sleep=lambda _: None,
+    )
+    monkeypatch.setattr(cli, "get_provider", lambda *a, **kw: provider)
+    monkeypatch.setattr(cli, "configure_logging", lambda *_: None)
+    assert cli.main(["check-provider", "--now", "2026-10-15T09:00:00Z"]) == 0
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    sample = out["result"]["sample_finished_fixture"]
+    assert sample["kickoff_at"].startswith("2026-")
+    assert out["result"]["fixtures"] == 760

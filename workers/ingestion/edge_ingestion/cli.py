@@ -101,7 +101,14 @@ def main(argv: list[str] | None = None) -> int:
         # Clean, secret-free failure message instead of a traceback.
         print(json.dumps({"command": args.command, "error": str(exc)}), file=sys.stderr)
         return 2
-    print(json.dumps({"command": args.command, "now": now.isoformat(), "result": result}))
+    # default=str: results may contain datetimes (e.g. the sample fixture)
+    print(
+        json.dumps(
+            {"command": args.command, "now": now.isoformat(), "result": result},
+            default=str,
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
