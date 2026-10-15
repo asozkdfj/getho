@@ -15,6 +15,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 
+import numpy as np
+
 from edge_ml.core import MatchResult
 
 # Typical EPL goal rates; used when there is no data at all.
@@ -68,57 +70,71 @@ def fit_strengths(
     if not usable:
         return StrengthRatings()
 
-    weights = [
-        math.exp(-params.time_decay_per_day * (as_of - m.kickoff_at).total_seconds() / 86400.0)
-        for m in usable
-    ]
-    w_total = sum(weights)
-    mu_home = sum(w * m.home_goals for w, m in zip(weights, usable, strict=True)) / w_total
-    mu_away = sum(w * m.away_goals for w, m in zip(weights, usable, strict=True)) / w_total
-    # guard against degenerate samples (e.g. only 0-0 draws)
-    mu_home = max(mu_home, 0.2)
-    mu_away = max(mu_away, 0.2)
-
+    # Vectorised (numpy) Maher iterations: walk-forward backtests refit this
+    # hundreds of times, so the pure-Python loop was the bottleneck.
     teams = sorted({m.home for m in usable} | {m.away for m in usable})
-    attack = dict.fromkeys(teams, 1.0)
-    defence = dict.fromkeys(teams, 1.0)
+    index = {t: i for i, t in enumerate(teams)}
+    n = len(teams)
+    h = np.fromiter((index[m.home] for m in usable), dtype=np.intp, count=len(usable))
+    a = np.fromiter((index[m.away] for m in usable), dtype=np.intp, count=len(usable))
+    hg = np.fromiter((m.home_goals for m in usable), dtype=float, count=len(usable))
+    ag = np.fromiter((m.away_goals for m in usable), dtype=float, count=len(usable))
+    age_days = np.fromiter(
+        ((as_of - m.kickoff_at).total_seconds() / 86400.0 for m in usable),
+        dtype=float,
+        count=len(usable),
+    )
+    w = np.exp(-params.time_decay_per_day * age_days)
+
+    w_total = w.sum()
+    # guard against degenerate samples (e.g. only 0-0 draws)
+    mu_home = max(float((w * hg).sum() / w_total), 0.2)
+    mu_away = max(float((w * ag).sum() / w_total), 0.2)
+
     # prior expressed as goals at league-average rate
     prior_goals = params.prior_matches * (mu_home + mu_away) / 2.0
+    t_att = np.array([targets.get(t, (1.0, 1.0))[0] for t in teams])
+    t_def = np.array([targets.get(t, (1.0, 1.0))[1] for t in teams])
 
-    target = {t: targets.get(t, (1.0, 1.0)) for t in teams}
+    def by_team(idx: np.ndarray, values: np.ndarray) -> np.ndarray:
+        return np.bincount(idx, weights=values, minlength=n)
 
+    # goals scored / conceded do not depend on the parameters: compute once
+    scored = prior_goals * t_att + by_team(h, w * hg) + by_team(a, w * ag)
+    conceded = prior_goals * t_def + by_team(h, w * ag) + by_team(a, w * hg)
+
+    attack = np.ones(n)
+    defence = np.ones(n)
     for _ in range(params.iterations):
-        scored = {t: prior_goals * target[t][0] for t in teams}
-        exp_scored = dict.fromkeys(teams, prior_goals)
-        conceded = {t: prior_goals * target[t][1] for t in teams}
-        exp_conceded = dict.fromkeys(teams, prior_goals)
-        for w, m in zip(weights, usable, strict=True):
-            scored[m.home] += w * m.home_goals
-            scored[m.away] += w * m.away_goals
-            exp_scored[m.home] += w * mu_home * defence[m.away]
-            exp_scored[m.away] += w * mu_away * defence[m.home]
-        new_attack = {t: scored[t] / exp_scored[t] for t in teams}
-        for w, m in zip(weights, usable, strict=True):
-            conceded[m.home] += w * m.away_goals
-            conceded[m.away] += w * m.home_goals
-            exp_conceded[m.home] += w * mu_away * new_attack[m.away]
-            exp_conceded[m.away] += w * mu_home * new_attack[m.home]
-        new_defence = {t: conceded[t] / exp_conceded[t] for t in teams}
+        exp_scored = (
+            prior_goals
+            + by_team(h, w * mu_home * defence[a])
+            + by_team(a, w * mu_away * defence[h])
+        )
+        new_attack = scored / exp_scored
+        exp_conceded = (
+            prior_goals
+            + by_team(h, w * mu_away * new_attack[a])
+            + by_team(a, w * mu_home * new_attack[h])
+        )
+        new_defence = conceded / exp_conceded
 
         # identifiability: geometric mean of attack == 1
-        log_mean = sum(math.log(v) for v in new_attack.values()) / len(teams)
-        scale = math.exp(log_mean)
-        new_attack = {t: v / scale for t, v in new_attack.items()}
-        new_defence = {t: v * scale for t, v in new_defence.items()}
+        scale = math.exp(float(np.log(new_attack).mean()))
+        new_attack = new_attack / scale
+        new_defence = new_defence * scale
 
         delta = max(
-            max(abs(new_attack[t] - attack[t]) for t in teams),
-            max(abs(new_defence[t] - defence[t]) for t in teams),
+            float(np.abs(new_attack - attack).max()), float(np.abs(new_defence - defence).max())
         )
         attack, defence = new_attack, new_defence
         if delta < params.tolerance:
             break
 
     return StrengthRatings(
-        mu_home=mu_home, mu_away=mu_away, attack=attack, defence=defence, n_matches=len(usable)
+        mu_home=mu_home,
+        mu_away=mu_away,
+        attack={t: float(attack[i]) for t, i in index.items()},
+        defence={t: float(defence[i]) for t, i in index.items()},
+        n_matches=len(usable),
     )

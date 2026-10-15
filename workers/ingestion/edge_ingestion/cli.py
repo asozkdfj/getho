@@ -24,6 +24,7 @@ from edge_api.db.session import session_scope
 from edge_api.logging_setup import configure_logging
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
+from edge_ingestion import backtest_cli
 from edge_ingestion.jobs import INGEST_LOOKAHEAD, INGEST_LOOKBACK, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
@@ -87,9 +88,23 @@ def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="edge", description="EPL Edge Lab data jobs")
-    parser.add_argument("command", choices=["seed", "ingest", "predict", "check-provider"])
-    parser.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("seed", "ingest", "predict", "check-provider"):
+        sp = sub.add_parser(name)
+        sp.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
+    backtest_cli.add_arguments(sub.add_parser("backtest", help="walk-forward model evaluation"))
     args = parser.parse_args(argv)
+
+    if args.command == "backtest":
+        configure_logging(get_settings().log_level)
+        report = backtest_cli.run(args)
+        for period in ("validation", "test"):
+            print(backtest_cli.summary_table(report, period))
+            print()
+        for key in ("promotion", "promotion_calibrated"):
+            if key in report:
+                print(f"{key}: {report[key]['promote']} - {'; '.join(report[key]['reasons'])}")
+        return 0
 
     settings = get_settings()
     configure_logging(settings.log_level)

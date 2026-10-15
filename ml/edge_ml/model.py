@@ -49,6 +49,11 @@ class ModelParams:
     dixon_coles_rho: float = 0.0
     # promoted teams start at the mean of the N weakest established teams
     newcomer_reference_teams: int = 3
+    # fraction of each team's Elo distance from the mean removed at a new season
+    # (squad turnover); 0 = carry ratings over unchanged (v0.2.0 behaviour)
+    elo_season_regression: float = 0.0
+    # multiply P(draw) by this factor and renormalise; 1 = unchanged
+    draw_inflation: float = 1.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -91,7 +96,11 @@ class PoissonEloModel:
 
         # Elo: replay season by season; newcomers start at relegation level.
         elo = EloRatings(params=self.params.elo)
+        r = self.params.elo_season_regression
         for prev, season in zip([None, *seasons], seasons, strict=False):
+            if prev is not None and r > 0 and elo.ratings:
+                mean = sum(elo.ratings.values()) / len(elo.ratings)
+                elo.ratings = {t: mean + (1 - r) * (v - mean) for t, v in elo.ratings.items()}
             if prev is not None:
                 prior = _bottom_mean([elo.rating(t) for t in teams[prev]], k)
                 for team in teams[season] - teams[prev]:
@@ -144,6 +153,8 @@ class PoissonEloModel:
         lam_a = max((total - supremacy) / 2.0, p.min_lambda)
 
         raw = probabilities_from_expected_goals(lam_h, lam_a, p.max_goals, p.dixon_coles_rho)
+        if p.draw_inflation != 1.0:
+            raw = Probabilities1X2.normalized(raw.home, raw.draw * p.draw_inflation, raw.away)
         calibrated = self.calibrator.calibrate(raw)
         features: dict[str, Any] = {
             "elo_home": round(self.elo.rating(home), 2),

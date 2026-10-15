@@ -9,9 +9,9 @@
 | 1a | 백테스트용 과거 배당 소스 | API-Football은 배당을 약 7일만 보관해서 과거 시즌 배당을 받을 수 없습니다. football-data.co.uk CSV 같은 별도 소스가 필요합니다(라이선스 확인 포함). | Phase 2 walk-forward 검증 전 |
 | 1b | provider 응답 캐시(Redis), circuit breaker, raw payload 원본 보관(S3) | 지금 요청량(약 60/일)에서는 캐시가 없어도 Free 한도 안에 들어갑니다. 재시도와 요청 간격은 이미 있습니다. | 수집 대상 리그나 빈도를 늘릴 때 |
 | 2 | Calibration 학습(temperature/isotonic) | 보정은 예측-결과 쌍이 충분해야 의미가 있습니다. 지금은 `IdentityCalibrator`만 둡니다. | 사전 예측 300~500경기 누적 후 |
-| 3 | 평가 지표(Brier, Log loss, calibration, CLV) 대시보드 | 실데이터 예측 이력이 없으면 지표가 의미 없습니다. `model_versions.metrics` 컬럼은 이미 있습니다. | Phase 2 |
-| 4 | walk-forward 백테스트 / 하이퍼파라미터 튜닝 | 위와 같은 이유입니다. 현재 파라미터(가중치 0.6, 280 Elo/골, K=20)는 문헌 기반 초기값입니다. | Phase 2 |
-| 5 | Dixon-Coles rho 추정 | 코드는 있지만(`rho` 파라미터) 추정에는 실데이터가 필요합니다. 기본값은 0입니다. | Phase 2 |
+| 3 | 시장 확률과의 비교(과거 구간) / CLV | 백테스트 엔진과 지표는 구현했습니다([MODEL_EVALUATION](MODEL_EVALUATION.md)). 공개 과거 데이터(openfootball)에 배당이 없어서 시장 비교는 아직 측정하지 않았습니다. `--source football-data`로 CSV를 넣으면 측정할 수 있습니다. | 배당 포함 데이터 확보 시 |
+| 4 | 휴식일·일정 밀도, xG 특성 | 실험 하네스는 준비됐지만, 공개 데이터에 컵·유럽대항전 일정과 xG가 없어 평가할 수 없습니다. | 데이터 확보 시 |
+| 5 | Dixon-Coles | 실데이터 검증 결과 rho < 0이 오히려 나빠서 기각했습니다(기본 0). | 재평가 시 |
 | 6 | Shin / power de-vig | MVP는 설명하기 쉬운 proportional만 씁니다(ADR-008). | Phase 2 |
 | 7 | players, team_match_stats, injury_events, lineup_snapshots, llm_events 테이블 | Phase 1 범위 밖입니다(xG, 라인업, 부상, LLM은 Phase 2~3). 같은 append-only 패턴으로 추가합니다. | Phase 2~3 |
 | 8 | Playwright E2E를 CI에서 실행 | CI 시간과 비용 때문입니다. 지금은 Vitest 단위 테스트와 compose smoke(HTTP + 조합 API)로 대신합니다. 로컬에서는 Playwright로 모바일/데스크톱 렌더링을 수동 확인했습니다. | 화면이 늘어나면 |
