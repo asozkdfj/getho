@@ -5,7 +5,7 @@
 
 | # | 항목 | 왜 아직 안 했나 | 언제/조건 |
 | --- | --- | --- | --- |
-| 1 | API-Football 실응답 검증 + 공개 전 라이선스 확인 | provider는 구현했지만(`api_football.py`), 개발 환경에서 api-sports 도메인이 차단돼 실제 응답으로 검증하지 못했습니다([가이드 §4](providers/api-football.md) 체크리스트). 공개 서비스(배당 표시·광고) 전에는 약관 확인이 필요합니다. | 키 발급 즉시 `make check-provider` / 공개 직전 |
+| 1 | API-Football 배당 응답 검증 + 공개 전 라이선스 확인 | 일정·결과·팀 파싱은 실제 응답으로 검증했습니다(2026-10-15, [가이드 §4](providers/api-football.md)). Free 플랜은 2022~2024 시즌만 조회할 수 있어 현재 시즌 배당 형식은 아직 확인하지 못했습니다. 공개 서비스(배당 표시·광고) 전에는 약관 확인이 필요합니다. | 유료 플랜 전환 시 `make check-provider` / 공개 직전 |
 | 1a | 백테스트용 과거 배당 소스 | API-Football은 배당을 약 7일만 보관해서 과거 시즌 배당을 받을 수 없습니다. football-data.co.uk CSV 같은 별도 소스가 필요합니다(라이선스 확인 포함). | Phase 2 walk-forward 검증 전 |
 | 1b | provider 응답 캐시(Redis), circuit breaker, raw payload 원본 보관(S3) | 지금 요청량(약 60/일)에서는 캐시가 없어도 Free 한도 안에 들어갑니다. 재시도와 요청 간격은 이미 있습니다. | 수집 대상 리그나 빈도를 늘릴 때 |
 | 2 | Calibration 학습(temperature/isotonic) | 보정은 예측-결과 쌍이 충분해야 의미가 있습니다. 지금은 `IdentityCalibrator`만 둡니다. | 사전 예측 300~500경기 누적 후 |

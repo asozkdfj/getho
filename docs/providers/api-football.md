@@ -73,16 +73,22 @@ Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간�
 - **전송:** stdlib `urllib`를 쓰고 HTTPS만 허용합니다. 테스트는 `edge_ingestion.testing.FakeApiFootball`로
   네트워크 없이 실행됩니다.
 
-## 4. 아직 실제 응답으로 검증하지 않은 가정
+## 4. 실제 응답 검증 현황
 
-개발 환경에서 api-sports 도메인에 접근할 수 없어서, 아래 항목은 문서와 공개 가이드 기준으로 구현했습니다.
-`make check-provider`로 확인하고, 다르면 `api_football.py`만 수정하면 됩니다.
+2026-10-15에 Free 플랜 키로 `make check-provider`(`API_FOOTBALL_SEASON=2024`)를 실행해 확인했습니다.
 
-- [ ] Premier League `league` id = 39
-- [ ] `/odds` 응답 항목에 `update` 필드가 있고, `bet=1`이 "Match Winner"(Home/Draw/Away)인지
-- [ ] `/odds`의 페이지 크기(10)와 `paging.total`
-- [ ] 일일 남은 요청 수 헤더 `x-ratelimit-requests-remaining`
-- [ ] Free 플랜에서 현재 시즌 조회 가능 여부
+- [x] Premier League `league` id = 39: 시즌별 380경기(20팀 × 38라운드)
+- [x] `/teams`, `/fixtures` 응답 파싱: 2023-24와 2024-25 시즌 760경기, 팀 연결 누락 0
+- [x] 경기 상태 매핑, 스코어, 라운드, UTC 변환: 2024-25 38라운드 노팅엄 포레스트(65) 0:1 첼시(49),
+      2025-05-25 15:00 UTC로 실제 결과와 일치
+- [x] 일일 남은 요청 수 헤더 `x-ratelimit-requests-remaining`, `/status`, 응답 본문의 `errors` 처리
+- [x] **Free 플랜은 2022~2024 시즌만 조회할 수 있습니다** (`Free plans do not have access to this season`).
+      현재 시즌의 일정과 배당은 유료 플랜(Pro 이상)이 필요합니다.
+- [ ] `/odds` 응답 형식: `update` 필드, `bet=1` = "Match Winner"(Home/Draw/Away), 페이지 크기와
+      `paging.total`. 지난 시즌 배당은 제공되지 않아서 현재 시즌을 조회할 수 있어야 검증할 수 있습니다.
+
+검증용으로 `API_FOOTBALL_SEASON`을 과거 시즌으로 고정하면, 그 시즌은 수집 범위(오늘 기준 400일 전 ~
+30일 후) 밖이라 `fixtures_in_ingest_window`가 0이 됩니다. 정상입니다. 운영할 때는 이 값을 비워 두세요.
 
 ## 5. 라이선스 메모
 
