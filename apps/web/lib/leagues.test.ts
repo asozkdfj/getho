@@ -25,6 +25,7 @@ function fixture(id: number, lg: LeagueRef, kickoff: string): FixtureSummary {
     away_team: { id: id * 2 + 1, name: `A${id}`, short_name: "A" },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
   };
 }
 

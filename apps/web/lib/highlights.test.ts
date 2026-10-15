@@ -16,6 +16,7 @@ const base = {
     away_team: { id: 2, name: "Hull City", short_name: "HUL" },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
   },
   outcome: "AWAY",
   model_probability: 0.31,

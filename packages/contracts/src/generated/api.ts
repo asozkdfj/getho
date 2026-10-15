@@ -230,6 +230,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AbsenceOut */
+        AbsenceOut: {
+            /** Name */
+            name: string;
+            /** Player Id */
+            player_id: string;
+            /** Reason */
+            reason?: string | null;
+            /** Regular */
+            regular: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "out" | "doubtful";
+        };
         /** CalibrationBinOut */
         CalibrationBinOut: {
             /** Count */
@@ -450,6 +466,11 @@ export interface components {
             kickoff_at: string;
             latest_odds?: components["schemas"]["OddsSnapshotOut"] | null;
             league: components["schemas"]["LeagueRefOut"];
+            /**
+             * Lineups Announced
+             * @default false
+             */
+            lineups_announced: boolean;
             model_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
             /** Odds History */
             odds_history: components["schemas"]["OddsSnapshotOut"][];
@@ -461,6 +482,7 @@ export interface components {
             season: string;
             /** Status */
             status: string;
+            team_news?: components["schemas"]["TeamNewsOut"] | null;
         };
         /** FixtureListOut */
         FixtureListOut: {
@@ -511,6 +533,11 @@ export interface components {
             kickoff_at: string;
             latest_odds?: components["schemas"]["OddsSnapshotOut"] | null;
             league: components["schemas"]["LeagueRefOut"];
+            /**
+             * Lineups Announced
+             * @default false
+             */
+            lineups_announced: boolean;
             model_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
             /** Prediction Id */
             prediction_id?: number | null;
@@ -738,6 +765,22 @@ export interface components {
              */
             verified: boolean;
         };
+        /** LineupPlayerOut */
+        LineupPlayerOut: {
+            /** Name */
+            name: string;
+            /** Number */
+            number?: number | null;
+            /** Player Id */
+            player_id: string;
+            /** Position */
+            position?: string | null;
+            /**
+             * Regular
+             * @description Among the team's most used players in recent matches
+             */
+            regular: boolean;
+        };
         /** LiveEvaluationOut */
         LiveEvaluationOut: {
             /** Is Demo */
@@ -757,6 +800,18 @@ export interface components {
             log_loss: number;
             /** Log Loss Ci */
             log_loss_ci: number[];
+        };
+        /** MissingRegularOut */
+        MissingRegularOut: {
+            /** Name */
+            name: string;
+            /** Player Id */
+            player_id: string;
+            /**
+             * Reason
+             * @description From the absence report, when known
+             */
+            reason?: string | null;
         };
         /** ModelMetricOut */
         ModelMetricOut: {
@@ -1090,6 +1145,56 @@ export interface components {
             /** Fixture Id */
             fixture_id: number;
             outcome: components["schemas"]["Outcome"];
+        };
+        /** TeamNewsOut */
+        TeamNewsOut: {
+            away: components["schemas"]["TeamNewsSideOut"];
+            home: components["schemas"]["TeamNewsSideOut"];
+            /** Lineups Announced */
+            lineups_announced: boolean;
+            /**
+             * Note
+             * @default 선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요.
+             */
+            note: string;
+            /**
+             * Used By Model
+             * @description Whether model probabilities use this information
+             * @default false
+             */
+            used_by_model: boolean;
+        };
+        /** TeamNewsSideOut */
+        TeamNewsSideOut: {
+            /** Absences */
+            absences?: components["schemas"]["AbsenceOut"][];
+            /** Absences Captured At */
+            absences_captured_at?: string | null;
+            /** Formation */
+            formation?: string | null;
+            /** Lineup Captured At */
+            lineup_captured_at?: string | null;
+            /**
+             * Missing Regulars
+             * @description Regular starters not in the line-up (or reported out before it)
+             */
+            missing_regulars?: components["schemas"]["MissingRegularOut"][];
+            /**
+             * Recent Matches
+             * @description Matches used to find the regular starters
+             */
+            recent_matches: number;
+            /**
+             * Regulars Known
+             * @description Enough recent matches with player minutes to tell regulars apart
+             */
+            regulars_known: boolean;
+            /** Starters */
+            starters?: components["schemas"]["LineupPlayerOut"][];
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name: string;
         };
         /** TeamOut */
         TeamOut: {

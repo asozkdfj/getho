@@ -964,3 +964,51 @@ table.glossary th[scope="row"] {
 .pick-league {
   margin-top: 8px;
 }
+
+/* team news */
+.fixture-tags {
+  display: inline-flex;
+  gap: 4px;
+}
+.status.lineup-out {
+  color: var(--positive);
+  border-color: var(--positive);
+}
+.team-news-side h3 {
+  margin: 0 0 4px;
+}
+.team-news-side h4 {
+  margin: 10px 0 4px;
+  font-size: 0.88rem;
+}
+.lineup,
+.absences {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+}
+.lineup li {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 6px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+.lineup-no {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.lineup li.not-regular {
+  color: var(--away);
+}
+.lineup-tag {
+  font-size: 0.7rem;
+  border: 1px solid var(--away);
+  border-radius: 6px;
+  padding: 0 4px;
+}
+.absences li + li {
+  margin-top: 2px;
+}

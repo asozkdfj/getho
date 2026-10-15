@@ -23,10 +23,14 @@ from datetime import UTC, datetime, time, timedelta
 import numpy as np
 
 from edge_ingestion.providers.base import (
+    AbsenceData,
+    AppearanceData,
     FixtureData,
     FootballDataProvider,
     LeagueData,
+    LineupData,
     OddsData,
+    PlayerRef,
     TeamData,
 )
 from edge_ml.poisson import probabilities_from_expected_goals
@@ -182,6 +186,11 @@ CURRENT_ROUND_INDEX = 12  # 0-based index of the round containing "now"
 SEASON_BREAK_ROUNDS = 10  # ~40 day gap between the previous and current season
 MATCH_DURATION = timedelta(hours=2)
 KICKOFF_SLOTS = (time(12, 30), time(15, 0), time(19, 0))
+# Team news: absences are known 2 days before kickoff, line-ups 60 minutes before.
+ABSENCES_KNOWN = timedelta(days=2)
+LINEUPS_KNOWN = timedelta(minutes=60)
+SQUAD_POSITIONS = "GDDDDMMMFFF" + "GDDMMFF"  # 11 usual starters + 7 squad players
+P_OUT, P_DOUBTFUL = 0.08, 0.05
 # Odds snapshots are "captured" at these offsets before kickoff.
 SNAPSHOT_OFFSETS = (timedelta(days=10), timedelta(hours=48), timedelta(hours=6))
 
@@ -357,6 +366,87 @@ class MockProvider(FootballDataProvider):
                 if captured > self.reference_time:
                     continue  # cannot capture the future
                 out.append(self._price(fixture, k, captured))
+        return out
+
+    # -------------------------------------------------------------- team news
+    @staticmethod
+    def _squad(code: str) -> list[PlayerRef]:
+        return [
+            PlayerRef(f"{code}-P{n:02d}", f"{code} Player {n}", n, pos)
+            for n, pos in enumerate(SQUAD_POSITIONS, start=1)
+        ]
+
+    def _team_sheet(
+        self, fixture: FixtureData, code: str
+    ) -> tuple[list[PlayerRef], list[AbsenceData], list[PlayerRef]]:
+        """(starting XI, absences, bench) for one team, deterministic per fixture."""
+        squad = self._squad(code)
+        rng = np.random.default_rng(_seed("team-news", fixture.provider_id, code))
+        absences: list[AbsenceData] = []
+        unavailable: set[str] = set()
+        for player in squad[:11]:
+            roll = rng.random()
+            if roll < P_OUT:
+                status = "out"
+            elif roll < P_OUT + P_DOUBTFUL:
+                status = "doubtful"
+            else:
+                continue
+            reason = "Injury" if rng.random() < 0.8 else "Suspended"
+            absences.append(AbsenceData(fixture.provider_id, code, player, status, reason))
+            if status == "out" or rng.random() < 0.5:
+                unavailable.add(player.provider_id)
+        bench = [p for p in squad[11:]]
+        starters: list[PlayerRef] = []
+        for player in squad[:11]:
+            if player.provider_id not in unavailable:
+                starters.append(player)
+                continue
+            same = next((b for b in bench if b.position == player.position), None)
+            replacement = same or bench[0]
+            bench.remove(replacement)
+            starters.append(replacement)
+        return starters, absences, bench
+
+    def get_absences(self, fixtures: Mapping[str, datetime] | Sequence[str]) -> list[AbsenceData]:
+        out: list[AbsenceData] = []
+        for pid in fixtures:
+            f = self._by_id.get(pid)
+            if f is None or self.reference_time < f.kickoff_at - ABSENCES_KNOWN:
+                continue
+            for code in (f.home_team_provider_id, f.away_team_provider_id):
+                out.extend(self._team_sheet(f, code)[1])
+        return out
+
+    def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
+        out: list[LineupData] = []
+        for pid in fixture_provider_ids:
+            f = self._by_id.get(pid)
+            if f is None or self.reference_time < f.kickoff_at - LINEUPS_KNOWN:
+                continue
+            for code in (f.home_team_provider_id, f.away_team_provider_id):
+                starters, _, bench = self._team_sheet(f, code)
+                out.append(LineupData(pid, code, "4-3-3", tuple(starters), tuple(bench)))
+        return out
+
+    def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
+        out: list[AppearanceData] = []
+        for pid in fixture_provider_ids:
+            f = self._by_id.get(pid)
+            if f is None or f.status != "finished":
+                continue
+            for code in (f.home_team_provider_id, f.away_team_provider_id):
+                starters, _, bench = self._team_sheet(f, code)
+                rng = np.random.default_rng(_seed("subs", pid, code))
+                subbed = rng.choice(len(starters), size=min(3, len(bench)), replace=False)
+                minutes = {p.provider_id: 90 for p in starters}
+                for k, idx in enumerate(subbed):
+                    off = int(rng.integers(55, 86))
+                    minutes[starters[idx].provider_id] = off
+                    out.append(AppearanceData(pid, code, bench[k], False, 90 - off))
+                out.extend(
+                    AppearanceData(pid, code, p, True, minutes[p.provider_id]) for p in starters
+                )
         return out
 
     def _price(self, fixture: FixtureData, k: int, captured: datetime) -> OddsData:

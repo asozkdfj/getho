@@ -265,6 +265,77 @@ def all_current_fixture_items() -> list[dict]:
     ]
 
 
+def _squad_entry(team_id: int, n: int) -> dict:
+    pos = "GDDDDMMMFFF"[n - 1] if n <= 11 else "M"
+    return {"player": {"id": team_id * 100 + n, "name": f"P{team_id}-{n}", "number": n, "pos": pos}}
+
+
+def fixture_details(fid: int) -> dict | None:
+    """/fixtures?ids= item: line-ups once kickoff is within 1h, player minutes when finished."""
+    item = next((i for i in all_current_fixture_items() if i["fixture"]["id"] == fid), None)
+    if item is None:
+        return None
+    kickoff = datetime.fromisoformat(item["fixture"]["date"])
+    teams = [item["teams"]["home"]["id"], item["teams"]["away"]["id"]]
+    lineups, players = [], []
+    if kickoff - timedelta(hours=1) <= REF:
+        for tid in teams:
+            # player 11 is rested in every other match: a "missing regular" now and then
+            xi = [_squad_entry(tid, n) for n in range(1, 12)]
+            if fid % 2:
+                xi[-1] = _squad_entry(tid, 12)
+            lineups.append(
+                {
+                    "team": {"id": tid},
+                    "formation": "4-3-3",
+                    "startXI": xi,
+                    "substitutes": [_squad_entry(tid, n) for n in range(12, 16)],
+                }
+            )
+    if item["fixture"]["status"]["short"] == "FT":
+        for tid in teams:
+            entries = [
+                {
+                    "player": {"id": tid * 100 + n, "name": f"P{tid}-{n}"},
+                    "statistics": [
+                        {
+                            "games": {
+                                "minutes": 90 if n <= 11 else None,
+                                "number": n,
+                                "position": "M",
+                                "substitute": n > 11,
+                            }
+                        }
+                    ],
+                }
+                for n in range(1, 15)
+            ]
+            players.append({"team": {"id": tid}, "players": entries})
+    return {**item, "lineups": lineups, "players": players}
+
+
+def injuries_for(day: str) -> list[dict]:
+    out = []
+    for item in all_current_fixture_items():
+        if item["fixture"]["date"][:10] != day or item["fixture"]["status"]["short"] != "NS":
+            continue
+        tid = item["teams"]["home"]["id"]
+        out.append(
+            {
+                "player": {
+                    "id": tid * 100 + 9,
+                    "name": f"P{tid}-9",
+                    "type": "Missing Fixture",
+                    "reason": "Hamstring Injury",
+                },
+                "team": {"id": tid},
+                "fixture": {"id": item["fixture"]["id"]},
+                "league": {"id": item["league"]["id"]},
+            }
+        )
+    return out
+
+
 def _bet(home: str, draw: str, away: str) -> dict:
     return {
         "id": 1,
@@ -357,6 +428,11 @@ class FakeApiFootball:
             body = envelope("leagues", params, leagues_payload())
         elif parsed.path == "/teams":
             body = envelope("teams", params, teams_payload(int(params["season"])))
+        elif parsed.path == "/injuries":
+            body = envelope("injuries", params, injuries_for(params["date"]))
+        elif parsed.path == "/fixtures" and "ids" in params:
+            details = [fixture_details(int(i)) for i in params["ids"].split("-")]
+            body = envelope("fixtures", params, [d for d in details if d])
         elif parsed.path == "/fixtures":
             if "date" in params:
                 items = [

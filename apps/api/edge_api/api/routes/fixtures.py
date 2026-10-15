@@ -31,6 +31,7 @@ from edge_api.services.analysis import (
 )
 from edge_api.services.leagues import league_ref, verified_league_ids
 from edge_api.services.quality import assess, last_successful_run
+from edge_api.services.team_news import fixtures_with_lineups, team_news
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
@@ -40,6 +41,7 @@ def fixture_summary(
     odds: OddsSnapshot | None,
     prediction: Prediction | None,
     verified: frozenset[str] = frozenset(),
+    lineups_announced: bool = False,
 ) -> FixtureSummaryOut:
     return FixtureSummaryOut(
         id=fixture.id,
@@ -58,6 +60,7 @@ def fixture_summary(
             to_probabilities_out(model_probabilities(prediction)) if prediction else None
         ),
         prediction_id=prediction.id if prediction else None,
+        lineups_announced=lineups_announced,
     )
 
 
@@ -95,6 +98,7 @@ def list_fixtures(
     odds = queries.latest_odds_by_fixture(db, ids, settings.bookmaker)
     preds = queries.latest_predictions_by_fixture(db, ids)
     verified = verified_league_ids(db, settings.data_provider)
+    with_lineups = fixtures_with_lineups(db, ids)
     return FixtureListOut(
         date=local_day.isoformat(),
         days=days,
@@ -103,7 +107,10 @@ def list_fixtures(
         bookmaker=settings.bookmaker,
         range_start_utc=start.astimezone(UTC),
         range_end_utc=end.astimezone(UTC),
-        fixtures=[fixture_summary(f, odds.get(f.id), preds.get(f.id), verified) for f in fixtures],
+        fixtures=[
+            fixture_summary(f, odds.get(f.id), preds.get(f.id), verified, f.id in with_lineups)
+            for f in fixtures
+        ],
     )
 
 
@@ -119,10 +126,12 @@ def get_fixture(fixture_id: int, db: DbSession, settings: AppSettings) -> Fixtur
         history[-1] if history else None,
         prediction,
         verified_league_ids(db, settings.data_provider),
+        fixture.id in fixtures_with_lineups(db, [fixture.id]),
     )
     return FixtureDetailOut(
         **summary.model_dump(),
         odds_history=[OddsSnapshotOut.model_validate(o) for o in history],
+        team_news=team_news(db, fixture),
     )
 
 

@@ -1,6 +1,49 @@
 {
   "components": {
     "schemas": {
+      "AbsenceOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "regular": {
+            "title": "Regular",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "out",
+              "doubtful"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "status",
+          "regular"
+        ],
+        "title": "AbsenceOut",
+        "type": "object"
+      },
       "CalibrationBinOut": {
         "properties": {
           "count": {
@@ -665,6 +708,11 @@
           "league": {
             "$ref": "#/components/schemas/LeagueRefOut"
           },
+          "lineups_announced": {
+            "default": false,
+            "title": "Lineups Announced",
+            "type": "boolean"
+          },
           "model_probabilities": {
             "anyOf": [
               {
@@ -711,6 +759,16 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "team_news": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeamNewsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -845,6 +903,11 @@
           },
           "league": {
             "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "lineups_announced": {
+            "default": false,
+            "title": "Lineups Announced",
+            "type": "boolean"
           },
           "model_probabilities": {
             "anyOf": [
@@ -1402,6 +1465,52 @@
         "title": "LeagueSummaryOut",
         "type": "object"
       },
+      "LineupPlayerOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "regular": {
+            "description": "Among the team's most used players in recent matches",
+            "title": "Regular",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "regular"
+        ],
+        "title": "LineupPlayerOut",
+        "type": "object"
+      },
       "LiveEvaluationOut": {
         "properties": {
           "is_demo": {
@@ -1469,6 +1578,36 @@
           "brier"
         ],
         "title": "LiveSideOut",
+        "type": "object"
+      },
+      "MissingRegularOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "From the absence report, when known",
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "player_id",
+          "name"
+        ],
+        "title": "MissingRegularOut",
         "type": "object"
       },
       "ModelMetricOut": {
@@ -2410,6 +2549,125 @@
           "outcome"
         ],
         "title": "SelectionIn",
+        "type": "object"
+      },
+      "TeamNewsOut": {
+        "properties": {
+          "away": {
+            "$ref": "#/components/schemas/TeamNewsSideOut"
+          },
+          "home": {
+            "$ref": "#/components/schemas/TeamNewsSideOut"
+          },
+          "lineups_announced": {
+            "title": "Lineups Announced",
+            "type": "boolean"
+          },
+          "note": {
+            "default": "선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요.",
+            "title": "Note",
+            "type": "string"
+          },
+          "used_by_model": {
+            "default": false,
+            "description": "Whether model probabilities use this information",
+            "title": "Used By Model",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lineups_announced",
+          "home",
+          "away"
+        ],
+        "title": "TeamNewsOut",
+        "type": "object"
+      },
+      "TeamNewsSideOut": {
+        "properties": {
+          "absences": {
+            "items": {
+              "$ref": "#/components/schemas/AbsenceOut"
+            },
+            "title": "Absences",
+            "type": "array"
+          },
+          "absences_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absences Captured At"
+          },
+          "formation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formation"
+          },
+          "lineup_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineup Captured At"
+          },
+          "missing_regulars": {
+            "description": "Regular starters not in the line-up (or reported out before it)",
+            "items": {
+              "$ref": "#/components/schemas/MissingRegularOut"
+            },
+            "title": "Missing Regulars",
+            "type": "array"
+          },
+          "recent_matches": {
+            "description": "Matches used to find the regular starters",
+            "title": "Recent Matches",
+            "type": "integer"
+          },
+          "regulars_known": {
+            "description": "Enough recent matches with player minutes to tell regulars apart",
+            "title": "Regulars Known",
+            "type": "boolean"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/LineupPlayerOut"
+            },
+            "title": "Starters",
+            "type": "array"
+          },
+          "team_id": {
+            "title": "Team Id",
+            "type": "integer"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "team_name",
+          "regulars_known",
+          "recent_matches"
+        ],
+        "title": "TeamNewsSideOut",
         "type": "object"
       },
       "TeamOut": {

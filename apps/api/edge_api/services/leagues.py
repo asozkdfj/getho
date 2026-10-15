@@ -58,3 +58,17 @@ def league_ref(league: League, verified: frozenset[str]) -> LeagueRefOut:
         predicted=is_predicted(league),
         verified=league.provider_id in verified,
     )
+
+
+def scoped_league_ids(session: Session, provider: str, mode: str) -> frozenset[str] | None:
+    """League scope setting -> provider league ids (None = every league).
+
+    "verified" means leagues whose accuracy the backtest measured; synthetic (mock)
+    leagues can never be verified, so on mock data the scope covers everything.
+    """
+    value = mode.strip().lower()
+    if value == "all":
+        return None
+    if value == "verified":
+        return None if provider == "mock" else verified_league_ids(session, provider)
+    return frozenset(v.strip() for v in mode.split(",") if v.strip())

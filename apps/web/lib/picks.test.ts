@@ -40,6 +40,7 @@ const pick: TodayPick = {
     away_team: { id: 2, name: "Hull City", short_name: "HUL" },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
   },
   outcome: "HOME",
   probability: 0.68,

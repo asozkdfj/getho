@@ -76,6 +76,47 @@ class OddsData:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True, slots=True)
+class PlayerRef:
+    provider_id: str
+    name: str
+    number: int | None = None
+    position: str | None = None  # G / D / M / F when known
+
+
+@dataclass(frozen=True, slots=True)
+class LineupData:
+    """Official starting XI of one team (published shortly before kickoff)."""
+
+    fixture_provider_id: str
+    team_provider_id: str
+    formation: str | None
+    starters: tuple[PlayerRef, ...]
+    substitutes: tuple[PlayerRef, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AbsenceData:
+    """A player reported unavailable or doubtful for a fixture."""
+
+    fixture_provider_id: str
+    team_provider_id: str
+    player: PlayerRef
+    status: str  # "out" | "doubtful"
+    reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AppearanceData:
+    """Minutes one player played in a finished fixture."""
+
+    fixture_provider_id: str
+    team_provider_id: str
+    player: PlayerRef
+    started: bool
+    minutes: int
+
+
 class FootballDataProvider(ABC):
     """One data source covering any number of leagues.
 
@@ -102,6 +143,19 @@ class FootballDataProvider(ABC):
     @abstractmethod
     def get_odds(self, fixtures: Mapping[str, datetime]) -> list[OddsData]:
         """Odds captured so far for these fixtures (provider_id -> kickoff time)."""
+
+    # ---- team news (optional: providers without it simply return nothing)
+    def get_absences(self, fixtures: Mapping[str, datetime]) -> list[AbsenceData]:
+        """Injured / suspended / doubtful players for these upcoming fixtures."""
+        return []
+
+    def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
+        """Official line-ups already published for these fixtures."""
+        return []
+
+    def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
+        """Player minutes of these finished fixtures."""
+        return []
 
     def budget_ok(self) -> bool:
         """False when optional work (history backfill) should wait for a later run."""

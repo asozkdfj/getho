@@ -315,3 +315,57 @@ class DailyPickEvent(Base):
     hit: Mapped[bool | None] = mapped_column(Boolean)
     reason: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class TeamNewsKind(StrEnum):
+    LINEUP = "lineup"  # official starting XI (published shortly before kickoff)
+    ABSENCES = "absences"  # injured / suspended / doubtful players (days before)
+
+
+class TeamNewsSnapshot(Base):
+    """What was known about one team's line-up for one fixture at a point in time.
+
+    Append-only: a changed report (new content hash) is a new row. Re-fetching the
+    same report is a no-op, so polling before kickoff never duplicates rows.
+    """
+
+    __tablename__ = "team_news_snapshots"
+    __table_args__ = (
+        UniqueConstraint("fixture_id", "team_id", "kind", "content_hash", name="content_key"),
+        Index("ix_team_news_fixture_kind_captured", "fixture_id", "kind", "captured_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    kind: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    captured_at: Mapped[datetime] = _ts()
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class PlayerAppearance(Base):
+    """Minutes a player played in a finished fixture (append-only fact).
+
+    Used to tell regular starters from squad players, so a published line-up can
+    be described as "usual XI" or "n regulars missing".
+    """
+
+    __tablename__ = "player_appearances"
+    __table_args__ = (
+        UniqueConstraint("fixture_id", "player_provider_id", name="fixture_player"),
+        Index("ix_player_appearances_team", "team_id", "fixture_id"),
+        CheckConstraint("minutes >= 0 AND minutes <= 130", name="minutes_range"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    player_provider_id: Mapped[str] = mapped_column(String(64))
+    player_name: Mapped[str] = mapped_column(String(120))
+    started: Mapped[bool] = mapped_column(Boolean)
+    minutes: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _ts(server_default=func.now())

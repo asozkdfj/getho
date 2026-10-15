@@ -38,6 +38,7 @@ from edge_api.services.picks import local_day, publish_daily_pick, settle_daily_
 from edge_api.services.prediction_job import PredictionJobResult, run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion.providers.base import FixtureData, FootballDataProvider, LeagueData, TeamData
+from edge_ingestion.team_news import ingest_team_news
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class PipelineResult:
     ingestion: IngestionResult
     predictions: PredictionJobResult
     picks: dict[str, Any] = field(default_factory=dict)
+    team_news: dict[str, int] = field(default_factory=dict)
 
 
 def _key_map(rows: Result[tuple[str, int]]) -> dict[str, int]:
@@ -385,6 +387,9 @@ def run_pipeline(
     started = utcnow()
     session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": PIPELINE_LOCK_KEY})
     ingestion = run_ingestion(session, provider, now=now, settings=settings)
+    team_news = (
+        asdict(ingest_team_news(session, provider, now=now, settings=settings)) if settings else {}
+    )
     predictions = run_prediction_job(session, now=now, bookmaker=bookmaker, provider=provider.name)
     session.add(
         IngestionRun(
@@ -392,7 +397,11 @@ def run_pipeline(
             started_at=started,
             finished_at=utcnow(),
             status="success",
-            counts={"ingestion": asdict(ingestion), "predictions": asdict(predictions)},
+            counts={
+                "ingestion": asdict(ingestion),
+                "predictions": asdict(predictions),
+                "team_news": team_news,
+            },
         )
     )
     session.flush()
@@ -401,7 +410,7 @@ def run_pipeline(
         picks["settled"] = settle_daily_picks(session, settings, now)
         if now >= local_day(now, settings).publish_at:
             picks["published"] = publish_daily_pick(session, settings, now).status
-    return PipelineResult(ingestion, predictions, picks)
+    return PipelineResult(ingestion, predictions, picks, team_news)
 
 
 def record_failed_run(provider: str, started: datetime, error: BaseException) -> None:

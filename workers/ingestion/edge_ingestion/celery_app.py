@@ -1,4 +1,4 @@
-"""Celery app (Phase 1: minimal). One periodic task keeps data/predictions fresh.
+"""Celery app. Periodic tasks keep data/predictions fresh and poll line-ups.
 
 Run:  celery -A edge_ingestion.celery_app worker -B --loglevel=INFO
 `-B` embeds beat for local dev; run a dedicated beat process in production.
@@ -30,6 +30,11 @@ app.conf.update(
         "ingest-and-predict": {
             "task": "edge_ingestion.tasks.ingest_and_predict",
             "schedule": float(os.getenv("PIPELINE_INTERVAL_SECONDS", "1800")),
-        }
+        },
+        # official line-ups appear ~1h before kickoff: poll more often than the pipeline
+        "refresh-lineups": {
+            "task": "edge_ingestion.tasks.refresh_lineups",
+            "schedule": float(os.getenv("TEAM_NEWS_INTERVAL_SECONDS", "600")),
+        },
     },
 )

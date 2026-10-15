@@ -16,7 +16,12 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
     <Link href={`/fixtures/${fixture.id}`} className="card fixture-card">
       <div className="fixture-meta">
         <LocalTime iso={fixture.kickoff_at} fallbackTz={tz} format="time" />
-        <span className={`status status-${fixture.status}`}>{statusLabel(fixture.status)}</span>
+        <span className="fixture-tags">
+          {fixture.lineups_announced && fixture.status === "scheduled" && (
+            <span className="status lineup-out">명단 발표</span>
+          )}
+          <span className={`status status-${fixture.status}`}>{statusLabel(fixture.status)}</span>
+        </span>
       </div>
       <div className="fixture-teams">
         <span className="team">{fixture.home_team.name}</span>

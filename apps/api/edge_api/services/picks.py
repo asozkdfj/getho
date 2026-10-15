@@ -34,7 +34,7 @@ from edge_api.db.models import (
     ModelEvaluation,
 )
 from edge_api.services import queries
-from edge_api.services.leagues import verified_league_ids
+from edge_api.services.leagues import scoped_league_ids
 from edge_api.services.quality import assess, last_successful_run
 from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
@@ -133,14 +133,7 @@ def _insert_pick(session: Session, values: dict[str, Any]) -> DailyPick:
 
 def eligible_league_ids(session: Session, settings: Settings) -> frozenset[str] | None:
     """Provider league ids the pick may come from (None = every predicted league)."""
-    mode = settings.pick_leagues.strip().lower()
-    if mode == "all":
-        return None
-    if mode == "verified":
-        if settings.data_provider == "mock":
-            return None  # synthetic leagues cannot be verified; mock picks are demo-only
-        return verified_league_ids(session, settings.data_provider)
-    return frozenset(v.strip() for v in settings.pick_leagues.split(",") if v.strip())
+    return scoped_league_ids(session, settings.data_provider, settings.pick_leagues)
 
 
 def publish_daily_pick(

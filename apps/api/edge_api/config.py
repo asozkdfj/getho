@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     # "all" (every predicted league) or comma-separated provider league ids.
     pick_leagues: str = "verified"
 
+    # --- team news (absences days before, official line-ups ~1h before kickoff)
+    # Leagues to collect for: "verified", "all" or comma-separated provider league ids.
+    team_news_leagues: str = "verified"
+    lineup_window_minutes: int = 90  # look for line-ups of matches starting this soon
+    absences_horizon_hours: int = 48
+    appearances_per_run: int = 200  # finished fixtures whose player minutes are fetched
+
     # --- data quality gates
     odds_max_age_hours: float | None = None  # None -> provider default
     ingest_max_age_hours: float = 8.0

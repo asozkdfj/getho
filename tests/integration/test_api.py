@@ -332,3 +332,44 @@ def test_today_pick_reports_league_scope(client):
     assert body["league_scope"] == "verified"
     if body["status"] != "scheduled":
         assert body["matches_in_scope"] == body["matches_today"]  # mock: demo-wide scope
+
+
+def test_fixture_detail_shows_team_news(client, session_factory, now):
+    from datetime import timedelta
+
+    from sqlalchemy import select
+
+    from edge_api.config import Settings
+    from edge_api.db.models import Fixture
+    from edge_ingestion.providers import MockProvider
+    from edge_ingestion.team_news import ingest_team_news
+
+    settings = Settings(team_news_leagues="all", appearances_per_run=10_000)
+    with session_factory() as s:
+        ingest_team_news(s, MockProvider(now), now=now, settings=settings)  # minutes, absences
+        f = s.scalars(
+            select(Fixture)
+            .where(Fixture.status == "scheduled", Fixture.kickoff_at > now)
+            .order_by(Fixture.kickoff_at)
+        ).first()
+        before = f.kickoff_at - timedelta(minutes=30)
+        ingest_team_news(s, MockProvider(before), now=before, settings=settings, lineups_only=True)
+        s.commit()
+        fid = f.id
+
+    detail = client.get(f"/fixtures/{fid}").json()
+    news = detail["team_news"]
+    assert detail["lineups_announced"] is True and news["lineups_announced"] is True
+    assert news["used_by_model"] is False and "반영하지 않았어요" in news["note"]
+    for side in (news["home"], news["away"]):
+        assert len(side["starters"]) == 11 and side["formation"]
+        assert side["regulars_known"] is True and side["recent_matches"] >= 3
+        regulars_in_xi = sum(p["regular"] for p in side["starters"])
+        assert regulars_in_xi + len(side["missing_regulars"]) == 11
+    listed = client.get("/fixtures", params={"days": 7}).json()["fixtures"]
+    assert next(x for x in listed if x["id"] == fid)["lineups_announced"] is True
+
+
+def test_team_news_is_absent_without_data(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    assert client.get(f"/fixtures/{fid}").json()["team_news"] is None

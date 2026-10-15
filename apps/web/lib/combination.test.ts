@@ -16,6 +16,7 @@ function fx(id: number, home: number, away: number, extra: Partial<FixtureSummar
     away_team: { id: away, name: `T${away}`, short_name: `T${away}` },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
     latest_odds: {
       id: id * 10,
       bookmaker: "mockbook",

@@ -7,6 +7,8 @@ Endpoints used (all GET, header ``x-apisports-key``):
   /fixtures?league=L&season=S&timezone=UTC  one league-season (history backfill)
   /odds?date=YYYY-MM-DD&bet=1&page=N        pre-match 1X2 of one day, all leagues, paginated
   /odds?league=L&season=S&bet=1&page=N      same, for a short explicit league list
+  /injuries?date=YYYY-MM-DD                 injured / suspended / doubtful players of one day
+  /fixtures?ids=a-b-c (<= 20 ids)           line-ups and player minutes of several fixtures
 
 Operational facts that shape this module (from the provider's docs/guides):
 - pre-match odds appear ~1-14 days before kickoff, refresh ~every 3 hours and are
@@ -33,10 +35,14 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from edge_ingestion.providers.base import (
+    AbsenceData,
+    AppearanceData,
     FixtureData,
     FootballDataProvider,
     LeagueData,
+    LineupData,
     OddsData,
+    PlayerRef,
     TeamData,
 )
 from edge_ingestion.providers.http import JsonHttpClient, ProviderError, Transport, urllib_transport
@@ -48,6 +54,9 @@ MAX_ODDS_PAGES = 100  # safety stop per day (or per league)
 # With this many explicitly configured leagues or fewer, odds are fetched per
 # league; otherwise per day for all leagues at once.
 PER_LEAGUE_ODDS_MAX = 5
+IDS_PER_REQUEST = 20  # /fixtures?ids= accepts up to 20 fixture ids
+# /injuries player.type -> our status
+ABSENCE_STATUS = {"missing fixture": "out", "questionable": "doubtful"}
 
 # API-Football fixture.status.short -> our FixtureStatus values
 STATUS_MAP: dict[str, str] = {
@@ -377,6 +386,104 @@ class ApiFootballProvider(FootballDataProvider):
             )
         return out
 
+    # -------------------------------------------------------------- team news
+    def get_absences(self, fixtures: Mapping[str, datetime]) -> list[AbsenceData]:
+        by_day: dict[date, set[str]] = {}
+        for pid, kickoff in fixtures.items():
+            by_day.setdefault(kickoff.astimezone(UTC).date(), set()).add(pid)
+        out: list[AbsenceData] = []
+        for day, wanted in sorted(by_day.items()):
+            if not self.budget_ok():
+                break
+            payload = self._get("/injuries", {"date": day.isoformat(), "timezone": "UTC"})
+            for item in payload["response"]:
+                absence = self._parse_absence(item, wanted)
+                if absence:
+                    out.append(absence)
+        return out
+
+    @staticmethod
+    def _parse_absence(item: Mapping[str, Any], wanted: set[str]) -> AbsenceData | None:
+        try:
+            fixture_id = str(item["fixture"]["id"])
+            if fixture_id not in wanted:
+                return None
+            player = item["player"]
+            status = ABSENCE_STATUS.get(str(player.get("type", "")).strip().lower(), "doubtful")
+            return AbsenceData(
+                fixture_provider_id=fixture_id,
+                team_provider_id=str(item["team"]["id"]),
+                player=PlayerRef(str(player["id"]), str(player["name"])),
+                status=status,
+                reason=player.get("reason"),
+            )
+        except (KeyError, TypeError) as exc:
+            logger.warning("malformed injury payload skipped: %s", exc)
+            return None
+
+    def _fixture_details(self, fixture_provider_ids: list[str]) -> list[Mapping[str, Any]]:
+        out: list[Mapping[str, Any]] = []
+        ids = list(dict.fromkeys(fixture_provider_ids))
+        for i in range(0, len(ids), IDS_PER_REQUEST):
+            if not self.budget_ok():
+                logger.warning("api_football daily budget nearly used up; team news postponed")
+                break
+            chunk = ids[i : i + IDS_PER_REQUEST]
+            out.extend(self._get("/fixtures", {"ids": "-".join(chunk)})["response"])
+        return out
+
+    def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
+        out: list[LineupData] = []
+        for item in self._fixture_details(fixture_provider_ids):
+            try:
+                fixture_id = str(item["fixture"]["id"])
+                for team in item.get("lineups") or []:
+                    starters = tuple(_player(p) for p in team.get("startXI") or [])
+                    if len(starters) < 11:
+                        continue  # not published yet (or incomplete)
+                    out.append(
+                        LineupData(
+                            fixture_provider_id=fixture_id,
+                            team_provider_id=str(team["team"]["id"]),
+                            formation=team.get("formation"),
+                            starters=starters,
+                            substitutes=tuple(_player(p) for p in team.get("substitutes") or []),
+                        )
+                    )
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning("malformed lineup payload skipped: %s", exc)
+        return out
+
+    def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
+        out: list[AppearanceData] = []
+        for item in self._fixture_details(fixture_provider_ids):
+            try:
+                fixture_id = str(item["fixture"]["id"])
+                for team in item.get("players") or []:
+                    team_id = str(team["team"]["id"])
+                    for entry in team.get("players") or []:
+                        games = ((entry.get("statistics") or [{}])[0] or {}).get("games") or {}
+                        minutes = games.get("minutes")
+                        if not minutes:
+                            continue  # unused substitute
+                        out.append(
+                            AppearanceData(
+                                fixture_provider_id=fixture_id,
+                                team_provider_id=team_id,
+                                player=PlayerRef(
+                                    str(entry["player"]["id"]),
+                                    str(entry["player"]["name"]),
+                                    games.get("number"),
+                                    games.get("position"),
+                                ),
+                                started=not games.get("substitute", False),
+                                minutes=max(0, min(int(minutes), 130)),
+                            )
+                        )
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning("malformed player stats payload skipped: %s", exc)
+        return out
+
     @staticmethod
     def _match_winner_prices(bookmaker: Mapping[str, Any]) -> dict[str, float] | None:
         for bet in bookmaker.get("bets") or []:
@@ -393,6 +500,11 @@ class ApiFootballProvider(FootballDataProvider):
             if {"Home", "Draw", "Away"} <= prices.keys():
                 return prices
         return None
+
+
+def _player(item: Mapping[str, Any]) -> PlayerRef:
+    p = item["player"]
+    return PlayerRef(str(p["id"]), str(p["name"]), p.get("number"), p.get("pos"))
 
 
 def _team(item: Mapping[str, Any]) -> TeamData:

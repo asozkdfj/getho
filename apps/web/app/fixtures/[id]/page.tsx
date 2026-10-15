@@ -6,6 +6,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { LeagueBadge } from "@/components/LeagueBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ProbabilityBar } from "@/components/ProbabilityBar";
+import { TeamNewsSection } from "@/components/TeamNewsSection";
 import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
 import { plainSummary } from "@/lib/explain";
 import { leagueLabel, leagueNote } from "@/lib/leagues";
@@ -222,6 +223,8 @@ export default async function FixturePage({ params }: { params: Params }) {
           </p>
         </div>
       )}
+
+      {fixture.team_news && <TeamNewsSection news={fixture.team_news} tz={tz} />}
 
       <h2>배당 변화 기록</h2>
       {fixture.odds_history.length === 0 ? (

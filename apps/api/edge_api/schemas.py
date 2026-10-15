@@ -124,6 +124,7 @@ class FixtureSummaryOut(ApiModel):
     fair_market_probabilities: ProbabilitiesOut | None = None
     model_probabilities: ProbabilitiesOut | None = None
     prediction_id: int | None = None
+    lineups_announced: bool = False
 
 
 class FixtureListOut(ApiModel):
@@ -137,8 +138,61 @@ class FixtureListOut(ApiModel):
     fixtures: list[FixtureSummaryOut]
 
 
+class LineupPlayerOut(ApiModel):
+    player_id: str
+    name: str
+    number: int | None = None
+    position: str | None = None
+    regular: bool = Field(description="Among the team's most used players in recent matches")
+
+
+class AbsenceOut(ApiModel):
+    player_id: str
+    name: str
+    status: Literal["out", "doubtful"]
+    reason: str | None = None
+    regular: bool
+
+
+class MissingRegularOut(ApiModel):
+    player_id: str
+    name: str
+    reason: str | None = Field(default=None, description="From the absence report, when known")
+
+
+class TeamNewsSideOut(ApiModel):
+    team_id: int
+    team_name: str
+    formation: str | None = None
+    starters: list[LineupPlayerOut] = Field(default_factory=list)
+    lineup_captured_at: datetime | None = None
+    absences: list[AbsenceOut] = Field(default_factory=list)
+    absences_captured_at: datetime | None = None
+    missing_regulars: list[MissingRegularOut] = Field(
+        default_factory=list,
+        description="Regular starters not in the line-up (or reported out before it)",
+    )
+    regulars_known: bool = Field(
+        description="Enough recent matches with player minutes to tell regulars apart"
+    )
+    recent_matches: int = Field(description="Matches used to find the regular starters")
+
+
+class TeamNewsOut(ApiModel):
+    lineups_announced: bool
+    home: TeamNewsSideOut
+    away: TeamNewsSideOut
+    used_by_model: bool = Field(
+        default=False, description="Whether model probabilities use this information"
+    )
+    note: str = (
+        "선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요."
+    )
+
+
 class FixtureDetailOut(FixtureSummaryOut):
     odds_history: list[OddsSnapshotOut]
+    team_news: TeamNewsOut | None = None
 
 
 class ModelVersionOut(ApiModel):
