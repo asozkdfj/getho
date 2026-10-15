@@ -47,10 +47,20 @@ req = urllib.request.Request(api + "/combinations/analyze", data=body.encode(),
 with urllib.request.urlopen(req, timeout=10) as r:
     combo = json.load(r)
 assert combo["method"] == "independence_approximation" and combo["is_approximation"] is True
-print(f"API ok: {len(fixtures)} fixtures this week, combination EV {combo['expected_value']:+.3f}")
+pick = get("/picks/today")
+assert pick["status"] in {"scheduled", "published", "no_qualifying_match", "no_matches",
+                          "voided", "settled"}, pick["status"]
+assert pick["is_demo"] is True, "mock data must be flagged as demo"
+assert get("/picks/today")["pick_id"] == pick["pick_id"], "pick changed on refresh"
+assert "summary" in get("/picks/history")
+perf = get("/performance")
+assert perf["evaluation"] is not None, "seed should import the backtest report"
+assert get("/status/data")["last_success_at"], "no successful ingestion run logged"
+print(f"API ok: {len(fixtures)} fixtures this week, combination EV {combo['expected_value']:+.3f}, "
+      f"today's pick: {pick['status']}")
 PY
 
-for path in / "/?range=week" /combinations /methodology; do
+for path in / "/?range=week" /combinations /methodology /guide /picks /performance; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL$path")
   [[ "$code" == "200" ]] || { echo "web $path -> $code" >&2; exit 1; }
 done

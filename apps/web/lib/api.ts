@@ -1,6 +1,15 @@
 import "server-only";
 
-import type { FixtureDetail, FixtureList, HighlightList, Prediction } from "@edge/contracts";
+import type {
+  DataStatus,
+  FixtureDetail,
+  FixtureList,
+  HighlightList,
+  Performance,
+  PickHistory,
+  Prediction,
+  TodayPick,
+} from "@edge/contracts";
 
 import { apiBaseUrl } from "./config";
 
@@ -51,4 +60,29 @@ export function fetchHighlights(params: { days?: number; limit?: number } = {}) 
     limit: String(params.limit ?? 3),
   });
   return getJson<HighlightList>(`/highlights?${q.toString()}`);
+}
+
+export function fetchTodayPick() {
+  return getJson<TodayPick>("/picks/today");
+}
+
+export function fetchPickHistory(limit = 60) {
+  return getJson<PickHistory>(`/picks/history?limit=${limit}`);
+}
+
+export function fetchPerformance() {
+  return getJson<Performance>("/performance");
+}
+
+export function fetchDataStatus() {
+  return getJson<DataStatus>("/status/data");
+}
+
+/** Resolves to null instead of throwing, so one failing panel never blanks the page. */
+export async function orNull<T>(p: Promise<T>): Promise<T | null> {
+  try {
+    return await p;
+  } catch {
+    return null;
+  }
 }

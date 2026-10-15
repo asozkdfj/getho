@@ -895,7 +895,7 @@ export interface components {
             date: string;
             /**
              * Disclaimer
-             * @default Today's Pick은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.
+             * @default 오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.
              */
             disclaimer: string;
             expected_goals?: components["schemas"]["ExpectedGoalsOut"] | null;

@@ -154,6 +154,8 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                 )
                 if command == "seed":
                     started = utcnow()
+                    # Before the pipeline: a pick published by it cites this backtest.
+                    imported = import_report(session)
                     try:
                         pipeline = run_pipeline(
                             session,
@@ -167,7 +169,7 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                         record_failed_run(provider.name, started, exc)
                         raise
                     result = asdict(pipeline)
-                    result["evaluation_imported"] = import_report(session)
+                    result["evaluation_imported"] = imported
                 else:
                     result = asdict(run_ingestion(session, provider, now=now))
     return result

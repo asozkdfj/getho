@@ -504,7 +504,7 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 520px) {
-  /* brand on its own line, the four menu items share one row */
+  /* brand on its own line, menu items share one row (scrolls sideways if needed) */
   .header-inner {
     gap: 0;
     padding-top: 6px;
@@ -514,10 +514,12 @@ tbody tr:last-child td {
     width: 100%;
     justify-content: space-between;
     flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   nav a {
     padding: 6px 4px;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     white-space: nowrap;
   }
   h1 {
@@ -528,6 +530,12 @@ tbody tr:last-child td {
     padding: 8px 10px;
   }
   .stat .value {
+    font-size: 1.15rem;
+  }
+  .pick-prob-value {
+    font-size: 1.6rem;
+  }
+  .pick-outcome {
     font-size: 1.15rem;
   }
 }
@@ -620,4 +628,184 @@ table.glossary th[scope="row"] {
 
 .summary-card .caveats {
   margin: 6px 0 8px;
+}
+
+/* Today's Pick */
+.pick-card {
+  border-top: 4px solid var(--brand);
+  margin-bottom: 8px;
+}
+.pick-card.voided {
+  border-top-color: var(--negative);
+}
+.pick-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pick-title {
+  margin: 0;
+}
+.pick-status.positive {
+  color: var(--positive);
+  border-color: var(--positive);
+}
+.pick-status.negative {
+  color: var(--negative);
+  border-color: var(--negative);
+}
+.demo-banner {
+  background: var(--bg);
+  border: 1px dashed var(--away);
+  color: var(--away);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 8px 0;
+}
+.pick-match {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 6px;
+}
+.pick-teams {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: inherit;
+  text-decoration: none;
+}
+.pick-teams:hover {
+  color: var(--accent);
+}
+.pick-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.pick-outcome {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+.pick-prob {
+  text-align: right;
+}
+.pick-prob-value {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand);
+  line-height: 1.1;
+}
+.pick-result {
+  font-weight: 700;
+  margin: 10px 0 0;
+}
+.pick-reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+}
+.pick-reasons li + li {
+  margin-top: 2px;
+}
+.pick-backtest {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 10px 0 6px;
+}
+.pick-meta {
+  margin: 6px 0 0;
+}
+.pick-disclaimer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  margin: 10px 0 0;
+  padding-top: 8px;
+}
+.data-status {
+  margin: 2px 0 0;
+}
+.data-status.ok span {
+  color: var(--positive);
+}
+.data-status.stale {
+  color: var(--negative);
+}
+
+/* performance */
+.row-highlight td {
+  font-weight: 700;
+}
+.calibration {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.calibration svg {
+  width: 100%;
+  max-width: 340px;
+  display: block;
+  margin: 0 auto;
+}
+.calibration text {
+  font-size: 9px;
+  fill: var(--muted);
+}
+.calibration .grid {
+  stroke: var(--border);
+  stroke-width: 0.5;
+}
+.calibration .diag {
+  stroke: var(--muted);
+  stroke-dasharray: 4 3;
+}
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 28px 0 10px;
+  scroll-margin-top: 72px;
+}
+.section-head h2 {
+  margin: 0;
+}
+
+/* pick history */
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.history-match {
+  display: inline-block;
+  font-weight: 700;
+  margin-top: 4px;
+  color: inherit;
+}
+.history-pick {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.status.positive {
+  color: var(--positive);
+  border-color: var(--positive);
+}
+.status.negative {
+  color: var(--negative);
+  border-color: var(--negative);
 }

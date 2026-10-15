@@ -1,10 +1,12 @@
 import type { FixtureSummary } from "@edge/contracts";
 import Link from "next/link";
 
+import { DataStatusBadge } from "@/components/DataStatusBadge";
 import { Disclaimer } from "@/components/Disclaimer";
 import { FixtureCard } from "@/components/FixtureCard";
 import { Highlights } from "@/components/Highlights";
-import { fetchFixtures, fetchHighlights } from "@/lib/api";
+import { TodayPickCard } from "@/components/TodayPickCard";
+import { fetchDataStatus, fetchFixtures, fetchHighlights, fetchTodayPick, orNull } from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
 import { providerLabel } from "@/lib/format";
 import { TERM } from "@/lib/terms";
@@ -32,9 +34,11 @@ export default async function FixturesPage({
   // EPL matches are mostly at weekends, so "today" is usually empty: default to the week.
   const range: Range = rawRange === "today" ? "today" : "week";
   const tz = DEFAULT_TZ;
-  const [data, highlights] = await Promise.all([
+  const [data, highlights, pick, status] = await Promise.all([
     fetchFixtures({ days: range === "week" ? 7 : 1, tz }),
     fetchHighlights({ days: 7, limit: 3 }),
+    orNull(fetchTodayPick()),
+    orNull(fetchDataStatus()),
   ]);
   const groups = groupByDay(data.fixtures, tz);
 
@@ -49,20 +53,25 @@ export default async function FixturesPage({
           <p className="muted small" style={{ margin: 0 }}>
             데이터: {providerLabel(data.data_provider)} · 배당 출처: {data.bookmaker}
           </p>
+          <DataStatusBadge status={status} tz={tz} />
         </div>
+      </div>
+
+      <TodayPickCard pick={pick} tz={tz} />
+
+      <Highlights data={highlights} tz={tz} />
+
+      <div className="section-head" id="list">
+        <h2>경기 목록</h2>
         <nav className="tabs" aria-label="기간">
-          <Link href="/?range=today" aria-current={range === "today" ? "page" : undefined}>
+          <Link href="/?range=today#list" aria-current={range === "today" ? "page" : undefined}>
             오늘
           </Link>
-          <Link href="/?range=week" aria-current={range === "week" ? "page" : undefined}>
+          <Link href="/?range=week#list" aria-current={range === "week" ? "page" : undefined}>
             이번 주
           </Link>
         </nav>
       </div>
-
-      <Highlights data={highlights} tz={tz} />
-
-      <h2>경기 목록</h2>
       <div className="legend">
         <span>큰 숫자 = {TERM.model}</span>
         <span>시장 = {TERM.market}</span>

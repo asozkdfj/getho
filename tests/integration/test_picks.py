@@ -200,3 +200,12 @@ def test_report_import_is_deduplicated(session_factory):
         first = import_report(s)
         second = import_report(s)
         assert first is not None and second is None
+
+
+def test_published_pick_cites_the_backtest_of_the_current_model(session_factory, seeded, now):
+    with session_factory() as s:
+        import_report(s)
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(pick_min_probability=0.55), pick_now)
+        bt = pick.evidence["backtest"]
+        assert bt is not None and bt["threshold"] <= 0.55 and bt["days_with_pick"] > 0
