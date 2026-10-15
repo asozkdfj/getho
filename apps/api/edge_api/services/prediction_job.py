@@ -1,5 +1,6 @@
 """Pre-match prediction job (idempotent, append-only).
 
+Runs per data provider: synthetic (mock) and real fixtures are never mixed.
 For every upcoming fixture with a market snapshot:
   1. fit the baseline model on results known *before now* (no look-ahead)
   2. pick the latest odds snapshot captured at/before now
@@ -39,8 +40,9 @@ class PredictionJobResult:
     skipped_no_odds: int
 
 
-def _training_matches(session: Session, now: datetime) -> list[MatchResult]:
+def _training_matches(session: Session, now: datetime, provider: str) -> list[MatchResult]:
     stmt = select(Fixture).where(
+        Fixture.provider == provider,
         Fixture.status == FixtureStatus.FINISHED.value,
         Fixture.kickoff_at < now,
         Fixture.home_score.is_not(None),
@@ -80,11 +82,12 @@ def run_prediction_job(
     *,
     now: datetime,
     bookmaker: str,
+    provider: str,
     horizon: timedelta = DEFAULT_HORIZON,
     model: PoissonEloModel | None = None,
 ) -> PredictionJobResult:
     now = ensure_utc(now)
-    matches = _training_matches(session, now)
+    matches = _training_matches(session, now, provider)
     model = (model or PoissonEloModel()).fit(matches, as_of=now)
     model_version = get_or_create_model_version(session, model)
     results_as_of = max((m.kickoff_at for m in matches), default=None)
@@ -92,6 +95,7 @@ def run_prediction_job(
     upcoming = session.scalars(
         select(Fixture)
         .where(
+            Fixture.provider == provider,
             Fixture.status == FixtureStatus.SCHEDULED.value,
             Fixture.kickoff_at > now,
             Fixture.kickoff_at <= now + horizon,

@@ -5,7 +5,9 @@
 
 | # | 항목 | 왜 아직 안 했나 | 언제/조건 |
 | --- | --- | --- | --- |
-| 1 | 실제 데이터 provider 연결 | 라이선스(재배포·표시·상업 이용) 검토가 먼저입니다. 인터페이스(`FootballDataProvider`)와 mock 경로가 완성돼야 한다는 기획서 순서를 따랐습니다. | Phase 1 후반, 한 곳 선정 후. timeout/retry/rate limit/circuit breaker, raw payload 보관(S3) 포함 |
+| 1 | API-Football 실응답 검증 + 공개 전 라이선스 확인 | provider는 구현했지만(`api_football.py`), 개발 환경에서 api-sports 도메인이 차단돼 실제 응답으로 검증하지 못했습니다([가이드 §4](providers/api-football.md) 체크리스트). 공개 서비스(배당 표시·광고) 전에는 약관 확인이 필요합니다. | 키 발급 즉시 `make check-provider` / 공개 직전 |
+| 1a | 백테스트용 과거 배당 소스 | API-Football은 배당을 약 7일만 보관해서 과거 시즌 배당을 받을 수 없습니다. football-data.co.uk CSV 같은 별도 소스가 필요합니다(라이선스 확인 포함). | Phase 2 walk-forward 검증 전 |
+| 1b | provider 응답 캐시(Redis), circuit breaker, raw payload 원본 보관(S3) | 지금 요청량(약 60/일)에서는 캐시가 없어도 Free 한도 안에 들어갑니다. 재시도와 요청 간격은 이미 있습니다. | 수집 대상 리그나 빈도를 늘릴 때 |
 | 2 | Calibration 학습(temperature/isotonic) | 보정은 예측-결과 쌍이 충분해야 의미가 있습니다. 지금은 `IdentityCalibrator`만 둡니다. | 사전 예측 300~500경기 누적 후 |
 | 3 | 평가 지표(Brier, Log loss, calibration, CLV) 대시보드 | 실데이터 예측 이력이 없으면 지표가 의미 없습니다. `model_versions.metrics` 컬럼은 이미 있습니다. | Phase 2 |
 | 4 | walk-forward 백테스트 / 하이퍼파라미터 튜닝 | 위와 같은 이유입니다. 현재 파라미터(가중치 0.6, 280 Elo/골, K=20)는 문헌 기반 초기값입니다. | Phase 2 |

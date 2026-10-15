@@ -21,10 +21,11 @@ def ingest_and_predict() -> dict[str, Any]:
     """Safe to retry: every step is idempotent and runs in one transaction."""
     settings = get_settings()
     with session_scope() as session:
+        now = utcnow()
         result = run_pipeline(
             session,
-            get_provider(settings.data_provider),
-            now=utcnow(),
-            bookmaker=settings.primary_bookmaker,
+            get_provider(settings.data_provider, settings=settings, reference_time=now),
+            now=now,
+            bookmaker=settings.bookmaker,
         )
     return asdict(result)

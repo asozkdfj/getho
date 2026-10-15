@@ -7,6 +7,8 @@ EPL 경기의 통계 데이터와 시장 배당으로 **1X2 모델 확률 · 시
 - 베팅 실행·계정 연동·자동 주문 기능은 **없고, 만들지 않습니다**.
 - 유료 API 키 없이 **결정적(deterministic) MockProvider + seed 데이터**로 전체가 동작합니다.
   데모 데이터의 결과·배당은 합성 데이터이며 실제와 무관합니다.
+- 실데이터는 **API-Football** provider로 연결합니다(`DATA_PROVIDER=api_football`).
+  [연동 가이드](docs/providers/api-football.md)를 참고하세요.
 
 > 기획 문서: [`docs/epl_edge_lab_project_foundation.pdf`](docs/epl_edge_lab_project_foundation.pdf) ·
 > 계획/리스크: [`docs/PLAN.md`](docs/PLAN.md) · 아키텍처: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
@@ -49,6 +51,19 @@ make migrate                         # alembic upgrade head
 make seed-local                      # mock 데이터 + 예측 생성
 make api-dev                         # http://localhost:8000
 make web-dev                         # http://localhost:3000 (API_INTERNAL_URL=http://localhost:8000)
+```
+
+## 데이터 provider 전환
+
+| `DATA_PROVIDER` | 필요한 것 | 설명 |
+| --- | --- | --- |
+| `mock` (기본) | 없음 | 합성 데이터, 오프라인, 결정적 |
+| `api_football` | `API_FOOTBALL_KEY` | EPL 일정·결과·1X2 배당. [가이드](docs/providers/api-football.md) |
+
+```bash
+# .env 에 DATA_PROVIDER=api_football, API_FOOTBALL_KEY=... 설정 후
+make check-provider     # DB에 쓰지 않고 키와 응답 형식 검증 (약 6~8 요청)
+docker compose up -d --build
 ```
 
 ## 품질 명령

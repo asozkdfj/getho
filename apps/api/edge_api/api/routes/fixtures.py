@@ -71,9 +71,9 @@ def list_fixtures(
     start = datetime.combine(local_day, time.min, tzinfo=zone)
     end = start + timedelta(days=days)
 
-    fixtures = queries.fixtures_between(db, start, end)
+    fixtures = queries.fixtures_between(db, start, end, settings.data_provider)
     ids = [f.id for f in fixtures]
-    odds = queries.latest_odds_by_fixture(db, ids, settings.primary_bookmaker)
+    odds = queries.latest_odds_by_fixture(db, ids, settings.bookmaker)
     preds = queries.latest_predictions_by_fixture(db, ids)
     return FixtureListOut(
         date=local_day.isoformat(),
@@ -90,7 +90,7 @@ def get_fixture(fixture_id: int, db: DbSession, settings: AppSettings) -> Fixtur
     fixture = queries.get_fixture(db, fixture_id)
     if fixture is None:
         raise HTTPException(status_code=404, detail="fixture not found")
-    history = queries.odds_history(db, fixture_id, settings.primary_bookmaker)
+    history = queries.odds_history(db, fixture_id, settings.bookmaker)
     prediction = queries.latest_prediction(db, fixture_id)
     summary = _summary(fixture, history[-1] if history else None, prediction)
     return FixtureDetailOut(

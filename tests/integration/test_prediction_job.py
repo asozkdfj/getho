@@ -26,7 +26,7 @@ def test_rerunning_prediction_job_creates_no_duplicates(db_session, seeded, now)
     assert seeded.predictions.created > 0
     before = _predictions(db_session)
 
-    again = run_prediction_job(db_session, now=now, bookmaker=BOOKMAKER)
+    again = run_prediction_job(db_session, now=now, bookmaker=BOOKMAKER, provider="mock")
     db_session.commit()
     assert again.created == 0
     assert again.unchanged == seeded.predictions.created
@@ -47,7 +47,7 @@ def test_new_odds_append_new_prediction_and_keep_history(db_session, seeded, now
     before = _predictions(db_session)
     later = now + timedelta(hours=12)
     run_ingestion(db_session, MockProvider(later), now=later)
-    res = run_prediction_job(db_session, now=later, bookmaker=BOOKMAKER)
+    res = run_prediction_job(db_session, now=later, bookmaker=BOOKMAKER, provider="mock")
     db_session.commit()
 
     after = _predictions(db_session)

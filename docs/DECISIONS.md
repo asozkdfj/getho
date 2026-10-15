@@ -53,3 +53,15 @@
 - 옵션: proportional, power, Shin
 - **선택: proportional** (MVP). 투명하고 설명하기 쉽습니다. favourite-longshot bias를 보정하는 Shin과
   power는 `DevigMethod` enum으로 확장할 예정입니다(TODO).
+
+## ADR-009 API-Football provider 구현 방식
+
+- **HTTP 클라이언트:** (a) httpx/requests 의존성 추가 (b) stdlib urllib + 주입 가능한 transport → **(b)**.
+  의존성을 늘리지 않고, 테스트는 녹화 형식 payload로 오프라인 실행합니다.
+- **배당 `captured_at`:** (a) 수집 시각(벽시계) (b) 응답의 `update` 필드 → **(b)**. (a)는 같은 가격을
+  받을 때마다 중복 스냅샷을 만들어 idempotency를 깨뜨립니다.
+- **배당 조회 단위:** (a) 경기별 `/odds?fixture=` (b) 리그+시즌 페이지 조회 → **(b)**. 경기 20개 기준으로
+  요청이 20회에서 2회로 줄어 Free 한도에서도 운영할 수 있습니다.
+- **provider 간 데이터 격리:** 목록, 학습, 예측을 `fixtures.provider = DATA_PROVIDER`로 한정합니다. 합성
+  데이터가 실데이터 모델을 오염시키지 않게 하기 위해서입니다.
+- **몰수(AWD)·부전승(WO):** `cancelled`로 매핑하고 스코어를 버립니다. 행정 스코어는 팀 강도와 무관합니다.

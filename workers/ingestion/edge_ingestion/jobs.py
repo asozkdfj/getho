@@ -186,5 +186,5 @@ def run_pipeline(
     """Ingest then predict, in one transaction, guarded by an advisory lock."""
     session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": PIPELINE_LOCK_KEY})
     ingestion = run_ingestion(session, provider, now=now)
-    predictions = run_prediction_job(session, now=now, bookmaker=bookmaker)
+    predictions = run_prediction_job(session, now=now, bookmaker=bookmaker, provider=provider.name)
     return PipelineResult(ingestion, predictions)

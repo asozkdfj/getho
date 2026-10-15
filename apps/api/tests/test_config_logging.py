@@ -7,7 +7,7 @@ from edge_api.logging_setup import RedactingFormatter, redact
 def test_secrets_are_not_exposed_in_repr():
     s = Settings(
         database_url="postgresql+psycopg://edge:supersecret@db:5432/edge",
-        football_data_api_key="key-123",
+        api_football_key="key-123",
     )
     text = repr(s) + str(s.model_dump())
     assert "supersecret" not in text
@@ -16,14 +16,23 @@ def test_secrets_are_not_exposed_in_repr():
 
 
 def test_empty_api_key_is_none_and_cors_is_split():
-    s = Settings(football_data_api_key="", cors_origins="http://a.com, http://b.com")
-    assert s.football_data_api_key is None
+    s = Settings(api_football_key="", cors_origins="http://a.com, http://b.com")
+    assert s.api_football_key is None
     assert s.cors_origins == ["http://a.com", "http://b.com"]
 
 
 def test_settings_parse_comma_separated_cors_from_env(monkeypatch):
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000,https://edge.example")
     assert Settings().cors_origins == ["http://localhost:3000", "https://edge.example"]
+
+
+def test_bookmaker_resolution():
+    assert Settings().bookmaker == "mockbook"
+    assert Settings(data_provider="api_football").bookmaker == "bet365"
+    assert (
+        Settings(data_provider="api_football", primary_bookmaker="pinnacle").bookmaker == "pinnacle"
+    )
+    assert Settings(primary_bookmaker="").bookmaker == "mockbook"
 
 
 def test_redact_connection_urls_and_keys():

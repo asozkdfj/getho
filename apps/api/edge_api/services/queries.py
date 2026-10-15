@@ -11,10 +11,13 @@ from sqlalchemy.orm import Session
 from edge_api.db.models import Fixture, OddsSnapshot, Prediction
 
 
-def fixtures_between(session: Session, start: datetime, end: datetime) -> Sequence[Fixture]:
+def fixtures_between(
+    session: Session, start: datetime, end: datetime, provider: str
+) -> Sequence[Fixture]:
+    """Fixtures of ONE data provider (mock and real data are never mixed)."""
     stmt = (
         select(Fixture)
-        .where(Fixture.kickoff_at >= start, Fixture.kickoff_at < end)
+        .where(Fixture.provider == provider, Fixture.kickoff_at >= start, Fixture.kickoff_at < end)
         .order_by(Fixture.kickoff_at, Fixture.id)
     )
     return session.scalars(stmt).unique().all()

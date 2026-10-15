@@ -14,7 +14,7 @@ install: ## Install Python (uv) and Node (npm) dependencies
 	npm ci
 
 # --------------------------------------------------------------- docker
-.PHONY: up down logs ps seed seed-docker
+.PHONY: up down logs ps seed check-provider
 up: ## Build and start the full stack (postgres, redis, api, worker, web)
 	docker compose up -d --build
 	@echo "web: http://localhost:3000  api: http://localhost:8000/docs"
@@ -28,8 +28,12 @@ logs: ## Tail logs of all services
 ps: ## Show service status
 	docker compose ps
 
-seed: ## (Re)seed mock data + predictions inside the running stack (idempotent)
+seed: ## (Re)seed data + predictions inside the running stack (idempotent)
 	docker compose exec api python -m edge_ingestion.cli seed
+
+check-provider: ## Dry-run the configured data provider (verifies API key; no DB writes)
+	docker compose run --rm --no-deps -e RUN_MIGRATIONS_ON_STARTUP=false -e SEED_ON_STARTUP=false \
+		api python -m edge_ingestion.cli check-provider
 
 # ---------------------------------------------------------------- local
 .PHONY: migrate seed-local api-dev web-dev
