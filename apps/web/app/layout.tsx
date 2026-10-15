@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "EPL Edge Lab", template: "%s · EPL Edge Lab" },
   description:
-    "EPL 경기마다 통계 분석과 시장(배당)의 생각을 쉬운 말로 비교해 보여 주는 데이터 분석 서비스",
+    "축구 리그별 경기마다 통계 분석과 시장(배당)의 생각을 쉬운 말로 비교해 보여 주는 데이터 분석 서비스",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav aria-label="주요 메뉴">
               <Link href="/">경기</Link>
+              <Link href="/leagues">리그</Link>
               <Link href="/picks">지난 픽</Link>
               <Link href="/performance">모델 성과</Link>
               <Link href="/guide">가이드</Link>

@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Disclaimer } from "@/components/Disclaimer";
+import { LeagueBadge } from "@/components/LeagueBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ProbabilityBar } from "@/components/ProbabilityBar";
 import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
 import { plainSummary } from "@/lib/explain";
+import { leagueLabel, leagueNote } from "@/lib/leagues";
 import { DEFAULT_TZ } from "@/lib/config";
 import { OUTCOME_LABEL, odds, pct, signedPct, signedPoints, statusLabel, tone } from "@/lib/format";
 import { TERM, TERM_HELP } from "@/lib/terms";
@@ -37,7 +39,12 @@ export default async function FixturePage({ params }: { params: Params }) {
   const tz = DEFAULT_TZ;
   const finished = fixture.status === "finished";
   const summary = prediction
-    ? plainSummary(prediction, fixture.home_team.name, fixture.away_team.name)
+    ? plainSummary(
+        prediction,
+        fixture.home_team.name,
+        fixture.away_team.name,
+        fixture.league.verified,
+      )
     : null;
 
   return (
@@ -50,8 +57,12 @@ export default async function FixturePage({ params }: { params: Params }) {
           <h1>
             {fixture.home_team.name} <span className="muted">vs</span> {fixture.away_team.name}
           </h1>
+          <p className="small" style={{ margin: "0 0 2px" }}>
+            <Link href={`/leagues/${fixture.league.id}`}>{leagueLabel(fixture.league)}</Link>{" "}
+            <LeagueBadge league={fixture.league} />
+          </p>
           <p className="muted small" style={{ margin: 0 }}>
-            {fixture.season} · {fixture.round}라운드 ·{" "}
+            {fixture.season} · {fixture.round ? `${fixture.round}라운드 · ` : ""}
             <LocalTime iso={fixture.kickoff_at} fallbackTz={tz} format="full" /> ·{" "}
             {statusLabel(fixture.status)}
             {finished && ` · 결과 ${fixture.home_score} : ${fixture.away_score}`}
@@ -203,9 +214,11 @@ export default async function FixturePage({ params }: { params: Params }) {
       ) : (
         <div className="card">
           <p style={{ margin: 0 }}>
-            {finished || fixture.status === "live"
-              ? "경기가 시작된 뒤에는 새로 분석하지 않아요. 이 경기는 시작 전에 저장된 분석이 없습니다."
-              : "아직 이 경기의 분석이 없어요. 배당이 들어오면 자동으로 분석합니다."}
+            {fixture.league.type === "cup" || !fixture.league.predicted
+              ? leagueNote(fixture.league)
+              : finished || fixture.status === "live"
+                ? "경기가 시작된 뒤에는 새로 분석하지 않아요. 이 경기는 시작 전에 저장된 분석이 없습니다."
+                : "아직 이 경기의 분석이 없어요. 배당이 들어오면 자동으로 분석합니다."}
           </p>
         </div>
       )}

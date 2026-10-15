@@ -2,13 +2,22 @@ import type { HighlightList } from "@edge/contracts";
 import Link from "next/link";
 
 import { caveatText, highlightSentence, outcomeName } from "@/lib/highlights";
+import { leagueLabel } from "@/lib/leagues";
 
 import { LocalTime } from "./LocalTime";
 
-export function Highlights({ data, tz }: { data: HighlightList; tz: string }) {
+export function Highlights({
+  data,
+  tz,
+  title = "이번 주 주목할 경기",
+}: {
+  data: HighlightList;
+  tz: string;
+  title?: string;
+}) {
   return (
     <section className="highlights" aria-labelledby="highlights-title">
-      <h2 id="highlights-title">이번 주 주목할 경기</h2>
+      <h2 id="highlights-title">{title}</h2>
       <p className="muted small" style={{ marginTop: 0 }}>
         {data.note} <Link href="/guide#gap">왜 차이가 날까요?</Link>
       </p>
@@ -28,6 +37,7 @@ export function Highlights({ data, tz }: { data: HighlightList; tz: string }) {
                 <LocalTime iso={h.fixture.kickoff_at} fallbackTz={tz} />
                 <span className="positive small">+{Math.round(h.edge * 100)}%p</span>
               </div>
+              <div className="muted small">{leagueLabel(h.fixture.league)}</div>
               <div className="highlight-teams">
                 {h.fixture.home_team.name} <span className="muted">vs</span>{" "}
                 {h.fixture.away_team.name}

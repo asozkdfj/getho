@@ -34,7 +34,12 @@ function outcomeText(outcome: Outcome, home: string, away: string): string {
  * Beginner-friendly sentences for one prediction. Wording is deliberately
  * descriptive ("모델은 ~로 봅니다"), never prescriptive or guaranteeing.
  */
-export function plainSummary(p: Prediction, home: string, away: string): PlainSummary {
+export function plainSummary(
+  p: Prediction,
+  home: string,
+  away: string,
+  verifiedLeague = true,
+): PlainSummary {
   const rows = OUTCOMES.map((o) => p.outcomes.find((r) => r.outcome === o)!);
   const likely = rows.reduce((a, b) => (b.model_probability > a.model_probability ? b : a));
   const gap = rows.reduce((a, b) => (Math.abs(b.edge) > Math.abs(a.edge) ? b : a));
@@ -74,6 +79,9 @@ export function plainSummary(p: Prediction, home: string, away: string): PlainSu
   }
   if (Math.abs(gap.edge) >= LARGE_GAP) {
     cautions.push(LARGE_GAP_CAUTION);
+  }
+  if (!verifiedLeague) {
+    cautions.push(UNVERIFIED_LEAGUE_CAUTION);
   }
 
   return { mostLikely, comparison, ev, cautions };

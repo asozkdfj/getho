@@ -2,11 +2,13 @@ import type { TodayPick } from "@edge/contracts";
 import Link from "next/link";
 
 import { OUTCOME_LABEL, pct } from "@/lib/format";
+import { leagueLabel } from "@/lib/leagues";
 import {
   closestCandidate,
   pickCautions,
   pickOutcomeText,
   pickReasons,
+  backtestScope,
   periodText,
   pickStatusInfo,
   rateWithCi,
@@ -56,6 +58,7 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
 
       {hasPick ? (
         <>
+          <div className="muted small pick-league">{leagueLabel(f.league)}</div>
           <div className="pick-match">
             <Link href={`/fixtures/${f.id}`} className="pick-teams">
               {f.home_team.name} <span className="muted">vs</span> {f.away_team.name}
@@ -120,7 +123,7 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
           {pick.backtest && (
             <p className="small pick-backtest">
               과거 기록: 같은 규칙({thresholdText(pick.backtest.threshold)})을{" "}
-              {periodText(pick.backtest.period)}의 실제 EPL 경기에 적용하면{" "}
+              {periodText(pick.backtest.period)}의 {backtestScope(pick.backtest.leagues)}에 적용하면{" "}
               {pick.backtest.match_days}일 중 {pick.backtest.days_with_pick}일에 픽이 나왔고, 적중률{" "}
               {rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}, 평균 분석 확률{" "}
               {pct(pick.backtest.mean_pick_probability, 0)}였어요. 과거 성과가 앞으로를 보장하지
@@ -141,7 +144,11 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
         </>
       ) : (
         <>
-          <p style={{ margin: "6px 0" }}>{info.description}</p>
+          <p style={{ margin: "6px 0" }}>
+            {pick.status === "no_qualifying_match" && pick.matches_in_scope === 0
+              ? "오늘은 정확도가 검증된 리그의 경기가 없어요. 검증 전 리그에서는 픽을 고르지 않아요."
+              : info.description}
+          </p>
           {closest && (
             <p className="muted small" style={{ margin: "0 0 6px" }}>
               {closest}

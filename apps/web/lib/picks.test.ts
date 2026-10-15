@@ -2,6 +2,7 @@ import type { CalibrationBin, PickHistory, TodayPick } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
+  backtestScope,
   closestCandidate,
   excludedReasonText,
   historySummaryText,
@@ -121,6 +122,12 @@ describe("status and labels", () => {
   it("describes a zero threshold as no threshold", () => {
     expect(thresholdText(0)).toBe("기준 확률 없음");
     expect(thresholdText(0.55)).toBe("기준 55%");
+  });
+
+  it("names the leagues pooled in the backtest", () => {
+    expect(backtestScope(["Premier League"])).toBe("실제 Premier League 경기");
+    expect(backtestScope(["A", "B", "C"])).toBe("검증된 3개 리그의 실제 경기");
+    expect(backtestScope([])).toBe("실제 경기");
   });
 
   it("describes report periods in words", () => {

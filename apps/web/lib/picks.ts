@@ -267,3 +267,10 @@ export function periodText(period: string | null | undefined): string {
 export function thresholdText(t: number): string {
   return t <= 0 ? "기준 확률 없음" : `기준 ${pct(t, 0)}`;
 }
+
+/** "실제 EPL 경기" / "검증된 10개 리그의 실제 경기" for the backtest sentence. */
+export function backtestScope(leagues: string[] | null | undefined): string {
+  if (!leagues || leagues.length === 0) return "실제 경기";
+  if (leagues.length === 1) return `실제 ${leagues[0]} 경기`;
+  return `검증된 ${leagues.length}개 리그의 실제 경기`;
+}

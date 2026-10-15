@@ -1,57 +1,76 @@
-import type { FixtureSummary } from "@edge/contracts";
 import Link from "next/link";
 
 import { DataStatusBadge } from "@/components/DataStatusBadge";
 import { Disclaimer } from "@/components/Disclaimer";
 import { FixtureCard } from "@/components/FixtureCard";
 import { Highlights } from "@/components/Highlights";
+import { LeagueChips } from "@/components/LeagueChips";
+import { LeagueHeader } from "@/components/LeagueHeader";
 import { TodayPickCard } from "@/components/TodayPickCard";
-import { fetchDataStatus, fetchFixtures, fetchHighlights, fetchTodayPick, orNull } from "@/lib/api";
+import {
+  fetchDataStatus,
+  fetchFixtures,
+  fetchHighlights,
+  fetchLeagues,
+  fetchTodayPick,
+  orNull,
+} from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
 import { providerLabel } from "@/lib/format";
+import { groupByDayAndLeague } from "@/lib/leagues";
 import { TERM } from "@/lib/terms";
-import { formatInTz, localDateKey } from "@/lib/time";
+import { formatInTz } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 type Range = "today" | "week";
+type Scope = "featured" | "all";
 
-function groupByDay(fixtures: FixtureSummary[], tz: string) {
-  const groups = new Map<string, FixtureSummary[]>();
-  for (const f of fixtures) {
-    const key = localDateKey(f.kickoff_at, tz);
-    groups.set(key, [...(groups.get(key) ?? []), f]);
-  }
-  return [...groups.entries()];
+function href(range: Range, scope: Scope) {
+  const q = new URLSearchParams();
+  if (range === "today") q.set("range", "today");
+  if (scope === "all") q.set("scope", "all");
+  const s = q.toString();
+  return `/${s ? `?${s}` : ""}#list`;
 }
 
 export default async function FixturesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; scope?: string }>;
 }) {
-  const { range: rawRange } = await searchParams;
-  // EPL matches are mostly at weekends, so "today" is usually empty: default to the week.
-  const range: Range = rawRange === "today" ? "today" : "week";
+  const params = await searchParams;
+  const scope: Scope = params.scope === "all" ? "all" : "featured";
+  // Every league at once is a lot of matches: "all" shows today only.
+  // Major leagues mostly play at weekends, so their default is the week.
+  const range: Range = scope === "all" || params.range === "today" ? "today" : "week";
   const tz = DEFAULT_TZ;
-  const [data, highlights, pick, status] = await Promise.all([
-    fetchFixtures({ days: range === "week" ? 7 : 1, tz }),
+  const [data, highlights, pick, status, leagues] = await Promise.all([
+    fetchFixtures({ days: range === "week" ? 7 : 1, tz, featured: scope === "featured" }),
     fetchHighlights({ days: 7, limit: 3 }),
     orNull(fetchTodayPick()),
     orNull(fetchDataStatus()),
+    orNull(fetchLeagues({ days: 7 })),
   ]);
-  const groups = groupByDay(data.fixtures, tz);
+  const groups = groupByDayAndLeague(data.fixtures, tz);
+  const featured = leagues?.featured ?? [];
+  const others = (leagues?.regions ?? [])
+    .flatMap((r) => r.countries.flatMap((c) => c.leagues))
+    .filter((lg) => !lg.featured)
+    .sort((a, b) => b.upcoming_count - a.upcoming_count)
+    .slice(0, 12);
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>EPL 경기</h1>
+          <h1>축구 경기</h1>
           <p className="muted small" style={{ margin: 0 }}>
-            통계 분석과 시장(배당)의 생각을 비교합니다 · 시간대 {tz}
+            리그별로 통계 분석과 시장(배당)의 생각을 비교합니다 · 시간대 {tz}
           </p>
           <p className="muted small" style={{ margin: 0 }}>
             데이터: {providerLabel(data.data_provider)} · 배당 출처: {data.bookmaker}
+            {leagues && ` · 이번 주 경기가 있는 리그 ${leagues.total_leagues}개`}
           </p>
           <DataStatusBadge status={status} tz={tz} />
         </div>
@@ -59,18 +78,38 @@ export default async function FixturesPage({
 
       <TodayPickCard pick={pick} tz={tz} />
 
+      {featured.length > 0 && <LeagueChips leagues={featured} />}
+
       <Highlights data={highlights} tz={tz} />
 
       <div className="section-head" id="list">
         <h2>경기 목록</h2>
-        <nav className="tabs" aria-label="기간">
-          <Link href="/?range=today#list" aria-current={range === "today" ? "page" : undefined}>
-            오늘
-          </Link>
-          <Link href="/?range=week#list" aria-current={range === "week" ? "page" : undefined}>
-            이번 주
-          </Link>
-        </nav>
+        <div className="section-tools">
+          <nav className="tabs" aria-label="리그 범위">
+            <Link
+              href={href(range, "featured")}
+              aria-current={scope === "featured" ? "page" : undefined}
+            >
+              주요 리그
+            </Link>
+            <Link href={href("today", "all")} aria-current={scope === "all" ? "page" : undefined}>
+              전체 리그
+            </Link>
+          </nav>
+          {scope === "featured" && (
+            <nav className="tabs" aria-label="기간">
+              <Link
+                href={href("today", scope)}
+                aria-current={range === "today" ? "page" : undefined}
+              >
+                오늘
+              </Link>
+              <Link href={href("week", scope)} aria-current={range === "week" ? "page" : undefined}>
+                이번 주
+              </Link>
+            </nav>
+          )}
+        </div>
       </div>
       <div className="legend">
         <span>큰 숫자 = {TERM.model}</span>
@@ -81,28 +120,44 @@ export default async function FixturesPage({
         </span>
         <Link href="/guide">처음이세요? 3분 가이드 →</Link>
       </div>
+      {scope === "all" && (
+        <p className="muted small">전체 리그는 경기가 많아 오늘 경기만 보여 드려요.</p>
+      )}
 
       {groups.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>
           <p style={{ margin: 0 }}>
-            {range === "today" ? "오늘" : "이번 주"} 예정된 경기가 없습니다.{" "}
-            {range === "today" && <Link href="/?range=week">이번 주 경기 보기</Link>}
+            {range === "today" ? "오늘" : "이번 주"} {scope === "featured" ? "주요 리그에 " : ""}
+            예정된 경기가 없습니다.{" "}
+            {scope === "featured" && <Link href={href("today", "all")}>전체 리그 보기</Link>}
           </p>
           <p className="muted small">
             데이터가 비어 있다면 <code>make seed</code>로 샘플 데이터를 생성하세요.
           </p>
         </div>
       ) : (
-        groups.map(([day, fixtures]) => (
-          <section key={day} className="day-group">
-            <h2>{formatInTz(fixtures[0]!.kickoff_at, tz, "date")}</h2>
-            <div className="grid-2">
-              {fixtures.map((f) => (
-                <FixtureCard key={f.id} fixture={f} tz={tz} />
-              ))}
-            </div>
+        groups.map((day) => (
+          <section key={day.day} className="day-group">
+            <h2>{formatInTz(day.first, tz, "date")}</h2>
+            {day.leagues.map((g) => (
+              <div key={g.league.id} className="league-group">
+                <LeagueHeader league={g.league} count={g.fixtures.length} />
+                <div className="grid-2">
+                  {g.fixtures.map((f) => (
+                    <FixtureCard key={f.id} fixture={f} tz={tz} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         ))
+      )}
+
+      {others.length > 0 && (
+        <section>
+          <h2>다른 리그</h2>
+          <LeagueChips leagues={others} />
+        </section>
       )}
 
       <Disclaimer />

@@ -40,10 +40,25 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
             );
           })}
         </div>
+      ) : fair && !finished ? (
+        <>
+          <div className="mini-grid" aria-label="시장 예상">
+            {OUTCOMES.map((o) => (
+              <div key={o} className="mini-cell">
+                <span className="mini-head">{OUTCOME_SHORT[o]}</span>
+                <span className="mini-model">{pct(fair[KEY[o]], 0)}</span>
+                <span className="mini-fair">시장 예상</span>
+              </div>
+            ))}
+          </div>
+          <p className="muted small" style={{ margin: "6px 0 0" }}>
+            {fixture.league.type === "cup"
+              ? "컵 대회라 분석 확률 없이 시장 예상만 보여 드려요"
+              : "분석 준비 중 · 지금은 시장 예상만 있어요"}
+          </p>
+        </>
       ) : (
-        <p className="muted small">
-          {finished ? "경기 종료" : fair ? "분석 준비 중" : "배당 수집 전"}
-        </p>
+        <p className="muted small">{finished ? "경기 종료" : "배당 수집 전"}</p>
       )}
     </Link>
   );
