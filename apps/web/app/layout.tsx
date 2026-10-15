@@ -1,0 +1,40 @@
+import type { Metadata, Viewport } from "next";
+import Link from "next/link";
+
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: { default: "EPL Edge Lab", template: "%s · EPL Edge Lab" },
+  description:
+    "EPL 경기의 모델 확률, 시장 공정확률(de-vig), Edge, 기대값을 투명하게 보여주는 데이터 분석 서비스",
+};
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ko">
+      <body>
+        <header className="site-header">
+          <div className="container header-inner">
+            <Link href="/" className="brand">
+              EPL <span>Edge Lab</span>
+            </Link>
+            <nav aria-label="주요 메뉴">
+              <Link href="/">경기</Link>
+              <Link href="/combinations">조합 분석</Link>
+              <Link href="/methodology">방법론·면책</Link>
+            </nav>
+          </div>
+        </header>
+        <main className="container">{children}</main>
+        <footer className="site-footer">
+          <div className="container">
+            확률은 통계적 추정치이며 결과를 보장하지 않습니다 · 베팅 중개/실행 기능 없음 · 데모
+            데이터는 합성(mock) 데이터입니다
+          </div>
+        </footer>
+      </body>
+    </html>
+  );
+}

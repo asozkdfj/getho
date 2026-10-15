@@ -1,0 +1,1157 @@
+{
+  "components": {
+    "schemas": {
+      "CombinationLegOut": {
+        "properties": {
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "decimal_odds": {
+            "title": "Decimal Odds",
+            "type": "number"
+          },
+          "edge": {
+            "title": "Edge",
+            "type": "number"
+          },
+          "expected_value": {
+            "title": "Expected Value",
+            "type": "number"
+          },
+          "fair_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Fair Probability",
+            "type": "number"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "model_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Model Probability",
+            "type": "number"
+          },
+          "odds_captured_at": {
+            "format": "date-time",
+            "title": "Odds Captured At",
+            "type": "string"
+          },
+          "odds_snapshot_id": {
+            "title": "Odds Snapshot Id",
+            "type": "integer"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "home_team",
+          "away_team",
+          "kickoff_at",
+          "outcome",
+          "prediction_id",
+          "odds_snapshot_id",
+          "odds_captured_at",
+          "decimal_odds",
+          "model_probability",
+          "fair_probability",
+          "edge",
+          "expected_value"
+        ],
+        "title": "CombinationLegOut",
+        "type": "object"
+      },
+      "CombinationOut": {
+        "properties": {
+          "combined_odds": {
+            "title": "Combined Odds",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "모델 확률은 통계적 추정치이며 경기 결과를 보장하지 않습니다. EPL Edge Lab은 데이터 분석 서비스로, 베팅을 중개하거나 실행하지 않습니다.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "edge": {
+            "title": "Edge",
+            "type": "number"
+          },
+          "exceeds_threshold": {
+            "title": "Exceeds Threshold",
+            "type": "boolean"
+          },
+          "expected_value": {
+            "title": "Expected Value",
+            "type": "number"
+          },
+          "fair_market_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Fair Market Probability",
+            "type": "number"
+          },
+          "implied_probability": {
+            "title": "Implied Probability",
+            "type": "number"
+          },
+          "is_approximation": {
+            "const": true,
+            "default": true,
+            "title": "Is Approximation",
+            "type": "boolean"
+          },
+          "legs": {
+            "items": {
+              "$ref": "#/components/schemas/CombinationLegOut"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "method": {
+            "const": "independence_approximation",
+            "title": "Method",
+            "type": "string"
+          },
+          "model_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Model Probability",
+            "type": "number"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "value_threshold": {
+            "title": "Value Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "legs",
+          "model_probability",
+          "fair_market_probability",
+          "combined_odds",
+          "implied_probability",
+          "edge",
+          "expected_value",
+          "exceeds_threshold",
+          "value_threshold",
+          "method",
+          "notes"
+        ],
+        "title": "CombinationOut",
+        "type": "object"
+      },
+      "CombinationRequest": {
+        "properties": {
+          "selections": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionIn"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Selections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "selections"
+        ],
+        "title": "CombinationRequest",
+        "type": "object"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut",
+        "type": "object"
+      },
+      "ExpectedGoalsOut": {
+        "properties": {
+          "away": {
+            "title": "Away",
+            "type": "number"
+          },
+          "home": {
+            "title": "Home",
+            "type": "number"
+          }
+        },
+        "required": [
+          "home",
+          "away"
+        ],
+        "title": "ExpectedGoalsOut",
+        "type": "object"
+      },
+      "FixtureDetailOut": {
+        "properties": {
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "fair_market_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "latest_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "model_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "odds_history": {
+            "items": {
+              "$ref": "#/components/schemas/OddsSnapshotOut"
+            },
+            "title": "Odds History",
+            "type": "array"
+          },
+          "prediction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Id"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "season": {
+            "title": "Season",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "league",
+          "season",
+          "round",
+          "kickoff_at",
+          "status",
+          "home_team",
+          "away_team",
+          "home_score",
+          "away_score",
+          "odds_history"
+        ],
+        "title": "FixtureDetailOut",
+        "type": "object"
+      },
+      "FixtureListOut": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/FixtureSummaryOut"
+            },
+            "title": "Fixtures",
+            "type": "array"
+          },
+          "range_end_utc": {
+            "format": "date-time",
+            "title": "Range End Utc",
+            "type": "string"
+          },
+          "range_start_utc": {
+            "format": "date-time",
+            "title": "Range Start Utc",
+            "type": "string"
+          },
+          "tz": {
+            "title": "Tz",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "days",
+          "tz",
+          "range_start_utc",
+          "range_end_utc",
+          "fixtures"
+        ],
+        "title": "FixtureListOut",
+        "type": "object"
+      },
+      "FixtureSummaryOut": {
+        "properties": {
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "fair_market_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "latest_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "league": {
+            "title": "League",
+            "type": "string"
+          },
+          "model_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prediction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Id"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "season": {
+            "title": "Season",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "league",
+          "season",
+          "round",
+          "kickoff_at",
+          "status",
+          "home_team",
+          "away_team",
+          "home_score",
+          "away_score"
+        ],
+        "title": "FixtureSummaryOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthOut": {
+        "properties": {
+          "app_env": {
+            "title": "App Env",
+            "type": "string"
+          },
+          "database": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Database",
+            "type": "string"
+          },
+          "git_sha": {
+            "title": "Git Sha",
+            "type": "string"
+          },
+          "redis": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Redis",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "redis",
+          "app_env",
+          "git_sha"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "ModelVersionOut": {
+        "properties": {
+          "calibration": {
+            "title": "Calibration",
+            "type": "string"
+          },
+          "feature_set": {
+            "title": "Feature Set",
+            "type": "string"
+          },
+          "git_sha": {
+            "title": "Git Sha",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "git_sha",
+          "feature_set",
+          "calibration"
+        ],
+        "title": "ModelVersionOut",
+        "type": "object"
+      },
+      "OddsSnapshotOut": {
+        "properties": {
+          "bookmaker": {
+            "title": "Bookmaker",
+            "type": "string"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "market": {
+            "title": "Market",
+            "type": "string"
+          },
+          "odds_away": {
+            "title": "Odds Away",
+            "type": "number"
+          },
+          "odds_draw": {
+            "title": "Odds Draw",
+            "type": "number"
+          },
+          "odds_home": {
+            "title": "Odds Home",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "bookmaker",
+          "market",
+          "odds_home",
+          "odds_draw",
+          "odds_away",
+          "captured_at"
+        ],
+        "title": "OddsSnapshotOut",
+        "type": "object"
+      },
+      "Outcome": {
+        "description": "1X2 outcome. Values are part of the public API contract.",
+        "enum": [
+          "HOME",
+          "DRAW",
+          "AWAY"
+        ],
+        "title": "Outcome",
+        "type": "string"
+      },
+      "OutcomeAnalysisOut": {
+        "properties": {
+          "decimal_odds": {
+            "title": "Decimal Odds",
+            "type": "number"
+          },
+          "edge": {
+            "description": "model_probability - fair_probability",
+            "title": "Edge",
+            "type": "number"
+          },
+          "exceeds_threshold": {
+            "description": "edge AND EV >= value_threshold. A reference signal, not advice.",
+            "title": "Exceeds Threshold",
+            "type": "boolean"
+          },
+          "expected_value": {
+            "description": "model_probability * decimal_odds - 1",
+            "title": "Expected Value",
+            "type": "number"
+          },
+          "fair_probability": {
+            "description": "de-vigged market probability",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Fair Probability",
+            "type": "number"
+          },
+          "implied_probability": {
+            "description": "1/odds, includes bookmaker margin",
+            "title": "Implied Probability",
+            "type": "number"
+          },
+          "model_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Model Probability",
+            "type": "number"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          }
+        },
+        "required": [
+          "outcome",
+          "decimal_odds",
+          "implied_probability",
+          "fair_probability",
+          "model_probability",
+          "edge",
+          "expected_value",
+          "exceeds_threshold"
+        ],
+        "title": "OutcomeAnalysisOut",
+        "type": "object"
+      },
+      "PredictionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "devig_method": {
+            "title": "Devig Method",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "모델 확률은 통계적 추정치이며 경기 결과를 보장하지 않습니다. EPL Edge Lab은 데이터 분석 서비스로, 베팅을 중개하거나 실행하지 않습니다.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "expected_goals": {
+            "$ref": "#/components/schemas/ExpectedGoalsOut"
+          },
+          "fair_market_probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut"
+          },
+          "features": {
+            "additionalProperties": true,
+            "title": "Features",
+            "type": "object"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "input_data_as_of": {
+            "format": "date-time",
+            "title": "Input Data As Of",
+            "type": "string"
+          },
+          "market_odds_snapshot": {
+            "$ref": "#/components/schemas/OddsSnapshotOut"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelVersionOut"
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/OutcomeAnalysisOut"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "overround": {
+            "title": "Overround",
+            "type": "number"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
+          },
+          "probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut"
+          },
+          "value_threshold": {
+            "title": "Value Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "prediction_id",
+          "fixture_id",
+          "created_at",
+          "input_data_as_of",
+          "model",
+          "market_odds_snapshot",
+          "probabilities",
+          "fair_market_probabilities",
+          "overround",
+          "devig_method",
+          "expected_goals",
+          "outcomes",
+          "value_threshold",
+          "features"
+        ],
+        "title": "PredictionOut",
+        "type": "object"
+      },
+      "ProbabilitiesOut": {
+        "properties": {
+          "away": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Away",
+            "type": "number"
+          },
+          "draw": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Draw",
+            "type": "number"
+          },
+          "home": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Home",
+            "type": "number"
+          }
+        },
+        "required": [
+          "home",
+          "draw",
+          "away"
+        ],
+        "title": "ProbabilitiesOut",
+        "type": "object"
+      },
+      "SelectionIn": {
+        "properties": {
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "outcome"
+        ],
+        "title": "SelectionIn",
+        "type": "object"
+      },
+      "TeamOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "short_name": {
+            "title": "Short Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short_name"
+        ],
+        "title": "TeamOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "EPL 1X2 확률 분석 API. 모델 확률·시장 공정확률·Edge·EV를 제공합니다. 확률은 추정치이며 결과를 보장하지 않습니다. 베팅 실행 기능은 없습니다.",
+    "title": "EPL Edge Lab API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/combinations/analyze": {
+      "post": {
+        "description": "Analyse 2-3 selections from *different* fixtures (independence approximation).",
+        "operationId": "analyze_combinations_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CombinationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Analyze",
+        "tags": [
+          "combinations"
+        ]
+      }
+    },
+    "/fixtures": {
+      "get": {
+        "operationId": "list_fixtures_fixtures_get",
+        "parameters": [
+          {
+            "description": "Local date (YYYY-MM-DD) in `tz`. Default: today",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Local date (YYYY-MM-DD) in `tz`. Default: today",
+              "title": "Date"
+            }
+          },
+          {
+            "description": "Number of days from `date`",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Number of days from `date`",
+              "maximum": 14,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "IANA timezone used to interpret `date`",
+            "in": "query",
+            "name": "tz",
+            "required": false,
+            "schema": {
+              "default": "UTC",
+              "description": "IANA timezone used to interpret `date`",
+              "title": "Tz",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List Fixtures",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/fixtures/{fixture_id}": {
+      "get": {
+        "operationId": "get_fixture_fixtures__fixture_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Fixture",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/fixtures/{fixture_id}/prediction": {
+      "get": {
+        "operationId": "get_prediction_fixtures__fixture_id__prediction_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Prediction",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+**/.next
+**/node_modules
+packages/contracts/src/generated
+packages/contracts/openapi.json

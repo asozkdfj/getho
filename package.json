@@ -1,0 +1,24 @@
+{
+  "name": "epl-edge-lab",
+  "private": true,
+  "workspaces": [
+    "packages/contracts",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @edge/web",
+    "build": "npm run build -w @edge/web",
+    "lint": "npm run lint -w @edge/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @edge/web",
+    "format": "prettier --write \"apps/web/**/*.{ts,tsx,css,mjs,json}\" \"packages/contracts/src/index.ts\"",
+    "format:check": "prettier --check \"apps/web/**/*.{ts,tsx,css,mjs,json}\" \"packages/contracts/src/index.ts\"",
+    "contracts:generate": "npm run generate -w @edge/contracts"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}
