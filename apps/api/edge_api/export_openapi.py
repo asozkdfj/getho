@@ -1,6 +1,6 @@
 """Export the OpenAPI schema (source of truth for packages/contracts).
 
-    python -m edge_api.export_openapi packages/contracts/openapi.json
+python -m edge_api.export_openapi packages/contracts/openapi.json
 """
 
 from __future__ import annotations

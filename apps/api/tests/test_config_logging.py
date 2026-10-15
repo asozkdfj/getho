@@ -21,6 +21,11 @@ def test_empty_api_key_is_none_and_cors_is_split():
     assert s.cors_origins == ["http://a.com", "http://b.com"]
 
 
+def test_settings_parse_comma_separated_cors_from_env(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000,https://edge.example")
+    assert Settings().cors_origins == ["http://localhost:3000", "https://edge.example"]
+
+
 def test_redact_connection_urls_and_keys():
     assert redact("postgresql://edge:pw@db/edge") == "postgresql://edge:***@db/edge"
     assert redact("GET /x?api_key=abc&x=1") == "GET /x?api_key=***&x=1"

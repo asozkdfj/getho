@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -23,7 +24,10 @@ class Settings(BaseSettings):
 
     git_sha: str | None = None
 
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # comma-separated in the environment (NoDecode: not parsed as JSON)
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:3000"]
+    )
     value_threshold: float = 0.03
 
     @field_validator("cors_origins", mode="before")

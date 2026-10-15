@@ -3,4 +3,4 @@ export function apiBaseUrl(): string {
   return (process.env.API_INTERNAL_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 }
 
-export const DEFAULT_TZ = process.env.NEXT_PUBLIC_DEFAULT_TZ ?? "Asia/Seoul";
+export const DEFAULT_TZ = process.env.DEFAULT_TZ ?? "Asia/Seoul";

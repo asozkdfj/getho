@@ -1,0 +1,100 @@
+# Local development stack: `docker compose up --build`
+# Works without a .env file; values below are LOCAL-ONLY defaults.
+name: epl-edge-lab
+
+x-python-env: &python-env
+  APP_ENV: ${APP_ENV:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-edge}:${POSTGRES_PASSWORD:-edge}@postgres:5432/${POSTGRES_DB:-edge}
+  REDIS_URL: redis://redis:6379/0
+  DATA_PROVIDER: ${DATA_PROVIDER:-mock}
+  PRIMARY_BOOKMAKER: ${PRIMARY_BOOKMAKER:-mockbook}
+  FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
+  VALUE_THRESHOLD: ${VALUE_THRESHOLD:-0.03}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-edge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edge}
+      POSTGRES_DB: ${POSTGRES_DB:-edge}
+      TZ: UTC
+      PGTZ: UTC
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/python.Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    environment:
+      <<: *python-env
+      RUN_MIGRATIONS_ON_STARTUP: "true"
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/python.Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    environment:
+      <<: *python-env
+      PIPELINE_INTERVAL_SECONDS: ${PIPELINE_INTERVAL_SECONDS:-1800}
+    command:
+      - celery
+      - -A
+      - edge_ingestion.celery_app
+      - worker
+      - -B
+      - --schedule=/tmp/celerybeat-schedule
+      - --loglevel=INFO
+      - --concurrency=1
+    depends_on:
+      api: { condition: service_healthy }
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      DEFAULT_TZ: ${DEFAULT_TZ:-Asia/Seoul}
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
