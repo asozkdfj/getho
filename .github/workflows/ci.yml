@@ -92,7 +92,9 @@ jobs:
     needs: [python, web]
     steps:
       - uses: actions/checkout@v4
-      - name: Start stack (no .env, defaults only)
+      - name: Use the env template exactly as a new developer would
+        run: cp .env.example .env
+      - name: Start stack
         run: GIT_SHA=${GITHUB_SHA::12} docker compose up -d --build
       - name: Smoke test
         run: ./tests/smoke/smoke.sh
