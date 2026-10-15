@@ -42,6 +42,26 @@ make down        # 정지 (DB 볼륨 유지) / 완전 초기화: docker compose 
 `seed`는 몇 번을 실행해도 중복 행을 만들지 않습니다. 시간이 흘러 새 배당 스냅샷이나 결과가 생기면
 그 부분만 **추가(append)** 됩니다.
 
+## 다른 PC에서 보기 (GitHub Codespaces)
+
+설치 없이 브라우저만으로 전체 앱을 띄웁니다(회사 PC, Windows 등). 주소는 기본이 **비공개**라 내
+GitHub 계정으로 로그인해야만 열립니다.
+
+1. (실데이터를 볼 때만) GitHub → Settings → Codespaces → **Secrets**에서 `API_FOOTBALL_KEY`를 추가하고,
+   Repository access에 이 저장소를 고릅니다. 키를 넣지 않으면 데모(mock) 데이터로 뜹니다.
+2. 저장소 페이지 → **Code → Codespaces → Create codespace on <브랜치>**.
+3. 처음에는 이미지 빌드에 몇 분 걸립니다. 터미널에 `stack is starting`이 나오면 아래 **PORTS** 탭에서
+   **3000 (Web)** 의 지구본 아이콘을 누릅니다. API 문서는 8000 포트의 `/docs`입니다.
+4. 다 쓰면 왼쪽 아래 Codespaces 메뉴 → **Stop Current Codespace**. 30분 동안 쓰지 않아도 자동으로
+   멈춥니다. 멈춰도 DB 데이터는 남고, 다시 열면 자동으로 다시 뜹니다.
+
+- 무료 사용량이 매달 정해져 있습니다(GitHub Settings → Billing에서 확인).
+- Codespace가 켜져 있는 동안만 데이터를 수집합니다. 매일 빠짐없는 기록이 필요하면 항상 켜진 배포가
+  필요합니다([TODO](docs/TODO.md)).
+- 키를 나중에 추가했다면 Codespace를 다시 시작하거나 터미널에서 `bash .devcontainer/start.sh`를
+  실행합니다. 키는 환경 변수로만 전달되고 파일에 저장되지 않습니다.
+- 포트 공개 범위를 Public으로 바꾸지 마세요. 그러면 주소를 아는 누구나 볼 수 있습니다.
+
 ## 로컬 개발 (Docker 없이)
 
 요구사항: Python 3.12(`.python-version`으로 고정 — OpenAPI 생성 결과가 Python 버전마다 달라 contract 검사가 깨지는 것을 막기 위함), [uv](https://docs.astral.sh/uv/), Node 20.9+ (22 권장), PostgreSQL 16, (선택) Redis.
