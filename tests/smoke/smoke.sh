@@ -47,6 +47,11 @@ req = urllib.request.Request(api + "/combinations/analyze", data=body.encode(),
 with urllib.request.urlopen(req, timeout=10) as r:
     combo = json.load(r)
 assert combo["method"] == "independence_approximation" and combo["is_approximation"] is True
+leagues = get("/leagues")
+assert leagues["total_leagues"] >= 2, "expected several leagues"
+cups = [lg for r in leagues["regions"] for c in r["countries"] for lg in c["leagues"]
+        if lg["type"] == "cup"]
+assert all(lg["predicted_count"] == 0 for lg in cups), "cups must not be predicted"
 pick = get("/picks/today")
 assert pick["status"] in {"scheduled", "published", "no_qualifying_match", "no_matches",
                           "voided", "settled"}, pick["status"]
@@ -57,10 +62,11 @@ perf = get("/performance")
 assert perf["evaluation"] is not None, "seed should import the backtest report"
 assert get("/status/data")["last_success_at"], "no successful ingestion run logged"
 print(f"API ok: {len(fixtures)} fixtures this week, combination EV {combo['expected_value']:+.3f}, "
-      f"today's pick: {pick['status']}")
+      f"{leagues['total_leagues']} leagues, today's pick: {pick['status']}")
 PY
 
-for path in / "/?range=week" /combinations /methodology /guide /picks /performance; do
+first_league=$(curl -fsS "$API_URL/leagues" | python3 -c "import json,sys; print(json.load(sys.stdin)['featured'][0]['id'])")
+for path in / "/?range=week" "/?scope=all" /leagues "/leagues/$first_league" /combinations /methodology /guide /picks /performance; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL$path")
   [[ "$code" == "200" ]] || { echo "web $path -> $code" >&2; exit 1; }
 done
