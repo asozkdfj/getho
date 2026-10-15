@@ -35,6 +35,12 @@ def test_bookmaker_resolution():
     assert Settings(primary_bookmaker="").bookmaker == "mockbook"
 
 
+def test_provider_name_is_normalised():
+    assert Settings(data_provider="api-football").data_provider == "api_football"
+    assert Settings(data_provider=" API_Football ").data_provider == "api_football"
+    assert Settings(data_provider="api-football").bookmaker == "bet365"
+
+
 def test_redact_connection_urls_and_keys():
     assert redact("postgresql://edge:pw@db/edge") == "postgresql://edge:***@db/edge"
     assert redact("GET /x?api_key=abc&x=1") == "GET /x?api_key=***&x=1"

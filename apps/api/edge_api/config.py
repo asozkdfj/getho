@@ -50,6 +50,13 @@ class Settings(BaseSettings):
             return [o.strip() for o in v.split(",") if o.strip()]
         return v
 
+    @field_validator("data_provider", mode="before")
+    @classmethod
+    def _normalise_provider(cls, v: object) -> object:
+        # "API-Football" / "api-football" -> "api_football" (one canonical name everywhere,
+        # because it is also stored in fixtures.provider and used to scope queries)
+        return v.strip().lower().replace("-", "_") if isinstance(v, str) else v
+
     @field_validator(
         "api_football_key",
         "primary_bookmaker",
