@@ -1,0 +1,85 @@
+from collections import Counter
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
+from edge_ingestion.providers import MockProvider, get_provider
+from edge_ingestion.providers.base import FootballDataProvider
+from edge_ingestion.providers.mock import SNAPSHOT_OFFSETS, _round_robin
+from edge_ml.market import overround
+
+REF = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
+ALL = (datetime(2000, 1, 1, tzinfo=UTC), datetime(2100, 1, 1, tzinfo=UTC))
+
+
+def test_factory_and_interface():
+    assert isinstance(get_provider("mock"), FootballDataProvider)
+    with pytest.raises(ValueError):
+        get_provider("does-not-exist")
+
+
+def test_rejects_naive_reference_time():
+    with pytest.raises(ValueError):
+        MockProvider(reference_time=datetime(2026, 1, 1))  # noqa: DTZ001
+
+
+def test_round_robin_is_complete_double_round_robin():
+    codes = [f"T{i}" for i in range(20)]
+    rounds = _round_robin(codes)
+    assert len(rounds) == 38
+    for rnd in rounds:
+        teams = [t for pair in rnd for t in pair]
+        assert sorted(teams) == sorted(codes)  # everybody plays exactly once per round
+    pairs = Counter(pair for rnd in rounds for pair in rnd)
+    assert len(pairs) == 20 * 19 and set(pairs.values()) == {1}  # each ordered pair once
+
+
+def test_provider_is_deterministic():
+    a, b = MockProvider(REF), MockProvider(REF)
+    fa, fb = a.get_fixtures(*ALL), b.get_fixtures(*ALL)
+    assert fa == fb
+    ids = [f.provider_id for f in fa]
+    assert a.get_odds(ids) == b.get_odds(ids)
+
+
+def test_same_grid_window_gives_identical_data():
+    later_same_window = REF + timedelta(minutes=1)
+    a, b = MockProvider(REF), MockProvider(later_same_window)
+    assert a.season_start == b.season_start
+
+
+def test_fixture_status_is_consistent_with_reference_time():
+    p = MockProvider(REF)
+    fixtures = p.get_fixtures(*ALL)
+    assert len(fixtures) == 2 * 380
+    for f in fixtures:
+        assert f.kickoff_at.tzinfo is not None
+        if f.status == "finished":
+            assert f.kickoff_at + timedelta(hours=2) <= REF
+            assert f.home_score is not None and f.away_score is not None
+        else:
+            assert f.home_score is None and f.away_score is None
+        if f.status == "scheduled":
+            assert f.kickoff_at > REF
+    statuses = Counter(f.status for f in fixtures)
+    assert statuses["finished"] > 380 and statuses["scheduled"] > 0
+
+
+def test_there_are_fixtures_today_and_this_week():
+    fixtures = MockProvider(REF).get_fixtures(REF, REF + timedelta(days=7))
+    assert len(fixtures) >= 10
+
+
+def test_odds_are_valid_and_never_from_the_future():
+    p = MockProvider(REF)
+    fixtures = p.get_fixtures(REF - timedelta(days=30), REF + timedelta(days=14))
+    odds = p.get_odds([f.provider_id for f in fixtures])
+    assert odds
+    kickoff = {f.provider_id: f.kickoff_at for f in fixtures}
+    for o in odds:
+        assert o.captured_at <= REF
+        assert o.captured_at < kickoff[o.fixture_provider_id]
+        assert min(o.odds_home, o.odds_draw, o.odds_away) > 1.0
+        assert 0.02 < overround((o.odds_home, o.odds_draw, o.odds_away)) < 0.08
+    per_fixture = Counter(o.fixture_provider_id for o in odds)
+    assert max(per_fixture.values()) == len(SNAPSHOT_OFFSETS)
