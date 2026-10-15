@@ -75,6 +75,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fixtures/{fixture_id}/simulation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Simulate
+         * @description Replay the match many times from the latest prediction's expected goals.
+         */
+        get: operations["simulate_fixtures__fixture_id__simulation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -547,6 +567,16 @@ export interface components {
             season: string;
             /** Status */
             status: string;
+        };
+        /** GoalEventOut */
+        GoalEventOut: {
+            /** Minute */
+            minute: number;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "home" | "away";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1127,6 +1157,32 @@ export interface components {
             /** Region Ko */
             region_ko: string;
         };
+        /** ReplayOut */
+        ReplayOut: {
+            /** Away Goals */
+            away_goals: number;
+            /** Goals */
+            goals: components["schemas"]["GoalEventOut"][];
+            /** Home Goals */
+            home_goals: number;
+        };
+        /** ScoreFrequencyOut */
+        ScoreFrequencyOut: {
+            /** Away */
+            away: number;
+            /**
+             * Exact
+             * @description Model probability of this score (score matrix)
+             */
+            exact: number;
+            /** Home */
+            home: number;
+            /**
+             * Share
+             * @description Share of simulated matches with this score
+             */
+            share: number;
+        };
         /** SeasonMetricOut */
         SeasonMetricOut: {
             /** Accuracy */
@@ -1145,6 +1201,50 @@ export interface components {
             /** Fixture Id */
             fixture_id: number;
             outcome: components["schemas"]["Outcome"];
+        };
+        /** SimulationOut */
+        SimulationOut: {
+            /** Away Clean Sheet */
+            away_clean_sheet: number;
+            /** Both Teams Score */
+            both_teams_score: number;
+            expected_goals: components["schemas"]["ExpectedGoalsOut"];
+            /** Fixture Id */
+            fixture_id: number;
+            /** Home Clean Sheet */
+            home_clean_sheet: number;
+            /** @description The prediction being simulated */
+            model_probabilities: components["schemas"]["ProbabilitiesOut"];
+            /**
+             * Note
+             * @default 시뮬레이션은 분석 확률(기대 득점)로 경기를 여러 번 다시 치러 본 결과입니다. 새로운 정보를 더하지 않으므로 결과 비율은 분석 확률과 거의 같아야 정상이며, 실제 결과를 보장하지 않습니다.
+             */
+            note: string;
+            /** @description Simulated home / draw / away shares */
+            outcome_share: components["schemas"]["ProbabilitiesOut"];
+            /** Over */
+            over: {
+                [key: string]: number;
+            };
+            /** Prediction Id */
+            prediction_id: number;
+            replay: components["schemas"]["ReplayOut"];
+            /** Runs */
+            runs: number;
+            /** Seed */
+            seed: number;
+            /**
+             * Standard Error
+             * @description Largest sampling error (1 s.e.) of the shares
+             */
+            standard_error: number;
+            /** Top Scores */
+            top_scores: components["schemas"]["ScoreFrequencyOut"][];
+            /** Total Goals */
+            total_goals: [
+                string,
+                number
+            ][];
         };
         /** TeamNewsOut */
         TeamNewsOut: {
@@ -1432,6 +1532,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PredictionOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_fixtures__fixture_id__simulation_get: {
+        parameters: {
+            query?: {
+                /** @description Simulated matches */
+                runs?: number;
+                /** @description Default: the prediction id */
+                seed?: number | null;
+            };
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimulationOut"];
                 };
             };
             /** @description Not Found */

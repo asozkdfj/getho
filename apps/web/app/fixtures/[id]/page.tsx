@@ -6,6 +6,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { LeagueBadge } from "@/components/LeagueBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ProbabilityBar } from "@/components/ProbabilityBar";
+import { SimulationPanel } from "@/components/SimulationPanel";
 import { TeamNewsSection } from "@/components/TeamNewsSection";
 import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
 import { plainSummary } from "@/lib/explain";
@@ -106,6 +107,14 @@ export default async function FixturePage({ params }: { params: Params }) {
               </span>
             </div>
           </section>
+
+          {fixture.status === "scheduled" && (
+            <SimulationPanel
+              fixtureId={fixture.id}
+              home={fixture.home_team.name}
+              away={fixture.away_team.name}
+            />
+          )}
 
           <h2>결과별 자세히 보기</h2>
           <div className="table-scroll">

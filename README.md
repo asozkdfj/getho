@@ -126,6 +126,7 @@ lint/typecheck/test/build, API contract drift, `docker compose up` smoke 및 see
 | GET | `/leagues/{id}` | 리그 한 개 |
 | GET | `/fixtures?date=YYYY-MM-DD&days=1..14&tz=Asia/Seoul` | 기간 내 경기 + 최신 배당/공정확률/모델확률 요약. `league_id`, `country`, `region`, `featured` 필터 |
 | GET | `/fixtures/{id}` | 경기 상세 + 배당 스냅샷 이력 |
+| GET | `/fixtures/{id}/simulation?runs=10000&seed=` | 최신 예측의 기대 득점으로 경기를 여러 번 다시 치른 결과(스코어·골 합계·양 팀 득점, 한 경기 다시보기). 새 정보는 더하지 않음 |
 | GET | `/fixtures/{id}/prediction` | 최신 예측 snapshot: 모델확률, 공정확률, overround, Edge, EV, as-of 시각, 모델 버전 |
 | POST | `/combinations/analyze` | 서로 다른 경기 2~3개 selection 조합 (`method: independence_approximation`) |
 | GET | `/highlights?days=7&limit=3` | 분석이 시장보다 가장 높게 보는 결과(주의 표시 포함, 추천 아님) |

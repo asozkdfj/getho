@@ -190,6 +190,47 @@ class TeamNewsOut(ApiModel):
     )
 
 
+class ScoreFrequencyOut(ApiModel):
+    home: int
+    away: int
+    share: float = Field(description="Share of simulated matches with this score")
+    exact: float = Field(description="Model probability of this score (score matrix)")
+
+
+class GoalEventOut(ApiModel):
+    minute: int
+    side: Literal["home", "away"]
+
+
+class ReplayOut(ApiModel):
+    home_goals: int
+    away_goals: int
+    goals: list[GoalEventOut]
+
+
+class SimulationOut(ApiModel):
+    fixture_id: int
+    prediction_id: int
+    runs: int
+    seed: int
+    expected_goals: ExpectedGoalsOut
+    outcome_share: ProbabilitiesOut = Field(description="Simulated home / draw / away shares")
+    model_probabilities: ProbabilitiesOut = Field(description="The prediction being simulated")
+    standard_error: float = Field(description="Largest sampling error (1 s.e.) of the shares")
+    top_scores: list[ScoreFrequencyOut]
+    total_goals: list[tuple[str, float]]
+    over: dict[str, float]
+    both_teams_score: float
+    home_clean_sheet: float
+    away_clean_sheet: float
+    replay: ReplayOut
+    note: str = (
+        "시뮬레이션은 분석 확률(기대 득점)로 경기를 여러 번 다시 치러 본 결과입니다. "
+        "새로운 정보를 더하지 않으므로 결과 비율은 분석 확률과 거의 같아야 정상이며, "
+        "실제 결과를 보장하지 않습니다."
+    )
+
+
 class FixtureDetailOut(FixtureSummaryOut):
     odds_history: list[OddsSnapshotOut]
     team_news: TeamNewsOut | None = None

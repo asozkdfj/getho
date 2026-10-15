@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, time, timedelta
 from datetime import date as date_type
 from typing import Annotated
@@ -12,14 +13,19 @@ from edge_api.catalog import featured_rank, region_of
 from edge_api.db.models import Fixture, OddsSnapshot, Prediction
 from edge_api.schemas import (
     ErrorOut,
+    ExpectedGoalsOut,
     FixtureDetailOut,
     FixtureListOut,
     FixtureSummaryOut,
+    GoalEventOut,
     OddsSnapshotOut,
     PredictionOut,
     QualityCheckOut,
     QualityOut,
     Region,
+    ReplayOut,
+    ScoreFrequencyOut,
+    SimulationOut,
     TeamOut,
 )
 from edge_api.services import queries
@@ -32,6 +38,7 @@ from edge_api.services.analysis import (
 from edge_api.services.leagues import league_ref, verified_league_ids
 from edge_api.services.quality import assess, last_successful_run
 from edge_api.services.team_news import fixtures_with_lineups, team_news
+from edge_ml.simulation import replay_match, simulate_match
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
@@ -164,3 +171,49 @@ def get_prediction(
         ],
     )
     return out
+
+
+@router.get(
+    "/{fixture_id}/simulation",
+    response_model=SimulationOut,
+    responses={404: {"model": ErrorOut}},
+)
+def simulate(
+    fixture_id: int,
+    db: DbSession,
+    runs: Annotated[int, Query(ge=1000, le=100_000, description="Simulated matches")] = 10_000,
+    seed: Annotated[
+        int | None, Query(ge=0, le=2**31 - 1, description="Default: the prediction id")
+    ] = None,
+) -> SimulationOut:
+    """Replay the match many times from the latest prediction's expected goals."""
+    if queries.get_fixture(db, fixture_id) is None:
+        raise HTTPException(status_code=404, detail="fixture not found")
+    prediction = queries.latest_prediction(db, fixture_id)
+    if prediction is None or prediction.expected_goals_home is None:
+        raise HTTPException(status_code=404, detail="no prediction for this fixture yet")
+    lam_h, lam_a = prediction.expected_goals_home, prediction.expected_goals_away
+    seed = prediction.id if seed is None else seed
+    s = simulate_match(lam_h, lam_a, runs=runs, seed=seed)
+    r = replay_match(lam_h, lam_a, seed=seed)
+    return SimulationOut(
+        fixture_id=fixture_id,
+        prediction_id=prediction.id,
+        runs=s.runs,
+        seed=seed,
+        expected_goals=ExpectedGoalsOut(home=lam_h, away=lam_a),
+        outcome_share=to_probabilities_out(s.outcome_share),
+        model_probabilities=to_probabilities_out(model_probabilities(prediction)),
+        standard_error=s.standard_error,
+        top_scores=[ScoreFrequencyOut(**dataclasses.asdict(t)) for t in s.top_scores],
+        total_goals=s.total_goals,
+        over=s.over,
+        both_teams_score=s.both_teams_score,
+        home_clean_sheet=s.home_clean_sheet,
+        away_clean_sheet=s.away_clean_sheet,
+        replay=ReplayOut(
+            home_goals=r.home_goals,
+            away_goals=r.away_goals,
+            goals=[GoalEventOut(minute=g.minute, side=g.side) for g in r.goals],
+        ),
+    )

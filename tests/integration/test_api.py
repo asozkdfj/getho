@@ -373,3 +373,26 @@ def test_fixture_detail_shows_team_news(client, session_factory, now):
 def test_team_news_is_absent_without_data(client):
     fid = _upcoming_with_prediction(client, 1)[0]["id"]
     assert client.get(f"/fixtures/{fid}").json()["team_news"] is None
+
+
+def test_simulation_endpoint(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    body = client.get(f"/fixtures/{fid}/simulation", params={"runs": 20000}).json()
+    assert body["runs"] == 20000 and body["seed"] == body["prediction_id"]
+    se = body["standard_error"]
+    for k in ("home", "draw", "away"):
+        assert abs(body["outcome_share"][k] - body["model_probabilities"][k]) < 5 * se + 0.005
+    assert sum(share for _, share in body["total_goals"]) == pytest.approx(1.0)
+    assert body["top_scores"] and body["note"].startswith("시뮬레이션은")
+    replay = body["replay"]
+    assert len(replay["goals"]) == replay["home_goals"] + replay["away_goals"]
+    again = client.get(f"/fixtures/{fid}/simulation", params={"runs": 20000}).json()
+    assert again == body  # same seed -> same result
+    other = client.get(f"/fixtures/{fid}/simulation", params={"seed": 12345}).json()
+    assert other["seed"] == 12345 and other["outcome_share"] != body["outcome_share"]
+
+
+def test_simulation_validation_and_404(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    assert client.get(f"/fixtures/{fid}/simulation", params={"runs": 10}).status_code == 422
+    assert client.get("/fixtures/999999/simulation").status_code == 404

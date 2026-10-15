@@ -7,7 +7,7 @@ import {
   type Combination,
   type FixtureSummary,
 } from "@edge/contracts";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { blockReason, toggleSelection, toRequest, type Selections } from "@/lib/combination";
 import {
@@ -32,6 +32,17 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
   const [loading, setLoading] = useState(false);
   const count = Object.keys(selections).length;
   const ready = count >= MIN_COMBINATION_LEGS && count <= MAX_COMBINATION_LEGS;
+  const resultRef = useRef<HTMLElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // Bring the outcome into view as soon as it arrives (the list can be long).
+  useEffect(() => {
+    const target = result ? resultRef.current : error ? errorRef.current : null;
+    if (!target) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    target.focus({ preventScroll: true });
+  }, [result, error]);
 
   function pick(f: FixtureSummary, outcome: (typeof OUTCOMES)[number]) {
     setSelections((s) => toggleSelection(s, f, outcome, fixtures));
@@ -106,12 +117,24 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
       </div>
 
       <div className="sticky-bar">
-        <span>
-          선택 <strong>{count}</strong> / {MAX_COMBINATION_LEGS}
-          {count < MIN_COMBINATION_LEGS && (
-            <span className="muted small"> · 최소 {MIN_COMBINATION_LEGS}경기</span>
-          )}
-        </span>
+        {result ? (
+          <button
+            type="button"
+            className="sticky-summary"
+            onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
+          >
+            모두 맞을 확률 <strong>분석 {pct(result.model_probability, 1)}</strong>
+            <span className="muted"> · 시장 {pct(result.fair_market_probability, 1)}</span>
+            <span className="small"> 결과 보기 ↓</span>
+          </button>
+        ) : (
+          <span>
+            선택 <strong>{count}</strong> / {MAX_COMBINATION_LEGS}
+            {count < MIN_COMBINATION_LEGS && (
+              <span className="muted small"> · 최소 {MIN_COMBINATION_LEGS}경기</span>
+            )}
+          </span>
+        )}
         <span style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
@@ -132,18 +155,26 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
       </div>
 
       {error && (
-        <p className="error" role="alert">
+        <p className="error" role="alert" ref={errorRef} tabIndex={-1}>
           {error}
         </p>
       )}
-      {result && <CombinationResult result={result} tz={tz} />}
+      {result && <CombinationResult result={result} tz={tz} ref={resultRef} />}
     </>
   );
 }
 
-function CombinationResult({ result, tz }: { result: Combination; tz: string }) {
+function CombinationResult({
+  result,
+  tz,
+  ref,
+}: {
+  result: Combination;
+  tz: string;
+  ref: React.Ref<HTMLElement>;
+}) {
   return (
-    <section aria-live="polite">
+    <section aria-live="polite" ref={ref} tabIndex={-1} className="combination-result">
       <h2>분석 결과</h2>
       <div className="stat-grid">
         <div className="stat">

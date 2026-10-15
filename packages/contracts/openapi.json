@@ -965,6 +965,28 @@
         "title": "FixtureSummaryOut",
         "type": "object"
       },
+      "GoalEventOut": {
+        "properties": {
+          "minute": {
+            "title": "Minute",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "home",
+              "away"
+            ],
+            "title": "Side",
+            "type": "string"
+          }
+        },
+        "required": [
+          "minute",
+          "side"
+        ],
+        "title": "GoalEventOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2501,6 +2523,62 @@
         "title": "RegionGroupOut",
         "type": "object"
       },
+      "ReplayOut": {
+        "properties": {
+          "away_goals": {
+            "title": "Away Goals",
+            "type": "integer"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/GoalEventOut"
+            },
+            "title": "Goals",
+            "type": "array"
+          },
+          "home_goals": {
+            "title": "Home Goals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "home_goals",
+          "away_goals",
+          "goals"
+        ],
+        "title": "ReplayOut",
+        "type": "object"
+      },
+      "ScoreFrequencyOut": {
+        "properties": {
+          "away": {
+            "title": "Away",
+            "type": "integer"
+          },
+          "exact": {
+            "description": "Model probability of this score (score matrix)",
+            "title": "Exact",
+            "type": "number"
+          },
+          "home": {
+            "title": "Home",
+            "type": "integer"
+          },
+          "share": {
+            "description": "Share of simulated matches with this score",
+            "title": "Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "home",
+          "away",
+          "share",
+          "exact"
+        ],
+        "title": "ScoreFrequencyOut",
+        "type": "object"
+      },
       "SeasonMetricOut": {
         "properties": {
           "accuracy": {
@@ -2549,6 +2627,112 @@
           "outcome"
         ],
         "title": "SelectionIn",
+        "type": "object"
+      },
+      "SimulationOut": {
+        "properties": {
+          "away_clean_sheet": {
+            "title": "Away Clean Sheet",
+            "type": "number"
+          },
+          "both_teams_score": {
+            "title": "Both Teams Score",
+            "type": "number"
+          },
+          "expected_goals": {
+            "$ref": "#/components/schemas/ExpectedGoalsOut"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "home_clean_sheet": {
+            "title": "Home Clean Sheet",
+            "type": "number"
+          },
+          "model_probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut",
+            "description": "The prediction being simulated"
+          },
+          "note": {
+            "default": "시뮬레이션은 분석 확률(기대 득점)로 경기를 여러 번 다시 치러 본 결과입니다. 새로운 정보를 더하지 않으므로 결과 비율은 분석 확률과 거의 같아야 정상이며, 실제 결과를 보장하지 않습니다.",
+            "title": "Note",
+            "type": "string"
+          },
+          "outcome_share": {
+            "$ref": "#/components/schemas/ProbabilitiesOut",
+            "description": "Simulated home / draw / away shares"
+          },
+          "over": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Over",
+            "type": "object"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
+          },
+          "replay": {
+            "$ref": "#/components/schemas/ReplayOut"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "standard_error": {
+            "description": "Largest sampling error (1 s.e.) of the shares",
+            "title": "Standard Error",
+            "type": "number"
+          },
+          "top_scores": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreFrequencyOut"
+            },
+            "title": "Top Scores",
+            "type": "array"
+          },
+          "total_goals": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Total Goals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "prediction_id",
+          "runs",
+          "seed",
+          "expected_goals",
+          "outcome_share",
+          "model_probabilities",
+          "standard_error",
+          "top_scores",
+          "total_goals",
+          "over",
+          "both_teams_score",
+          "home_clean_sheet",
+          "away_clean_sheet",
+          "replay"
+        ],
+        "title": "SimulationOut",
         "type": "object"
       },
       "TeamNewsOut": {
@@ -3295,6 +3479,93 @@
           }
         },
         "summary": "Get Prediction",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/fixtures/{fixture_id}/simulation": {
+      "get": {
+        "description": "Replay the match many times from the latest prediction's expected goals.",
+        "operationId": "simulate_fixtures__fixture_id__simulation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Simulated matches",
+            "in": "query",
+            "name": "runs",
+            "required": false,
+            "schema": {
+              "default": 10000,
+              "description": "Simulated matches",
+              "maximum": 100000,
+              "minimum": 1000,
+              "title": "Runs",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default: the prediction id",
+            "in": "query",
+            "name": "seed",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 2147483647,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: the prediction id",
+              "title": "Seed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate",
         "tags": [
           "fixtures"
         ]
