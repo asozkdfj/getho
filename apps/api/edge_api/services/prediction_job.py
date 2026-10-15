@@ -55,6 +55,7 @@ def _training_matches(session: Session, now: datetime, provider: str) -> list[Ma
             home_goals=f.home_score,  # type: ignore[arg-type]
             away_goals=f.away_score,  # type: ignore[arg-type]
             kickoff_at=f.kickoff_at,
+            season=f.season,
         )
         for f in session.scalars(stmt).unique()
     ]

@@ -45,13 +45,18 @@ class Probabilities1X2:
 
 @dataclass(frozen=True, slots=True)
 class MatchResult:
-    """A finished match used for fitting ratings. Team keys are opaque strings/ids."""
+    """A finished match used for fitting ratings. Team keys are opaque strings/ids.
+
+    ``season`` (e.g. "2026-27") is optional; when present for every match the
+    model can detect newly promoted teams and give them a realistic prior.
+    """
 
     home: str
     away: str
     home_goals: int
     away_goals: int
     kickoff_at: datetime
+    season: str | None = None
 
     def __post_init__(self) -> None:
         if self.home == self.away:

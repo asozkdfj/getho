@@ -40,9 +40,15 @@ class EloRatings:
     params: EloParams = field(default_factory=EloParams)
     ratings: dict[str, float] = field(default_factory=dict)
     matches_played: dict[str, int] = field(default_factory=dict)
+    # Rating for teams never seen (e.g. promoted before their first match).
+    # None -> params.initial_rating (league average).
+    default_rating: float | None = None
 
     def rating(self, team: str) -> float:
-        return self.ratings.get(team, self.params.initial_rating)
+        default = (
+            self.default_rating if self.default_rating is not None else self.params.initial_rating
+        )
+        return self.ratings.get(team, default)
 
     def update(self, match: MatchResult) -> None:
         r_home, r_away = self.rating(match.home), self.rating(match.away)

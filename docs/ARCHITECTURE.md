@@ -60,7 +60,7 @@ Provider ─>│ get_teams / get_fixtures / get_odds  ->  jobs.run_ingestion    
 - 경기 시작 이후(`kickoff_at <= now`)에는 예측을 만들지 않습니다. 학습 데이터와 배당도 `now` 이전 것만
   씁니다(look-ahead 방지).
 
-## 모델 (v0.1.0, `poisson_strength_v1+elo_supremacy_v1`)
+## 모델 (v0.2.0, `poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1`)
 
 1. 가중 MLE(Maher)로 공격/수비 강도를 추정합니다. 시간 감쇠는 0.005/day이고, 4경기분 prior로 리그 평균
    쪽으로 수축합니다.
@@ -68,6 +68,11 @@ Provider ─>│ get_teams / get_fixtures / get_odds  ->  jobs.run_ingestion    
 3. Supremacy 결합: `S = 0.6·(λh−λa) + 0.4·(EloDiff/280)`, 총 득점 `T = λh+λa`는 유지합니다.
 4. `λh=(T+S)/2, λa=(T−S)/2`로 0~10골 score matrix를 만들고 재정규화해 1X2를 얻습니다.
 5. Calibrator는 `Calibrator` 프로토콜을 따르며, 현재 구현은 `IdentityCalibrator`입니다.
+6. 승격팀 prior(v0.2.0): 모든 경기에 시즌 정보가 있으면, 직전 시즌에 없던 팀은 그 시즌 시작 시점 하위
+   3팀(`newcomer_reference_teams`)의 평균 Elo에서 출발하고, 공격/수비는 하위 3팀의 평균 쪽으로
+   수축합니다. 아직 한 경기도 안 치른 팀(시즌 개막 전 승격팀)도 같은 강등권 수준 prior를 받습니다.
+   예측 `features`의 `prior_home`/`prior_away`(`data`, `promoted_relegation_level`,
+   `unseen_relegation_level`, `league_average`)로 어떤 출발점을 썼는지 확인할 수 있습니다.
 
 ## 시간대
 

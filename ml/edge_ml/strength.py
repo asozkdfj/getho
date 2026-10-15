@@ -11,7 +11,7 @@ average), and exponential time decay down-weights old matches.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -37,10 +37,15 @@ class StrengthRatings:
     attack: dict[str, float] = field(default_factory=dict)
     defence: dict[str, float] = field(default_factory=dict)
     n_matches: int = 0
+    # used for teams without any match (1.0 = league average)
+    default_attack: float = 1.0
+    default_defence: float = 1.0
 
     def expected_goals(self, home: str, away: str) -> tuple[float, float]:
-        att_h, def_h = self.attack.get(home, 1.0), self.defence.get(home, 1.0)
-        att_a, def_a = self.attack.get(away, 1.0), self.defence.get(away, 1.0)
+        att_h = self.attack.get(home, self.default_attack)
+        def_h = self.defence.get(home, self.default_defence)
+        att_a = self.attack.get(away, self.default_attack)
+        def_a = self.defence.get(away, self.default_defence)
         return self.mu_home * att_h * def_a, self.mu_away * att_a * def_h
 
 
@@ -48,8 +53,14 @@ def fit_strengths(
     matches: Sequence[MatchResult],
     as_of: datetime,
     params: StrengthParams | None = None,
+    targets: Mapping[str, tuple[float, float]] | None = None,
 ) -> StrengthRatings:
-    """Fit ratings using only matches that kicked off strictly before ``as_of``."""
+    """Fit ratings using only matches that kicked off strictly before ``as_of``.
+
+    ``targets`` maps team -> (attack, defence) the prior shrinks toward; teams not
+    listed shrink toward 1.0 (league average). Used for newly promoted teams.
+    """
+    targets = targets or {}
     params = params or StrengthParams()
     if as_of.tzinfo is None:
         raise ValueError("as_of must be timezone-aware (UTC)")
@@ -74,10 +85,12 @@ def fit_strengths(
     # prior expressed as goals at league-average rate
     prior_goals = params.prior_matches * (mu_home + mu_away) / 2.0
 
+    target = {t: targets.get(t, (1.0, 1.0)) for t in teams}
+
     for _ in range(params.iterations):
-        scored = dict.fromkeys(teams, prior_goals)
+        scored = {t: prior_goals * target[t][0] for t in teams}
         exp_scored = dict.fromkeys(teams, prior_goals)
-        conceded = dict.fromkeys(teams, prior_goals)
+        conceded = {t: prior_goals * target[t][1] for t in teams}
         exp_conceded = dict.fromkeys(teams, prior_goals)
         for w, m in zip(weights, usable, strict=True):
             scored[m.home] += w * m.home_goals

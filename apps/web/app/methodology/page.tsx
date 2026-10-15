@@ -17,7 +17,7 @@ export default function MethodologyPage() {
         않으며, 향후 단계에서 뉴스·부상 정보를 구조화하거나 결과를 설명하는 보조 역할만 맡습니다.
       </p>
 
-      <h2>2. 베이스라인 모델 (v0.1.0)</h2>
+      <h2>2. 베이스라인 모델 (v0.2.0)</h2>
       <ol>
         <li>
           <strong>Poisson 공격/수비 강도</strong>: 지난 경기 득실점으로 팀별 공격력·수비력을
@@ -26,6 +26,10 @@ export default function MethodologyPage() {
         <li>
           <strong>Elo 레이팅</strong>: 장기적인 팀 강도를 경기 결과 순서대로 갱신합니다(홈
           어드밴티지 포함).
+        </li>
+        <li>
+          <strong>승격팀 출발점</strong>: 지난 시즌 EPL 기록이 없는 팀은 리그 평균이 아니라 직전
+          시점 하위 3팀의 평균 전력(강등권 수준)에서 출발하고, 경기 결과가 쌓이면서 조정됩니다.
         </li>
         <li>
           두 신호를 &lsquo;골 득실 우위(supremacy)&rsquo;로 결합해 홈/원정 기대 득점(λ)을 만듭니다.
