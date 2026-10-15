@@ -473,7 +473,7 @@ export interface operations {
                     "application/json": components["schemas"]["CombinationOut"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -509,7 +509,7 @@ export interface operations {
                     "application/json": components["schemas"]["FixtureListOut"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;

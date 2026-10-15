@@ -42,7 +42,7 @@ make down        # 정지 (DB 볼륨 유지) / 완전 초기화: docker compose 
 
 ## 로컬 개발 (Docker 없이)
 
-요구사항: Python 3.12+, [uv](https://docs.astral.sh/uv/), Node 20.9+ (22 권장), PostgreSQL 16, (선택) Redis.
+요구사항: Python 3.12(`.python-version`으로 고정 — OpenAPI 생성 결과가 Python 버전마다 달라 contract 검사가 깨지는 것을 막기 위함), [uv](https://docs.astral.sh/uv/), Node 20.9+ (22 권장), PostgreSQL 16, (선택) Redis.
 
 ```bash
 make install                         # uv sync + npm ci
