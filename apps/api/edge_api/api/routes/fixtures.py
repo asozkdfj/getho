@@ -79,6 +79,8 @@ def list_fixtures(
         date=local_day.isoformat(),
         days=days,
         tz=tz,
+        data_provider=settings.data_provider,
+        bookmaker=settings.bookmaker,
         range_start_utc=start.astimezone(UTC),
         range_end_utc=end.astimezone(UTC),
         fixtures=[_summary(f, odds.get(f.id), preds.get(f.id)) for f in fixtures],

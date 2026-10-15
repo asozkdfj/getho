@@ -28,6 +28,7 @@ def test_list_fixtures_defaults_to_today_utc(client, now):
     body = r.json()
     assert body["date"] == now.date().isoformat()
     assert body["days"] == 1
+    assert body["data_provider"] == "mock" and body["bookmaker"] == "mockbook"
     for f in body["fixtures"]:
         assert f["kickoff_at"].startswith(body["date"])
         assert f["kickoff_at"].endswith("Z")

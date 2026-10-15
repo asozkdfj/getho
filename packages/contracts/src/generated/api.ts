@@ -217,6 +217,16 @@ export interface components {
         };
         /** FixtureListOut */
         FixtureListOut: {
+            /**
+             * Bookmaker
+             * @description Bookmaker used as the market baseline
+             */
+            bookmaker: string;
+            /**
+             * Data Provider
+             * @description Source of fixtures/odds, e.g. mock or api_football
+             */
+            data_provider: string;
             /** Date */
             date: string;
             /** Days */

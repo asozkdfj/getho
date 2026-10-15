@@ -30,8 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="container">{children}</main>
         <footer className="site-footer">
           <div className="container">
-            확률은 통계적 추정치이며 결과를 보장하지 않습니다 · 베팅 중개/실행 기능 없음 · 데모
-            데이터는 합성(mock) 데이터입니다
+            확률은 통계적 추정치이며 결과를 보장하지 않습니다 · 베팅 중개/실행 기능 없음 · 데이터
+            출처는 경기 목록에 표시됩니다
           </div>
         </footer>
       </body>

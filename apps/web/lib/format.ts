@@ -16,6 +16,15 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "취소",
 };
 
+const PROVIDER_LABEL: Record<string, string> = {
+  mock: "합성(mock) 데모 데이터 — 실제 경기와 무관",
+  api_football: "API-Football",
+};
+
+export function providerLabel(provider: string): string {
+  return PROVIDER_LABEL[provider] ?? provider;
+}
+
 export function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { odds, pct, signedPct, signedPoints, statusLabel, tone } from "./format";
+import { odds, pct, providerLabel, signedPct, signedPoints, statusLabel, tone } from "./format";
 
 describe("format", () => {
   it("formats probabilities as percentages", () => {
@@ -27,6 +27,12 @@ describe("format", () => {
     expect(tone(0.002)).toBe("neutral");
     expect(tone(0.02)).toBe("positive");
     expect(tone(-0.02)).toBe("negative");
+  });
+
+  it("labels the data source", () => {
+    expect(providerLabel("api_football")).toBe("API-Football");
+    expect(providerLabel("mock")).toMatch(/합성/);
+    expect(providerLabel("other")).toBe("other");
   });
 
   it("translates statuses", () => {

@@ -73,8 +73,9 @@ export default function MethodologyPage() {
         </li>
         <li>경기 시작 이후에는 새 예측을 만들지 않습니다(사후 확률로 덮어쓰기 금지).</li>
         <li>
-          현재 데모는 <strong>합성(mock) 데이터</strong>입니다. 팀 이름 외의 결과·배당은 실제와
-          무관합니다.
+          데이터 출처와 시장 기준 북메이커는 경기 목록 상단에 표시됩니다. 실데이터는
+          API-Football에서 수집하며, 데모 모드(<strong>mock</strong>)의 결과·배당은 합성 데이터로
+          실제와 무관합니다.
         </li>
       </ul>
 

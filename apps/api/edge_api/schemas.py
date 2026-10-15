@@ -72,6 +72,8 @@ class FixtureListOut(ApiModel):
     date: str
     days: int
     tz: str
+    data_provider: str = Field(description="Source of fixtures/odds, e.g. mock or api_football")
+    bookmaker: str = Field(description="Bookmaker used as the market baseline")
     range_start_utc: datetime
     range_end_utc: datetime
     fixtures: list[FixtureSummaryOut]

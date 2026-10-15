@@ -5,6 +5,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { FixtureCard } from "@/components/FixtureCard";
 import { fetchFixtures } from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
+import { providerLabel } from "@/lib/format";
 import { formatInTz, localDateKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,8 @@ export default async function FixturesPage({
   searchParams: Promise<{ range?: string }>;
 }) {
   const { range: rawRange } = await searchParams;
-  const range: Range = rawRange === "week" ? "week" : "today";
+  // EPL matches are mostly at weekends, so "today" is usually empty: default to the week.
+  const range: Range = rawRange === "today" ? "today" : "week";
   const tz = DEFAULT_TZ;
   const data = await fetchFixtures({ days: range === "week" ? 7 : 1, tz });
   const groups = groupByDay(data.fixtures, tz);
@@ -38,6 +40,9 @@ export default async function FixturesPage({
           <h1>EPL 경기</h1>
           <p className="muted small" style={{ margin: 0 }}>
             모델 확률 vs 시장 공정확률(마진 제거) · 기준 시간대 {tz}
+          </p>
+          <p className="muted small" style={{ margin: 0 }}>
+            데이터: {providerLabel(data.data_provider)} · 시장 기준 북메이커: {data.bookmaker}
           </p>
         </div>
         <nav className="tabs" aria-label="기간">

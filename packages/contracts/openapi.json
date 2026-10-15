@@ -340,6 +340,16 @@
       },
       "FixtureListOut": {
         "properties": {
+          "bookmaker": {
+            "description": "Bookmaker used as the market baseline",
+            "title": "Bookmaker",
+            "type": "string"
+          },
+          "data_provider": {
+            "description": "Source of fixtures/odds, e.g. mock or api_football",
+            "title": "Data Provider",
+            "type": "string"
+          },
           "date": {
             "title": "Date",
             "type": "string"
@@ -374,6 +384,8 @@
           "date",
           "days",
           "tz",
+          "data_provider",
+          "bookmaker",
           "range_start_utc",
           "range_end_utc",
           "fixtures"
