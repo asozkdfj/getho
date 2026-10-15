@@ -6,6 +6,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { LocalTime } from "@/components/LocalTime";
 import { ProbabilityBar } from "@/components/ProbabilityBar";
 import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
+import { plainSummary } from "@/lib/explain";
 import { DEFAULT_TZ } from "@/lib/config";
 import { OUTCOME_LABEL, odds, pct, signedPct, signedPoints, statusLabel, tone } from "@/lib/format";
 
@@ -34,6 +35,9 @@ export default async function FixturePage({ params }: { params: Params }) {
   const { fixture, prediction } = await load((await params).id);
   const tz = DEFAULT_TZ;
   const finished = fixture.status === "finished";
+  const summary = prediction
+    ? plainSummary(prediction, fixture.home_team.name, fixture.away_team.name)
+    : null;
 
   return (
     <>
@@ -54,9 +58,19 @@ export default async function FixturePage({ params }: { params: Params }) {
         </div>
       </div>
 
-      {prediction ? (
+      {prediction && summary ? (
         <>
-          <section className="card stack" aria-label="확률 비교">
+          <section className="card summary-card" aria-label="한눈에 보기">
+            <h2 style={{ marginTop: 0 }}>한눈에 보기</h2>
+            <p>{summary.mostLikely}</p>
+            <p>{summary.comparison}</p>
+            {summary.ev && <p className="small">{summary.ev}</p>}
+            <p className="small muted">
+              용어가 낯설다면 <Link href="/guide">3분 가이드</Link>를 먼저 보세요.
+            </p>
+          </section>
+
+          <section className="card stack" aria-label="확률 비교" style={{ marginTop: 12 }}>
             <ProbabilityBar p={prediction.probabilities} label="모델" />
             <ProbabilityBar p={prediction.fair_market_probabilities} label="시장(공정)" />
             <div className="legend">
@@ -79,12 +93,42 @@ export default async function FixturePage({ params }: { params: Params }) {
               <thead>
                 <tr>
                   <th scope="col">결과</th>
-                  <th scope="col">배당</th>
-                  <th scope="col">내재확률</th>
-                  <th scope="col">시장 공정확률</th>
-                  <th scope="col">모델 확률</th>
-                  <th scope="col">Edge</th>
-                  <th scope="col">EV</th>
+                  <th scope="col">
+                    배당
+                    <Link href="/guide#odds" className="help" aria-label="배당 설명">
+                      ?
+                    </Link>
+                  </th>
+                  <th scope="col">
+                    내재확률
+                    <Link href="/guide#odds" className="help" aria-label="내재확률 설명">
+                      ?
+                    </Link>
+                  </th>
+                  <th scope="col">
+                    시장 공정확률
+                    <Link href="/guide#fair" className="help" aria-label="시장 공정확률 설명">
+                      ?
+                    </Link>
+                  </th>
+                  <th scope="col">
+                    모델 확률
+                    <Link href="/guide#model" className="help" aria-label="모델 확률 설명">
+                      ?
+                    </Link>
+                  </th>
+                  <th scope="col">
+                    Edge
+                    <Link href="/guide#edge" className="help" aria-label="Edge 설명">
+                      ?
+                    </Link>
+                  </th>
+                  <th scope="col">
+                    EV
+                    <Link href="/guide#ev" className="help" aria-label="EV 설명">
+                      ?
+                    </Link>
+                  </th>
                 </tr>
               </thead>
               <tbody>

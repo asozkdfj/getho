@@ -504,6 +504,21 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 520px) {
+  /* brand on its own line, the four menu items share one row */
+  .header-inner {
+    gap: 0;
+    padding: 6px 0;
+  }
+  nav {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+  }
+  nav a {
+    padding: 6px 4px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
   h1 {
     font-size: 1.3rem;
   }
@@ -514,4 +529,35 @@ tbody tr:last-child td {
   .stat .value {
     font-size: 1.15rem;
   }
+}
+
+/* guide */
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 12px 0 8px;
+  font-size: 0.9rem;
+}
+.prose h2[id] {
+  scroll-margin-top: 72px; /* keep anchors below the sticky header */
+}
+.help {
+  display: inline-block;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--muted);
+}
+.summary-card p {
+  margin: 0 0 6px;
+}
+.summary-card p:last-child {
+  margin-bottom: 0;
 }

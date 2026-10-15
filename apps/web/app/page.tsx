@@ -57,8 +57,9 @@ export default async function FixturesPage({
 
       <div className="legend">
         <span>큰 숫자 = 모델 확률</span>
-        <span>시장 = de-vig 공정확률</span>
-        <span>%p = Edge(모델 − 시장)</span>
+        <span>시장 = 수수료를 뺀 시장 확률</span>
+        <span>%p = 모델 − 시장 차이(Edge)</span>
+        <Link href="/guide">처음이세요? 3분 가이드 →</Link>
       </div>
 
       {groups.length === 0 ? (

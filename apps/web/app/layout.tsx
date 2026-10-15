@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav aria-label="주요 메뉴">
               <Link href="/">경기</Link>
+              <Link href="/guide">초보자 가이드</Link>
               <Link href="/combinations">조합 분석</Link>
               <Link href="/methodology">방법론·면책</Link>
             </nav>
