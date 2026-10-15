@@ -2,11 +2,12 @@ import type { Highlight } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import { caveatText, highlightSentence, outcomeName } from "./highlights";
+import { TEST_LEAGUE } from "./testing";
 
 const base = {
   fixture: {
     id: 1,
-    league: "EPL",
+    league: TEST_LEAGUE,
     season: "2026-27",
     round: 8,
     kickoff_at: "2026-10-17T14:00:00Z",
@@ -37,6 +38,7 @@ describe("highlight wording", () => {
     expect(caveatText("promoted_away", base)).toMatch(/^Hull City: 승격팀/);
     expect(caveatText("promoted_home", base)).toMatch(/^Fulham: 승격팀/);
     expect(caveatText("large_gap", base)).toMatch(/최신 소식/);
+    expect(caveatText("unverified_league", base)).toMatch(/검증하지 않았어요/);
   });
 
   it("never sounds like a tip", () => {

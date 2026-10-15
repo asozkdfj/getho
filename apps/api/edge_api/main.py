@@ -8,6 +8,7 @@ from edge_api.api.routes import (
     fixtures,
     health,
     highlights,
+    leagues,
     performance,
     picks,
 )
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type"],
     )
     app.include_router(health.router)
+    app.include_router(leagues.router)
     app.include_router(fixtures.router)
     app.include_router(highlights.router)
     app.include_router(picks.router)

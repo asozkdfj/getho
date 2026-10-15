@@ -16,7 +16,7 @@ import json
 import sys
 from collections import Counter
 from dataclasses import asdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from edge_api.config import Settings, get_settings
@@ -26,17 +26,9 @@ from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion import backtest_cli
-from edge_ingestion.jobs import (
-    INGEST_LOOKAHEAD,
-    INGEST_LOOKBACK,
-    record_failed_run,
-    run_ingestion,
-    run_pipeline,
-)
+from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
-
-EVERYTHING = (datetime(1900, 1, 1, tzinfo=UTC), datetime(2200, 1, 1, tzinfo=UTC))
 
 
 def _parse_now(value: str | None) -> datetime:
@@ -46,7 +38,11 @@ def _parse_now(value: str | None) -> datetime:
 
 
 def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
-    """Fetch and parse without touching the database (use it to verify a new API key)."""
+    """Fetch and parse without touching the database (use it to verify a new API key).
+
+    Cheap on purpose: catalogue + two days of fixtures + odds for the next day's
+    fixtures of a few leagues (~5-10 requests with API-Football).
+    """
     provider = get_provider(settings.data_provider, settings=settings, reference_time=now)
     report: dict[str, Any] = {"provider": provider.name, "bookmaker": settings.bookmaker}
     if isinstance(provider, ApiFootballProvider):
@@ -56,40 +52,38 @@ def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
             "active": (status.get("subscription") or {}).get("active"),
             "requests": status.get("requests"),
         }
-        report["seasons"] = provider.seasons
-    teams = provider.get_teams()
-    # Count everything the provider returned (a pinned past season lies outside the
-    # ingestion window), then report the window the real ingestion would use.
-    fixtures = provider.get_fixtures(EVERYTHING[0], EVERYTHING[1])
-    window = (now - INGEST_LOOKBACK, now + INGEST_LOOKAHEAD)
-    in_window = [f for f in fixtures if window[0] <= f.kickoff_at < window[1]]
-    upcoming = [
-        f
-        for f in fixtures
-        if f.status == "scheduled" and now < f.kickoff_at <= now + timedelta(days=14)
-    ]
-    odds = provider.get_odds([f.provider_id for f in upcoming])
-    team_ids = {t.provider_id for t in teams}
+    leagues = provider.get_leagues()
+    fixtures = provider.get_fixtures(now - timedelta(days=1), now + timedelta(days=1))
+    upcoming = sorted(
+        (f for f in fixtures if f.status == "scheduled" and f.kickoff_at > now),
+        key=lambda f: f.kickoff_at,
+    )
+    by_league = Counter(f.league_provider_id for f in fixtures)
+    sample_leagues = [pid for pid, _ in by_league.most_common(3)]
+    sample = {
+        f.provider_id: f.kickoff_at for f in upcoming if f.league_provider_id in sample_leagues
+    }
+    odds = provider.get_odds(dict(list(sample.items())[:20]))
+    names = {lg.provider_id: f"{lg.country} - {lg.name}" for lg in leagues}
     finished = sorted((f for f in fixtures if f.status == "finished"), key=lambda f: f.kickoff_at)
     report.update(
-        teams=len(teams),
-        fixtures=len(fixtures),
-        fixtures_by_season=dict(Counter(f.season for f in fixtures)),
-        fixtures_in_ingest_window=len(in_window),
+        leagues=len(leagues),
+        leagues_by_type=dict(Counter(lg.type for lg in leagues)),
+        leagues_with_odds=sum(1 for lg in leagues if lg.has_odds),
+        countries=len({lg.country for lg in leagues}),
+        fixtures_last_and_next_24h=len(fixtures),
         fixture_statuses=dict(Counter(f.status for f in fixtures)),
-        fixtures_with_unknown_team=sum(
-            1 for f in fixtures if {f.home_team_provider_id, f.away_team_provider_id} - team_ids
-        ),
+        busiest_leagues=[f"{names.get(pid, pid)}: {n}" for pid, n in by_league.most_common(5)],
         sample_finished_fixture=asdict(finished[-1]) if finished else None,
-        upcoming_14d=len(upcoming),
-        odds_snapshots=len(odds),
-        fixtures_with_primary_bookmaker_odds=len(
+        odds_snapshots_sampled=len(odds),
+        sampled_fixtures_with_primary_bookmaker=len(
             {o.fixture_provider_id for o in odds if o.bookmaker == settings.bookmaker}
         ),
         bookmakers=sorted({o.bookmaker for o in odds}),
     )
     if isinstance(provider, ApiFootballProvider):
         report["requests_used"] = provider.requests_made
+        report["requests_left_today"] = provider.daily_remaining
     return report
 
 
@@ -171,7 +165,7 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                     result = asdict(pipeline)
                     result["evaluation_imported"] = imported
                 else:
-                    result = asdict(run_ingestion(session, provider, now=now))
+                    result = asdict(run_ingestion(session, provider, now=now, settings=settings))
     return result
 
 

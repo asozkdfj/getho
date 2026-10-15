@@ -217,8 +217,11 @@ def test_highlights_are_upcoming_distinct_and_sorted(client, now):
         assert h["fixture"]["status"] == "scheduled"
         assert h["fixture"]["kickoff_at"] > now.isoformat().replace("+00:00", "Z")
         assert h["edge"] == pytest.approx(h["model_probability"] - h["fair_probability"])
-        assert set(h["caveats"]) <= {"promoted_home", "promoted_away", "large_gap"}
+        allowed = {"promoted_home", "promoted_away", "large_gap", "unverified_league"}
+        assert set(h["caveats"]) <= allowed
         assert ("large_gap" in h["caveats"]) == (h["edge"] >= 0.10)
+        verified = h["fixture"]["league"]["verified"]
+        assert ("unverified_league" in h["caveats"]) == (not verified)
 
 
 def test_highlights_respect_min_edge_and_validation(client):

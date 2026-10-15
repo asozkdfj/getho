@@ -10,6 +10,9 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 DEFAULT_BOOKMAKERS = {"mock": "mockbook", "api_football": "bet365"}
 # API-Football refreshes odds ~every 3h; the mock captures at 10d/48h/6h before kickoff.
 DEFAULT_ODDS_MAX_AGE_HOURS = {"mock": 72.0, "api_football": 12.0}
+# Fetching odds for every league costs ~1 request per 10 fixtures, so the real
+# provider only looks a few days ahead (prices appear ~1-14 days before kickoff).
+DEFAULT_ODDS_LOOKAHEAD_DAYS = {"mock": 14, "api_football": 3}
 
 
 class Settings(BaseSettings):
@@ -30,12 +33,23 @@ class Settings(BaseSettings):
     # --- API-Football (api-sports.io v3); only used when data_provider=api_football
     api_football_key: SecretStr | None = None
     api_football_base_url: str = "https://v3.football.api-sports.io"
-    api_football_league_id: int = 39  # Premier League
-    api_football_season: int | None = None  # start year, e.g. 2026; None -> derived
+    # "all" = every league of the plan's catalogue; or comma-separated ids ("39,140")
+    api_football_leagues: str = "all"
     api_football_bookmaker_id: int | None = None  # None -> all bookmakers
-    # Free plan allows ~10 requests/minute -> 6.5s spacing. Lower it on paid plans.
+    # Spacing before the first response; afterwards the plan's per-minute limit
+    # (response header) sets the pace (free 10/min, pro 300/min).
     api_football_min_interval_seconds: float = 6.5
     api_football_timeout_seconds: float = 15.0
+    # Stop optional work (history backfill, extra odds pages) below this many
+    # requests left today, so the day's essential refreshes still fit.
+    api_football_min_remaining: int = 300
+
+    # --- multi-league ingestion
+    # Leagues whose past results are fetched per run (2 requests each) until all
+    # leagues with upcoming fixtures have history.
+    backfill_leagues_per_run: int = 40
+    # Odds are fetched for fixtures kicking off within this many days.
+    odds_lookahead_days: int | None = None  # None -> provider default
 
     git_sha: str | None = None
 
@@ -73,8 +87,8 @@ class Settings(BaseSettings):
     @field_validator(
         "api_football_key",
         "primary_bookmaker",
-        "api_football_season",
         "api_football_bookmaker_id",
+        "odds_lookahead_days",
         "odds_max_age_hours",
         mode="before",
     )
@@ -85,6 +99,10 @@ class Settings(BaseSettings):
     @property
     def odds_max_age(self) -> float:
         return self.odds_max_age_hours or DEFAULT_ODDS_MAX_AGE_HOURS.get(self.data_provider, 12.0)
+
+    @property
+    def odds_lookahead(self) -> int:
+        return self.odds_lookahead_days or DEFAULT_ODDS_LOOKAHEAD_DAYS.get(self.data_provider, 3)
 
     @property
     def bookmaker(self) -> str:

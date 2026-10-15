@@ -112,6 +112,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/leagues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Leagues
+         * @description League catalogue grouped by region and country, with upcoming fixture counts.
+         */
+        get: operations["list_leagues_leagues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leagues/{league_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League */
+        get: operations["get_league_leagues__league_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/performance": {
         parameters: {
             query?: never;
@@ -283,6 +320,17 @@ export interface components {
             /** Selections */
             selections: components["schemas"]["SelectionIn"][];
         };
+        /** CountryGroupOut */
+        CountryGroupOut: {
+            /** Country */
+            country: string;
+            /** Country Ko */
+            country_ko: string;
+            /** Flag Url */
+            flag_url?: string | null;
+            /** Leagues */
+            leagues: components["schemas"]["LeagueSummaryOut"][];
+        };
         /** DailyPickBacktestRowOut */
         DailyPickBacktestRowOut: {
             /** Days With Pick */
@@ -397,8 +445,7 @@ export interface components {
              */
             kickoff_at: string;
             latest_odds?: components["schemas"]["OddsSnapshotOut"] | null;
-            /** League */
-            league: string;
+            league: components["schemas"]["LeagueRefOut"];
             model_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
             /** Odds History */
             odds_history: components["schemas"]["OddsSnapshotOut"][];
@@ -459,8 +506,7 @@ export interface components {
              */
             kickoff_at: string;
             latest_odds?: components["schemas"]["OddsSnapshotOut"] | null;
-            /** League */
-            league: string;
+            league: components["schemas"]["LeagueRefOut"];
             model_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
             /** Prediction Id */
             prediction_id?: number | null;
@@ -526,7 +572,7 @@ export interface components {
              * Caveats
              * @description Reasons the model may be unreliable for this match
              */
-            caveats: ("promoted_home" | "promoted_away" | "large_gap")[];
+            caveats: ("promoted_home" | "promoted_away" | "large_gap" | "unverified_league")[];
             /** Decimal Odds */
             decimal_odds: number;
             /**
@@ -542,6 +588,117 @@ export interface components {
             /** Model Probability */
             model_probability: number;
             outcome: components["schemas"]["Outcome"];
+        };
+        /** LeagueListOut */
+        LeagueListOut: {
+            /** Data Provider */
+            data_provider: string;
+            /** Days */
+            days: number;
+            /** Featured */
+            featured: components["schemas"]["LeagueSummaryOut"][];
+            /** Regions */
+            regions: components["schemas"]["RegionGroupOut"][];
+            /** Total Leagues */
+            total_leagues: number;
+        };
+        /** LeagueRefOut */
+        LeagueRefOut: {
+            /** Country */
+            country: string;
+            /**
+             * Country Ko
+             * @description Country name for display (Korean when known)
+             */
+            country_ko: string;
+            /**
+             * Featured
+             * @description Shown first (major leagues)
+             */
+            featured: boolean;
+            /** Flag Url */
+            flag_url?: string | null;
+            /** Id */
+            id: number;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Predicted
+             * @description The model makes predictions here (league format with enough history)
+             */
+            predicted: boolean;
+            /**
+             * Region
+             * @enum {string}
+             */
+            region: "international" | "europe" | "asia" | "south_america" | "north_america" | "africa" | "oceania" | "other";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "league" | "cup";
+            /**
+             * Verified
+             * @description Accuracy measured by a walk-forward backtest on real results
+             */
+            verified: boolean;
+        };
+        /** LeagueSummaryOut */
+        LeagueSummaryOut: {
+            /** Country */
+            country: string;
+            /**
+             * Country Ko
+             * @description Country name for display (Korean when known)
+             */
+            country_ko: string;
+            /** Current Season */
+            current_season?: string | null;
+            /**
+             * Featured
+             * @description Shown first (major leagues)
+             */
+            featured: boolean;
+            /** Flag Url */
+            flag_url?: string | null;
+            /** Id */
+            id: number;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Predicted
+             * @description The model makes predictions here (league format with enough history)
+             */
+            predicted: boolean;
+            /**
+             * Predicted Count
+             * @description ...of which the model has a prediction
+             */
+            predicted_count: number;
+            /**
+             * Region
+             * @enum {string}
+             */
+            region: "international" | "europe" | "asia" | "south_america" | "north_america" | "africa" | "oceania" | "other";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "league" | "cup";
+            /**
+             * Upcoming Count
+             * @description Fixtures in the requested window
+             */
+            upcoming_count: number;
+            /**
+             * Verified
+             * @description Accuracy measured by a walk-forward backtest on real results
+             */
+            verified: boolean;
         };
         /** LiveEvaluationOut */
         LiveEvaluationOut: {
@@ -858,6 +1015,18 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** RegionGroupOut */
+        RegionGroupOut: {
+            /** Countries */
+            countries: components["schemas"]["CountryGroupOut"][];
+            /**
+             * Region
+             * @enum {string}
+             */
+            region: "international" | "europe" | "asia" | "south_america" | "north_america" | "africa" | "oceania" | "other";
+            /** Region Ko */
+            region_ko: string;
+        };
         /** SeasonMetricOut */
         SeasonMetricOut: {
             /** Accuracy */
@@ -881,6 +1050,8 @@ export interface components {
         TeamOut: {
             /** Id */
             id: number;
+            /** Logo Url */
+            logo_url?: string | null;
             /** Name */
             name: string;
             /** Short Name */
@@ -1005,6 +1176,14 @@ export interface operations {
                 days?: number;
                 /** @description IANA timezone used to interpret `date` */
                 tz?: string;
+                /** @description Only this league */
+                league_id?: number | null;
+                /** @description Only featured (major) leagues */
+                featured?: boolean;
+                /** @description Only leagues of this region */
+                region?: ("international" | "europe" | "asia" | "south_america" | "north_america" | "africa" | "oceania" | "other") | null;
+                /** @description Only leagues of this country */
+                country?: string | null;
             };
             header?: never;
             path?: never;
@@ -1139,6 +1318,8 @@ export interface operations {
                 days?: number;
                 limit?: number;
                 min_edge?: number;
+                /** @description Only this league */
+                league_id?: number | null;
             };
             header?: never;
             path?: never;
@@ -1153,6 +1334,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HighlightListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_leagues_leagues_get: {
+        parameters: {
+            query?: {
+                /** @description Window for fixture counts */
+                days?: number;
+                /** @description Only leagues with fixtures in the window */
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_league_leagues__league_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                league_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueSummaryOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
             /** @description Validation Error */

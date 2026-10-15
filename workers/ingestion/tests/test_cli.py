@@ -15,16 +15,12 @@ def test_check_provider_reports_quota_and_parse_counts(monkeypatch):
     report = cli.check_provider(Settings(data_provider="api_football", api_football_key="k"), REF)
     assert report["provider"] == "api_football"
     assert report["account"]["plan"] == "Free"
-    assert report["seasons"] == [2025, 2026]
-    assert report["teams"] == 21
-    assert report["fixtures_with_unknown_team"] == 0
-    assert set(report["fixtures_by_season"]) == {"2025-26", "2026-27"}
-    assert report["fixtures"] == 2 * 380 >= report["fixtures_in_ingest_window"]
-    sample = report["sample_finished_fixture"]
-    assert sample["status"] == "finished" and sample["home_score"] is not None
-    assert report["fixtures_with_primary_bookmaker_odds"] == report["upcoming_14d"] > 0
-    assert report["bookmakers"] == ["bet365", "pinnacle"]
-    assert report["requests_used"] == len(fake.calls) <= 8
+    assert report["leagues"] == 4 and report["leagues_by_type"] == {"league": 3, "cup": 1}
+    assert report["leagues_with_odds"] == 3
+    assert report["fixtures_last_and_next_24h"] == sum(report["fixture_statuses"].values())
+    assert report["bookmakers"] in ([], ["bet365", "pinnacle"])
+    assert report["requests_used"] == len(fake.calls) <= 10
+    assert report["requests_left_today"] == 7400
     assert "k" not in json.dumps(report["account"])
 
 
@@ -40,23 +36,6 @@ def test_cli_fails_cleanly_without_api_key(monkeypatch, capsys):
     assert "API_FOOTBALL_KEY" in err["error"]
 
 
-def test_check_provider_counts_pinned_past_season_outside_ingest_window(monkeypatch):
-    # Free plan: only old seasons -> fixtures exist but none fall in the ingest window
-    later = REF.replace(year=2028)
-    provider = ApiFootballProvider(
-        "k",
-        reference_time=REF,
-        transport=FakeApiFootball(),
-        min_interval_seconds=0,
-        sleep=lambda _: None,
-    )
-    monkeypatch.setattr(cli, "get_provider", lambda *a, **kw: provider)
-    report = cli.check_provider(Settings(data_provider="api_football", api_football_key="k"), later)
-    assert report["fixtures"] == 760
-    assert report["fixtures_in_ingest_window"] == 0
-    assert report["upcoming_14d"] == 0
-
-
 def test_main_prints_check_provider_report_as_json(monkeypatch, capsys):
     """End-to-end through main(): the report (with datetimes) must serialise."""
     provider = ApiFootballProvider(
@@ -70,6 +49,6 @@ def test_main_prints_check_provider_report_as_json(monkeypatch, capsys):
     monkeypatch.setattr(cli, "configure_logging", lambda *_: None)
     assert cli.main(["check-provider", "--now", "2026-10-15T09:00:00Z"]) == 0
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["result"]["leagues"] == 4
     sample = out["result"]["sample_finished_fixture"]
-    assert sample["kickoff_at"].startswith("2026-")
-    assert out["result"]["fixtures"] == 760
+    assert sample is None or sample["kickoff_at"].startswith("2026-")

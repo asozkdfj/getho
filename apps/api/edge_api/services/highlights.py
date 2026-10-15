@@ -22,9 +22,13 @@ LARGE_GAP = 0.10
 NEWCOMER_PRIORS = {"promoted_relegation_level", "unseen_relegation_level"}
 
 
-def caveats_for(prediction: Prediction, edge: float) -> list[HighlightCaveat]:
+def caveats_for(
+    prediction: Prediction, edge: float, verified_league: bool = True
+) -> list[HighlightCaveat]:
     features = prediction.features or {}
     out: list[HighlightCaveat] = []
+    if not verified_league:
+        out.append("unverified_league")
     if features.get("prior_home") in NEWCOMER_PRIORS:
         out.append("promoted_home")
     if features.get("prior_away") in NEWCOMER_PRIORS:
@@ -39,6 +43,7 @@ def build_highlights(
     predictions: dict[int, Prediction],
     summaries: dict[int, FixtureSummaryOut],
     *,
+    verified: frozenset[str] = frozenset(),
     now: datetime,
     min_edge: float,
     threshold: float,
@@ -66,7 +71,7 @@ def build_highlights(
                 edge=best.edge,
                 decimal_odds=best.decimal_odds,
                 expected_value=best.expected_value,
-                caveats=caveats_for(prediction, best.edge),
+                caveats=caveats_for(prediction, best.edge, fixture.league.provider_id in verified),
             )
         )
     items.sort(key=lambda h: (-h.edge, h.fixture.kickoff_at, h.fixture.id))

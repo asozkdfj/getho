@@ -22,6 +22,7 @@ from edge_api.schemas import (
     TodayPickOut,
 )
 from edge_api.services import queries
+from edge_api.services.leagues import verified_league_ids
 from edge_api.services.picks import effective_status, get_today_pick, pick_history
 
 router = APIRouter(prefix="/picks", tags=["picks"])
@@ -76,7 +77,12 @@ def today(
     if pick.fixture is not None and pick.prediction is not None and chosen:
         odds = queries.latest_odds_by_fixture(db, [pick.fixture.id], settings.bookmaker)
         base.update(
-            fixture=fixture_summary(pick.fixture, odds.get(pick.fixture.id), pick.prediction),
+            fixture=fixture_summary(
+                pick.fixture,
+                odds.get(pick.fixture.id),
+                pick.prediction,
+                verified_league_ids(db, settings.data_provider),
+            ),
             outcome=pick.outcome,
             probability=pick.probability,
             probabilities=ProbabilitiesOut(**chosen["probabilities"]),

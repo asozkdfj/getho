@@ -19,6 +19,8 @@ const NEWCOMER_PRIORS = new Set(["promoted_relegation_level", "unseen_relegation
 
 export const promotedCaution = (team: string) =>
   `${team}: 승격팀이라 이번 시즌 데이터가 적어 분석이 부정확할 수 있어요`;
+export const UNVERIFIED_LEAGUE_CAUTION =
+  "이 리그는 과거 기록으로 분석의 정확도를 아직 검증하지 않았어요";
 export const LARGE_GAP_CAUTION =
   "차이가 매우 커요. 시장은 부상·이적 같은 최신 소식을 이미 반영했을 수 있어요";
 

@@ -2,11 +2,12 @@ import type { FixtureSummary } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import { blockReason, isSelectable, toRequest, toggleSelection } from "./combination";
+import { TEST_LEAGUE } from "./testing";
 
 function fx(id: number, home: number, away: number, extra: Partial<FixtureSummary> = {}) {
   return {
     id,
-    league: "EPL",
+    league: TEST_LEAGUE,
     season: "2026-27",
     round: 1,
     kickoff_at: "2026-10-16T12:30:00Z",

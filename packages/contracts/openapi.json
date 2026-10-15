@@ -231,6 +231,43 @@
         "title": "CombinationRequest",
         "type": "object"
       },
+      "CountryGroupOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueSummaryOut"
+            },
+            "title": "Leagues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "country",
+          "country_ko",
+          "leagues"
+        ],
+        "title": "CountryGroupOut",
+        "type": "object"
+      },
       "DailyPickBacktestRowOut": {
         "properties": {
           "days_with_pick": {
@@ -612,8 +649,7 @@
             ]
           },
           "league": {
-            "title": "League",
-            "type": "string"
+            "$ref": "#/components/schemas/LeagueRefOut"
           },
           "model_probabilities": {
             "anyOf": [
@@ -794,8 +830,7 @@
             ]
           },
           "league": {
-            "title": "League",
-            "type": "string"
+            "$ref": "#/components/schemas/LeagueRefOut"
           },
           "model_probabilities": {
             "anyOf": [
@@ -957,7 +992,8 @@
               "enum": [
                 "promoted_home",
                 "promoted_away",
-                "large_gap"
+                "large_gap",
+                "unverified_league"
               ],
               "type": "string"
             },
@@ -1007,6 +1043,254 @@
           "caveats"
         ],
         "title": "HighlightOut",
+        "type": "object"
+      },
+      "LeagueListOut": {
+        "properties": {
+          "data_provider": {
+            "title": "Data Provider",
+            "type": "string"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "featured": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueSummaryOut"
+            },
+            "title": "Featured",
+            "type": "array"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/RegionGroupOut"
+            },
+            "title": "Regions",
+            "type": "array"
+          },
+          "total_leagues": {
+            "title": "Total Leagues",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data_provider",
+          "days",
+          "total_leagues",
+          "featured",
+          "regions"
+        ],
+        "title": "LeagueListOut",
+        "type": "object"
+      },
+      "LeagueRefOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "description": "Country name for display (Korean when known)",
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "featured": {
+            "description": "Shown first (major leagues)",
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "predicted": {
+            "description": "The model makes predictions here (league format with enough history)",
+            "title": "Predicted",
+            "type": "boolean"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "league",
+              "cup"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "verified": {
+            "description": "Accuracy measured by a walk-forward backtest on real results",
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "country_ko",
+          "region",
+          "type",
+          "featured",
+          "predicted",
+          "verified"
+        ],
+        "title": "LeagueRefOut",
+        "type": "object"
+      },
+      "LeagueSummaryOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "description": "Country name for display (Korean when known)",
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "current_season": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Season"
+          },
+          "featured": {
+            "description": "Shown first (major leagues)",
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "predicted": {
+            "description": "The model makes predictions here (league format with enough history)",
+            "title": "Predicted",
+            "type": "boolean"
+          },
+          "predicted_count": {
+            "description": "...of which the model has a prediction",
+            "title": "Predicted Count",
+            "type": "integer"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "league",
+              "cup"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "upcoming_count": {
+            "description": "Fixtures in the requested window",
+            "title": "Upcoming Count",
+            "type": "integer"
+          },
+          "verified": {
+            "description": "Accuracy measured by a walk-forward backtest on real results",
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "country_ko",
+          "region",
+          "type",
+          "featured",
+          "predicted",
+          "verified",
+          "upcoming_count",
+          "predicted_count"
+        ],
+        "title": "LeagueSummaryOut",
         "type": "object"
       },
       "LiveEvaluationOut": {
@@ -1914,6 +2198,42 @@
         "title": "QualityOut",
         "type": "object"
       },
+      "RegionGroupOut": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/CountryGroupOut"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "region_ko": {
+            "title": "Region Ko",
+            "type": "string"
+          }
+        },
+        "required": [
+          "region",
+          "region_ko",
+          "countries"
+        ],
+        "title": "RegionGroupOut",
+        "type": "object"
+      },
       "SeasonMetricOut": {
         "properties": {
           "accuracy": {
@@ -1969,6 +2289,17 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
           },
           "name": {
             "title": "Name",
@@ -2344,6 +2675,82 @@
               "title": "Tz",
               "type": "string"
             }
+          },
+          {
+            "description": "Only this league",
+            "in": "query",
+            "name": "league_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this league",
+              "title": "League Id"
+            }
+          },
+          {
+            "description": "Only featured (major) leagues",
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Only featured (major) leagues",
+              "title": "Featured",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Only leagues of this region",
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "international",
+                    "europe",
+                    "asia",
+                    "south_america",
+                    "north_america",
+                    "africa",
+                    "oceania",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only leagues of this region",
+              "title": "Region"
+            }
+          },
+          {
+            "description": "Only leagues of this country",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only leagues of this country",
+              "title": "Country"
+            }
           }
         ],
         "responses": {
@@ -2541,6 +2948,24 @@
               "title": "Min Edge",
               "type": "number"
             }
+          },
+          {
+            "description": "Only this league",
+            "in": "query",
+            "name": "league_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this league",
+              "title": "League Id"
+            }
           }
         ],
         "responses": {
@@ -2568,6 +2993,118 @@
         "summary": "List Highlights",
         "tags": [
           "highlights"
+        ]
+      }
+    },
+    "/leagues": {
+      "get": {
+        "description": "League catalogue grouped by region and country, with upcoming fixture counts.",
+        "operationId": "list_leagues_leagues_get",
+        "parameters": [
+          {
+            "description": "Window for fixture counts",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Window for fixture counts",
+              "maximum": 14,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only leagues with fixtures in the window",
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Only leagues with fixtures in the window",
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Leagues",
+        "tags": [
+          "leagues"
+        ]
+      }
+    },
+    "/leagues/{league_id}": {
+      "get": {
+        "operationId": "get_league_leagues__league_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "league_id",
+            "required": true,
+            "schema": {
+              "title": "League Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueSummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get League",
+        "tags": [
+          "leagues"
         ]
       }
     },

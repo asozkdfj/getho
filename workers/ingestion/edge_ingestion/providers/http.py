@@ -70,7 +70,7 @@ class JsonHttpClient:
         self._timeout = timeout
         self._max_attempts = max_attempts
         self._backoff = backoff_seconds
-        self._min_interval = min_interval_seconds
+        self.min_interval_seconds = min_interval_seconds
         self._sleep = sleep
         self._clock = clock
         self._last_request_at: float | None = None
@@ -80,9 +80,9 @@ class JsonHttpClient:
         return f"JsonHttpClient(base_url={self._base_url!r})"
 
     def _throttle(self) -> None:
-        if self._last_request_at is None or self._min_interval <= 0:
+        if self._last_request_at is None or self.min_interval_seconds <= 0:
             return
-        wait = self._min_interval - (self._clock() - self._last_request_at)
+        wait = self.min_interval_seconds - (self._clock() - self._last_request_at)
         if wait > 0:
             self._sleep(wait)
 

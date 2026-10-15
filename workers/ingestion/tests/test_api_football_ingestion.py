@@ -1,8 +1,10 @@
 """End-to-end: API-Football payloads -> DB -> predictions (offline, fake transport)."""
 
+from collections import Counter
+
 from sqlalchemy import func, select
 
-from edge_api.db.models import Fixture, OddsSnapshot, Prediction, Team
+from edge_api.db.models import Fixture, League, OddsSnapshot, Prediction, Team
 from edge_ingestion.jobs import run_pipeline
 from edge_ingestion.providers import ApiFootballProvider
 from edge_ingestion.testing import REF, FakeApiFootball
@@ -22,16 +24,48 @@ def test_pipeline_with_api_football_is_idempotent(db_session):
     fake = FakeApiFootball()
     first = run_pipeline(db_session, _provider(fake), now=REF, bookmaker="bet365")
     db_session.commit()
-    assert first.ingestion.teams_changed == 21
+    assert first.ingestion.leagues_changed == 4
     assert first.ingestion.odds_inserted > 0
     assert first.predictions.created > 0
-    assert len(fake.calls) <= 8  # teams x2 + fixtures x2 + odds pages: fits the free quota
+    # catalogue + 12 calendar days of fixtures + 2 leagues x 2 seasons history + odds pages
+    paths = Counter(c[0] for c in fake.calls)
+    assert paths["/leagues"] == 1 and paths["/fixtures"] == 12 + 4
+    assert first.ingestion.requests == len(fake.calls) <= 30
 
     counts = [_count(db_session, m) for m in (Team, Fixture, OddsSnapshot, Prediction)]
     again = run_pipeline(db_session, _provider(FakeApiFootball()), now=REF, bookmaker="bet365")
     db_session.commit()
     assert again.ingestion.odds_inserted == 0 and again.predictions.created == 0
     assert [_count(db_session, m) for m in (Team, Fixture, OddsSnapshot, Prediction)] == counts
+
+
+def test_leagues_cups_and_leagues_without_odds(db_session):
+    res = run_pipeline(db_session, _provider(FakeApiFootball()), now=REF, bookmaker="bet365")
+    db_session.commit()
+    leagues = {lg.provider_id: lg for lg in db_session.scalars(select(League))}
+    assert leagues["292"].current_season == "2026" and leagues["39"].current_season == "2026-27"
+    assert leagues["45"].type == "cup" and leagues["45"].results_synced_at is None
+    assert leagues["1000"].has_odds is False and leagues["1000"].results_synced_at is None
+    predicted = set(
+        db_session.scalars(
+            select(League.provider_id)
+            .join(Fixture, Fixture.league_id == League.id)
+            .join(Prediction, Prediction.fixture_id == Fixture.id)
+        )
+    )
+    assert predicted == {"39", "292"}  # never the cup
+    assert res.predictions.skipped_cup > 0 and res.predictions.leagues_predicted == 2
+    teams = {t.provider_id: t for t in db_session.scalars(select(Team))}
+    assert teams["42"].logo_url == "t42.png"
+
+
+def test_low_budget_postpones_backfill(db_session):
+    fake = FakeApiFootball(remaining=100)  # below API_FOOTBALL_MIN_REMAINING
+    res = run_pipeline(db_session, _provider(fake), now=REF, bookmaker="bet365")
+    db_session.commit()
+    assert res.ingestion.leagues_backfilled == 0 and res.ingestion.leagues_pending_backfill == 2
+    assert res.ingestion.odds_inserted == 0 and res.predictions.created == 0
+    assert not any(c[0] == "/odds" for c in fake.calls)
 
 
 def test_refreshed_odds_append_new_snapshots(db_session):
@@ -73,6 +107,19 @@ def test_mock_and_real_provider_data_are_not_mixed(db_session):
         .select_from(Fixture)
         .where(Fixture.provider == "api_football", Fixture.status == "finished")
     )
+    epl_results = db_session.scalar(
+        select(func.count())
+        .select_from(Fixture)
+        .join(League, League.id == Fixture.league_id)
+        .where(
+            Fixture.provider == "api_football",
+            Fixture.status == "finished",
+            League.provider_id == "39",
+        )
+    )
+    assert 0 < epl_results < api_results
     for p in real:
-        # trained only on api_football results, not on the synthetic mock history
-        assert p.features["training_matches"] == api_results
+        # trained only on its own league's api_football results (no mock, no other league)
+        league = db_session.get(Fixture, p.fixture_id).league.provider_id
+        if league == "39":
+            assert p.features["training_matches"] == epl_results

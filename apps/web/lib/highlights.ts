@@ -1,6 +1,6 @@
 import type { Highlight, HighlightCaveat } from "@edge/contracts";
 
-import { LARGE_GAP_CAUTION, promotedCaution } from "./explain";
+import { LARGE_GAP_CAUTION, UNVERIFIED_LEAGUE_CAUTION, promotedCaution } from "./explain";
 import { pct } from "./format";
 
 export function outcomeName(h: Highlight): string {
@@ -25,5 +25,7 @@ export function caveatText(caveat: HighlightCaveat, h: Highlight): string {
       return promotedCaution(h.fixture.away_team.name);
     case "large_gap":
       return LARGE_GAP_CAUTION;
+    case "unverified_league":
+      return UNVERIFIED_LEAGUE_CAUTION;
   }
 }

@@ -24,11 +24,11 @@ def get_provider(
             settings.api_football_key.get_secret_value(),
             reference_time=reference_time,
             base_url=settings.api_football_base_url,
-            league_id=settings.api_football_league_id,
-            season=settings.api_football_season,
+            leagues=settings.api_football_leagues,
             bookmaker_id=settings.api_football_bookmaker_id,
             min_interval_seconds=settings.api_football_min_interval_seconds,
             timeout_seconds=settings.api_football_timeout_seconds,
+            min_remaining_requests=settings.api_football_min_remaining,
         )
     raise ValueError(f"unknown data provider: {name!r} (available: {', '.join(AVAILABLE)})")
 

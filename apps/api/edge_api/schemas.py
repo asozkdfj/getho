@@ -33,6 +33,7 @@ class TeamOut(ApiModel):
     id: int
     name: str
     short_name: str
+    logo_url: str | None = None
 
 
 class ProbabilitiesOut(ApiModel):
@@ -51,9 +52,66 @@ class OddsSnapshotOut(ApiModel):
     captured_at: datetime
 
 
+Region = Literal[
+    "international",
+    "europe",
+    "asia",
+    "south_america",
+    "north_america",
+    "africa",
+    "oceania",
+    "other",
+]
+
+
+class LeagueRefOut(ApiModel):
+    id: int
+    name: str
+    country: str
+    country_ko: str = Field(description="Country name for display (Korean when known)")
+    region: Region
+    type: Literal["league", "cup"]
+    logo_url: str | None = None
+    flag_url: str | None = None
+    featured: bool = Field(description="Shown first (major leagues)")
+    predicted: bool = Field(
+        description="The model makes predictions here (league format with enough history)"
+    )
+    verified: bool = Field(
+        description="Accuracy measured by a walk-forward backtest on real results"
+    )
+
+
+class LeagueSummaryOut(LeagueRefOut):
+    current_season: str | None = None
+    upcoming_count: int = Field(description="Fixtures in the requested window")
+    predicted_count: int = Field(description="...of which the model has a prediction")
+
+
+class CountryGroupOut(ApiModel):
+    country: str
+    country_ko: str
+    flag_url: str | None = None
+    leagues: list[LeagueSummaryOut]
+
+
+class RegionGroupOut(ApiModel):
+    region: Region
+    region_ko: str
+    countries: list[CountryGroupOut]
+
+
+class LeagueListOut(ApiModel):
+    data_provider: str
+    days: int
+    total_leagues: int
+    featured: list[LeagueSummaryOut]
+    regions: list[RegionGroupOut]
+
+
 class FixtureSummaryOut(ApiModel):
     id: int
-    league: str
+    league: LeagueRefOut
     season: str
     round: int | None
     kickoff_at: datetime
@@ -174,7 +232,7 @@ class ErrorOut(ApiModel):
     detail: str
 
 
-HighlightCaveat = Literal["promoted_home", "promoted_away", "large_gap"]
+HighlightCaveat = Literal["promoted_home", "promoted_away", "large_gap", "unverified_league"]
 
 
 class HighlightOut(ApiModel):

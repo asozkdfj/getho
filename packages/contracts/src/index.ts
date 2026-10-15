@@ -11,6 +11,12 @@ type Schemas = components["schemas"];
 
 export type HealthOut = Schemas["HealthOut"];
 export type Team = Schemas["TeamOut"];
+export type LeagueRef = Schemas["LeagueRefOut"];
+export type LeagueSummary = Schemas["LeagueSummaryOut"];
+export type LeagueList = Schemas["LeagueListOut"];
+export type RegionGroup = Schemas["RegionGroupOut"];
+export type CountryGroup = Schemas["CountryGroupOut"];
+export type Region = LeagueRef["region"];
 export type Probabilities = Schemas["ProbabilitiesOut"];
 export type OddsSnapshot = Schemas["OddsSnapshotOut"];
 export type FixtureSummary = Schemas["FixtureSummaryOut"];

@@ -15,6 +15,7 @@ import {
   thresholdText,
   voidReasonText,
 } from "./picks";
+import { TEST_LEAGUE } from "./testing";
 
 const pick: TodayPick = {
   date: "2026-10-17",
@@ -28,7 +29,7 @@ const pick: TodayPick = {
   published_at: "2026-10-17T00:00:05Z",
   fixture: {
     id: 7,
-    league: "EPL",
+    league: TEST_LEAGUE,
     season: "2026-27",
     round: 8,
     kickoff_at: "2026-10-17T14:00:00Z",

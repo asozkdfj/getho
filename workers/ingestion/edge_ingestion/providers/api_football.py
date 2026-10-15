@@ -1,19 +1,24 @@
-"""API-Football (api-sports.io, v3) provider.
+"""API-Football (api-sports.io, v3) provider - every league the plan covers.
 
 Endpoints used (all GET, header ``x-apisports-key``):
-  /status                                  account / quota (used by `check-provider`)
-  /teams?league=39&season=S                teams of a season
-  /fixtures?league=39&season=S&timezone=UTC
-  /odds?league=39&season=S&bet=1[&bookmaker=B]&page=N   pre-match 1X2, paginated
+  /status                                   account / quota (used by `check-provider`)
+  /leagues?current=true                     catalogue: type, country, current season, coverage
+  /fixtures?date=YYYY-MM-DD&timezone=UTC    every fixture of one day, all leagues, 1 request
+  /fixtures?league=L&season=S&timezone=UTC  one league-season (history backfill)
+  /odds?date=YYYY-MM-DD&bet=1&page=N        pre-match 1X2 of one day, all leagues, paginated
+  /odds?league=L&season=S&bet=1&page=N      same, for a short explicit league list
 
 Operational facts that shape this module (from the provider's docs/guides):
 - pre-match odds appear ~1-14 days before kickoff, refresh ~every 3 hours and are
   kept for only ~7 days -> we must snapshot them ourselves (append-only table).
 - errors come back as HTTP 200 with a non-empty ``errors`` field.
-- the free plan allows ~100 requests/day and ~10/minute.
+- quotas differ per plan; responses carry the per-minute limit and the requests
+  left today, which this client uses to pace itself and to stop optional work.
 
-One pipeline run costs roughly: 2x teams + 2x fixtures (current + previous
-season) + ceil(fixtures with odds / 10) odds pages, i.e. ~6-8 requests.
+Request cost per run with all leagues: 1 (catalogue) + one per day of the
+fixture window + odds pages for the next few days + 2 per league backfilled
+(bounded per run). Fetching by date keeps the cost almost independent of the
+number of leagues.
 
 Everything provider-specific stays in this file; the core only sees the DTOs.
 """
@@ -23,17 +28,26 @@ from __future__ import annotations
 import logging
 import math
 import re
-from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from collections.abc import Mapping
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from edge_ingestion.providers.base import FixtureData, FootballDataProvider, OddsData, TeamData
+from edge_ingestion.providers.base import (
+    FixtureData,
+    FootballDataProvider,
+    LeagueData,
+    OddsData,
+    TeamData,
+)
 from edge_ingestion.providers.http import JsonHttpClient, ProviderError, Transport, urllib_transport
 
 logger = logging.getLogger(__name__)
 
 MATCH_WINNER_BET_ID = 1  # "Match Winner" = 1X2
-MAX_ODDS_PAGES = 20  # safety stop; EPL needs 1-3 pages
+MAX_ODDS_PAGES = 100  # safety stop per day (or per league)
+# With this many explicitly configured leagues or fewer, odds are fetched per
+# league; otherwise per day for all leagues at once.
+PER_LEAGUE_ODDS_MAX = 5
 
 # API-Football fixture.status.short -> our FixtureStatus values
 STATUS_MAP: dict[str, str] = {
@@ -70,8 +84,24 @@ def season_start_year(reference: datetime) -> int:
     return reference.year if reference.month >= 7 else reference.year - 1
 
 
-def season_label(start_year: int) -> str:
-    return f"{start_year}-{(start_year + 1) % 100:02d}"
+def season_label(start_year: int, calendar_year: bool = False) -> str:
+    """'2026-27' for European-style seasons, '2026' for calendar-year leagues."""
+    return str(start_year) if calendar_year else f"{start_year}-{(start_year + 1) % 100:02d}"
+
+
+def short_code(name: str) -> str:
+    letters = re.sub(r"[^A-Za-z]", "", name)
+    return (letters[:3] or name[:3] or "???").upper()
+
+
+def parse_league_selection(value: str | None) -> frozenset[str] | None:
+    """'all' / '' -> None (every league); '39,140' -> {'39', '140'}."""
+    if value is None or value.strip().lower() in ("", "all"):
+        return None
+    ids = frozenset(v.strip() for v in value.split(",") if v.strip())
+    if not all(v.isdigit() for v in ids):
+        raise ValueError(f"API_FOOTBALL_LEAGUES must be 'all' or comma-separated ids: {value!r}")
+    return ids
 
 
 def _parse_dt(value: str) -> datetime:
@@ -95,22 +125,22 @@ class ApiFootballProvider(FootballDataProvider):
         *,
         reference_time: datetime | None = None,
         base_url: str = "https://v3.football.api-sports.io",
-        league_id: int = 39,
-        season: int | None = None,
-        seasons_back: int = 1,
+        leagues: str | None = "all",
         bookmaker_id: int | None = None,
         min_interval_seconds: float = 6.5,
         timeout_seconds: float = 15.0,
+        min_remaining_requests: int = 300,
         transport: Transport = urllib_transport,
         **client_kwargs: Any,
     ) -> None:
         if not api_key:
             raise ValueError("API_FOOTBALL_KEY is required for the api_football provider")
-        ref = reference_time or datetime.now(UTC)
-        self.league_id = league_id
-        self.season = season or season_start_year(ref)
-        self.seasons = [self.season - k for k in range(seasons_back, -1, -1)]  # oldest first
+        self.reference_time = reference_time or datetime.now(UTC)
+        self.league_ids = parse_league_selection(leagues)
         self.bookmaker_id = bookmaker_id
+        self.min_remaining_requests = min_remaining_requests
+        self.daily_remaining: int | None = None
+        self._catalogue: dict[str, LeagueData] | None = None
         self._client = JsonHttpClient(
             base_url,
             {"x-apisports-key": api_key, "Accept": "application/json"},
@@ -121,15 +151,20 @@ class ApiFootballProvider(FootballDataProvider):
         )
 
     def __repr__(self) -> str:
-        return f"ApiFootballProvider(league={self.league_id}, season={self.season})"
+        scope = "all" if self.league_ids is None else ",".join(sorted(self.league_ids))
+        return f"ApiFootballProvider(leagues={scope})"
 
     @property
     def requests_made(self) -> int:
         return self._client.requests_made
 
+    def budget_ok(self) -> bool:
+        return self.daily_remaining is None or self.daily_remaining > self.min_remaining_requests
+
     # ------------------------------------------------------------- transport
     def _get(self, path: str, params: Mapping[str, Any]) -> dict[str, Any]:
         payload, headers = self._client.get(path, params)
+        self._observe_rate_limits(headers)
         errors = payload.get("errors") if isinstance(payload, dict) else None
         if errors:  # API-Football reports errors in-band with HTTP 200
             detail = (
@@ -140,58 +175,116 @@ class ApiFootballProvider(FootballDataProvider):
             raise ProviderError(f"API-Football {path} error: {detail}")
         if not isinstance(payload, dict) or "response" not in payload:
             raise ProviderError(f"API-Football {path}: unexpected payload shape")
-        remaining = headers.get("x-ratelimit-requests-remaining")
-        if remaining is not None:
-            logger.info("api_football %s ok; daily requests remaining=%s", path, remaining)
         return payload
+
+    def _observe_rate_limits(self, headers: Mapping[str, str]) -> None:
+        """Pace by the plan's per-minute limit and remember the daily allowance left."""
+        per_minute = _int_header(headers, "x-ratelimit-limit")
+        if per_minute:
+            # 10/min (free) -> 6.3s, 300/min (pro) -> 0.21s; never faster than the plan allows
+            self._client.min_interval_seconds = 60.0 / per_minute * 1.05
+        remaining = _int_header(headers, "x-ratelimit-requests-remaining")
+        if remaining is not None:
+            self.daily_remaining = remaining
 
     def status(self) -> dict[str, Any]:
         """Account/subscription/quota info (does not include the key)."""
         response = self._get("/status", {})["response"]
         return response if isinstance(response, dict) else {}
 
-    # ------------------------------------------------------------------ teams
-    def get_teams(self) -> list[TeamData]:
-        teams: dict[str, TeamData] = {}
-        for season in self.seasons:  # include relegated teams of the previous season
-            payload = self._get("/teams", {"league": self.league_id, "season": season})
-            for item in payload["response"]:
-                team = item.get("team") or {}
-                if team.get("id") is None or not team.get("name"):
-                    continue
-                code = (team.get("code") or team["name"][:3]).upper()[:10]
-                teams[str(team["id"])] = TeamData(str(team["id"]), team["name"], code)
-        return list(teams.values())
+    # ---------------------------------------------------------------- leagues
+    def get_leagues(self) -> list[LeagueData]:
+        payload = self._get("/leagues", {"current": "true"})
+        catalogue: dict[str, LeagueData] = {}
+        for item in payload["response"]:
+            league = self._parse_league(item)
+            if league and (self.league_ids is None or league.provider_id in self.league_ids):
+                catalogue[league.provider_id] = league
+        self._catalogue = catalogue
+        return list(catalogue.values())
+
+    def _leagues(self) -> dict[str, LeagueData]:
+        if self._catalogue is None:
+            self.get_leagues()
+        return self._catalogue or {}
+
+    @staticmethod
+    def _parse_league(item: Mapping[str, Any]) -> LeagueData | None:
+        try:
+            lg, country = item["league"], item.get("country") or {}
+            seasons = item.get("seasons") or []
+            current = next((s for s in seasons if s.get("current")), seasons[-1] if seasons else {})
+            year = current.get("year")
+            start, end = current.get("start") or "", current.get("end") or ""
+            calendar_year = bool(start[:4]) and start[:4] == end[:4]
+            odds = ((current.get("coverage") or {}).get("odds")) is True
+            return LeagueData(
+                provider_id=str(lg["id"]),
+                name=str(lg["name"]),
+                country=str(country.get("name") or "World"),
+                country_code=country.get("code"),
+                type="cup" if str(lg.get("type", "")).lower() == "cup" else "league",
+                season=season_label(int(year), calendar_year) if year else None,
+                season_year=int(year) if year else None,
+                has_odds=odds,
+                logo_url=lg.get("logo"),
+                flag_url=country.get("flag"),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            logger.warning("malformed league payload skipped: %s", exc)
+            return None
+
+    def _season_label(self, league_id: str, year: int) -> str:
+        league = self._leagues().get(league_id)
+        calendar_year = bool(league and league.season and "-" not in league.season)
+        return season_label(year, calendar_year)
 
     # --------------------------------------------------------------- fixtures
     def get_fixtures(self, date_from: datetime, date_to: datetime) -> list[FixtureData]:
         out: list[FixtureData] = []
-        for season in self.seasons:
-            payload = self._get(
-                "/fixtures", {"league": self.league_id, "season": season, "timezone": "UTC"}
-            )
+        served = self._leagues()
+        for day in _days(date_from, date_to):
+            payload = self._get("/fixtures", {"date": day.isoformat(), "timezone": "UTC"})
             for item in payload["response"]:
-                fixture = self._parse_fixture(item, season)
+                league_id = str((item.get("league") or {}).get("id"))
+                if league_id not in served:
+                    continue
+                fixture = self._parse_fixture(item)
                 if fixture and date_from <= fixture.kickoff_at < date_to:
                     out.append(fixture)
         return out
 
-    def _parse_fixture(self, item: Mapping[str, Any], season: int) -> FixtureData | None:
+    def get_league_history(self, league: LeagueData) -> list[FixtureData]:
+        if league.season_year is None:
+            return []
+        out: list[FixtureData] = []
+        for year in (league.season_year - 1, league.season_year):
+            payload = self._get(
+                "/fixtures",
+                {"league": league.provider_id, "season": year, "timezone": "UTC"},
+            )
+            out.extend(f for f in map(self._parse_fixture, payload["response"]) if f)
+        return out
+
+    def _parse_fixture(self, item: Mapping[str, Any]) -> FixtureData | None:
         try:
             fx, teams, goals = item["fixture"], item["teams"], item.get("goals") or {}
+            league = item["league"]
             short = fx["status"]["short"]
             status = STATUS_MAP.get(short)
             if status is None:
                 logger.warning("fixture %s: unknown status %r, skipped", fx.get("id"), short)
                 return None
             finished = status == "finished"
+            league_id = str(league["id"])
             return FixtureData(
                 provider_id=str(fx["id"]),
-                season=season_label(season),
-                round=_parse_round((item.get("league") or {}).get("round")),
+                league_provider_id=league_id,
+                season=self._season_label(league_id, int(league["season"])),
+                round=_parse_round(league.get("round")),
                 kickoff_at=_parse_dt(fx["date"]),
-                home_team_provider_id=str(teams["home"]["id"]),
-                away_team_provider_id=str(teams["away"]["id"]),
+                home_team=_team(teams["home"]),
+                away_team=_team(teams["away"]),
                 status=status,
                 home_score=goals.get("home") if finished else None,
                 away_score=goals.get("away") if finished else None,
@@ -201,14 +294,39 @@ class ApiFootballProvider(FootballDataProvider):
             return None
 
     # ------------------------------------------------------------------- odds
-    def get_odds(self, fixture_provider_ids: Sequence[str]) -> list[OddsData]:
-        wanted = set(fixture_provider_ids)
+    def get_odds(self, fixtures: Mapping[str, datetime]) -> list[OddsData]:
+        if not fixtures:
+            return []
+        queries: list[tuple[dict[str, Any], set[str]]]
+        if self.league_ids is not None and len(self.league_ids) <= PER_LEAGUE_ODDS_MAX:
+            queries = [
+                ({"league": lg.provider_id, "season": lg.season_year}, set(fixtures))
+                for lg in self._leagues().values()
+                if lg.has_odds and lg.season_year is not None
+            ]
+        else:
+            by_day: dict[date, set[str]] = {}
+            for pid, kickoff in fixtures.items():
+                by_day.setdefault(kickoff.astimezone(UTC).date(), set()).add(pid)
+            queries = [
+                ({"date": d.isoformat(), "timezone": "UTC"}, ids)
+                for d, ids in sorted(by_day.items())
+            ]
         out: list[OddsData] = []
+        for query, wanted in queries:
+            if not self.budget_ok():
+                logger.warning("api_football daily budget nearly used up; odds fetch stopped")
+                break
+            out.extend(self._odds_pages(query, wanted))
+        return out
+
+    def _odds_pages(self, query: Mapping[str, Any], wanted: set[str]) -> list[OddsData]:
+        out: list[OddsData] = []
+        found: set[str] = set()
         page, total = 1, 1
         while page <= total and page <= MAX_ODDS_PAGES:
             params = {
-                "league": self.league_id,
-                "season": self.season,
+                **query,
                 "bet": MATCH_WINNER_BET_ID,
                 "bookmaker": self.bookmaker_id,
                 "page": page,
@@ -216,7 +334,11 @@ class ApiFootballProvider(FootballDataProvider):
             payload = self._get("/odds", params)
             total = int((payload.get("paging") or {}).get("total") or 1)
             for item in payload["response"]:
-                out.extend(self._parse_odds(item, wanted))
+                parsed = self._parse_odds(item, wanted)
+                out.extend(parsed)
+                found.update(o.fixture_provider_id for o in parsed)
+            if wanted <= found:  # every fixture we need is priced: skip the other pages
+                break
             page += 1
         return out
 
@@ -270,4 +392,24 @@ class ApiFootballProvider(FootballDataProvider):
                     prices[str(v.get("value"))] = odd
             if {"Home", "Draw", "Away"} <= prices.keys():
                 return prices
+        return None
+
+
+def _team(item: Mapping[str, Any]) -> TeamData:
+    name = str(item["name"])
+    return TeamData(str(item["id"]), name, short_code(name), item.get("logo"))
+
+
+def _days(date_from: datetime, date_to: datetime) -> list[date]:
+    """UTC calendar days touched by [date_from, date_to)."""
+    first = date_from.astimezone(UTC).date()
+    last = (date_to.astimezone(UTC) - timedelta(microseconds=1)).date()
+    return [first + timedelta(days=k) for k in range((last - first).days + 1)]
+
+
+def _int_header(headers: Mapping[str, str], name: str) -> int | None:
+    value = headers.get(name)
+    try:
+        return int(value) if value is not None else None
+    except ValueError:
         return None
