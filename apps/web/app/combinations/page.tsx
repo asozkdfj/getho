@@ -17,8 +17,9 @@ export default async function CombinationsPage() {
     <>
       <h1>조합 분석</h1>
       <p className="muted small">
-        서로 다른 경기에서 2~3개의 결과를 고르면 모델 기준 조합 확률, 시장 공정확률, 조합 배당, EV를
-        계산합니다. 조합 확률은 <strong>경기 간 독립을 가정한 근사치</strong>입니다.
+        서로 다른 경기에서 결과를 2~3개 고르면, 고른 결과가 <strong>모두 맞을 확률</strong>을 분석과
+        시장 기준으로 각각 계산해 비교합니다. 경기끼리 서로 영향을 주지 않는다고 보고 계산한
+        근사치입니다.
       </p>
       <CombinationBuilder fixtures={fixtures} tz={tz} />
       <Disclaimer />

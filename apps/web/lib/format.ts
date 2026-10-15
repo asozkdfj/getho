@@ -6,7 +6,7 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
   AWAY: "원정 승",
 };
 
-export const OUTCOME_SHORT: Record<Outcome, string> = { HOME: "1", DRAW: "X", AWAY: "2" };
+export const OUTCOME_SHORT: Record<Outcome, string> = { HOME: "홈승", DRAW: "무", AWAY: "원정승" };
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "예정",

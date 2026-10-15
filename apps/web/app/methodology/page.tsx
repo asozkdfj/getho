@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "방법론 · 면책" };
 
@@ -10,6 +11,13 @@ export default function MethodologyPage() {
         EPL Edge Lab은 &ldquo;정답 픽&rdquo;을 제공하는 서비스가 아니라, 통계 모델의 확률과 시장
         배당이 내포한 확률을 나란히 놓고 그 차이를 투명하게 보여주는 분석 도구입니다.
       </p>
+
+      <div className="disclaimer compact">
+        이 페이지는 계산 방식을 자세히 설명하기 위해 전문 용어를 씁니다. 화면 용어와는 이렇게
+        대응합니다: <strong>분석 확률</strong> = 모델 확률, <strong>시장 예상</strong> = 시장
+        공정확률(de-vig), <strong>차이</strong> = Edge, <strong>기대값</strong> = EV. 쉬운 설명은{" "}
+        <Link href="/guide">초보자 가이드</Link>를 보세요.
+      </div>
 
       <h2>1. 확률은 누가 계산하나요?</h2>
       <p>

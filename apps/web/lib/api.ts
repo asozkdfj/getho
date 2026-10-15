@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { FixtureDetail, FixtureList, Prediction } from "@edge/contracts";
+import type { FixtureDetail, FixtureList, HighlightList, Prediction } from "@edge/contracts";
 
 import { apiBaseUrl } from "./config";
 
@@ -43,4 +43,12 @@ export async function fetchPrediction(id: number): Promise<Prediction | null> {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
+}
+
+export function fetchHighlights(params: { days?: number; limit?: number } = {}) {
+  const q = new URLSearchParams({
+    days: String(params.days ?? 7),
+    limit: String(params.limit ?? 3),
+  });
+  return getJson<HighlightList>(`/highlights?${q.toString()}`);
 }

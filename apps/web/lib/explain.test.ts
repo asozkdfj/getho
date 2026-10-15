@@ -18,8 +18,11 @@ function row(outcome: "HOME" | "DRAW" | "AWAY", model: number, fair: number, odd
   } satisfies OutcomeAnalysis;
 }
 
-function prediction(outcomes: OutcomeAnalysis[]): Prediction {
-  return { outcomes } as unknown as Prediction;
+function prediction(
+  outcomes: OutcomeAnalysis[],
+  features: Record<string, unknown> = {},
+): Prediction {
+  return { outcomes, features } as unknown as Prediction;
 }
 
 describe("plainSummary", () => {
@@ -33,11 +36,11 @@ describe("plainSummary", () => {
       "Brentford",
       "Liverpool",
     );
-    expect(s.mostLikely).toBe("모델이 가장 가능성이 높다고 보는 결과는 Brentford 승리(46%)입니다.");
-    expect(s.comparison).toContain("Brentford 승리 가능성을 모델은 46%, 시장은 40%");
+    expect(s.mostLikely).toBe("분석으로는 Brentford 승리(46%) 가능성이 가장 높습니다.");
+    expect(s.comparison).toContain("Brentford 승리 가능성을 분석은 46%, 시장은 40%");
     expect(s.comparison).toContain("6%p 더 높게");
-    expect(s.ev).toContain("Brentford 승리: 모델이 맞다면 장기 평균 기대값 +10.4%");
-    expect(s.ev).toContain("참고용");
+    expect(s.ev).toContain("Brentford 승리: 분석이 맞다면 장기 평균으로 +10.4% 유리한 가격");
+    expect(s.ev).toContain("참고만");
   });
 
   it("says when the model is below the market", () => {
@@ -50,8 +53,23 @@ describe("plainSummary", () => {
       "Fulham",
       "Hull City",
     );
-    expect(s.comparison).toContain("Fulham 승리 가능성을 모델은 34%, 시장은 56%");
+    expect(s.comparison).toContain("Fulham 승리 가능성을 분석은 34%, 시장은 56%");
     expect(s.comparison).toContain("22%p 더 낮게");
+  });
+
+  it("warns about promoted teams and very large gaps", () => {
+    const s = plainSummary(
+      prediction(
+        [row("HOME", 0.34, 0.56, 1.7), row("DRAW", 0.29, 0.24, 4), row("AWAY", 0.37, 0.2, 4.8)],
+        { prior_home: "data", prior_away: "promoted_relegation_level" },
+      ),
+      "Fulham",
+      "Hull City",
+    );
+    expect(s.cautions).toEqual([
+      "Hull City: 승격팀이라 이번 시즌 데이터가 적어 분석이 부정확할 수 있어요",
+      "차이가 매우 커요. 시장은 부상·이적 같은 최신 소식을 이미 반영했을 수 있어요",
+    ]);
   });
 
   it("reports agreement and no EV note when differences are small", () => {
@@ -66,6 +84,7 @@ describe("plainSummary", () => {
     );
     expect(s.comparison).toMatch(/거의 같습니다/);
     expect(s.ev).toBeNull();
+    expect(s.cautions).toEqual([]);
   });
 
   it("never uses guaranteeing or prescriptive words", () => {

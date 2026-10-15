@@ -9,6 +9,7 @@ import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
 import { plainSummary } from "@/lib/explain";
 import { DEFAULT_TZ } from "@/lib/config";
 import { OUTCOME_LABEL, odds, pct, signedPct, signedPoints, statusLabel, tone } from "@/lib/format";
+import { TERM, TERM_HELP } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -65,14 +66,21 @@ export default async function FixturePage({ params }: { params: Params }) {
             <p>{summary.mostLikely}</p>
             <p>{summary.comparison}</p>
             {summary.ev && <p className="small">{summary.ev}</p>}
+            {summary.cautions.length > 0 && (
+              <ul className="caveats">
+                {summary.cautions.map((c) => (
+                  <li key={c}>⚠ {c}</li>
+                ))}
+              </ul>
+            )}
             <p className="small muted">
               용어가 낯설다면 <Link href="/guide">3분 가이드</Link>를 먼저 보세요.
             </p>
           </section>
 
           <section className="card stack" aria-label="확률 비교" style={{ marginTop: 12 }}>
-            <ProbabilityBar p={prediction.probabilities} label="모델" />
-            <ProbabilityBar p={prediction.fair_market_probabilities} label="시장(공정)" />
+            <ProbabilityBar p={prediction.probabilities} label="분석" />
+            <ProbabilityBar p={prediction.fair_market_probabilities} label="시장 예상" />
             <div className="legend">
               <span>
                 <i className="dot" style={{ background: "var(--home)" }} />홈
@@ -87,48 +95,18 @@ export default async function FixturePage({ params }: { params: Params }) {
             </div>
           </section>
 
-          <h2>1X2 분석</h2>
+          <h2>결과별 자세히 보기</h2>
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th scope="col">결과</th>
-                  <th scope="col">
-                    배당
-                    <Link href="/guide#odds" className="help" aria-label="배당 설명">
-                      ?
-                    </Link>
-                  </th>
-                  <th scope="col">
-                    내재확률
-                    <Link href="/guide#odds" className="help" aria-label="내재확률 설명">
-                      ?
-                    </Link>
-                  </th>
-                  <th scope="col">
-                    시장 공정확률
-                    <Link href="/guide#fair" className="help" aria-label="시장 공정확률 설명">
-                      ?
-                    </Link>
-                  </th>
-                  <th scope="col">
-                    모델 확률
-                    <Link href="/guide#model" className="help" aria-label="모델 확률 설명">
-                      ?
-                    </Link>
-                  </th>
-                  <th scope="col">
-                    Edge
-                    <Link href="/guide#edge" className="help" aria-label="Edge 설명">
-                      ?
-                    </Link>
-                  </th>
-                  <th scope="col">
-                    EV
-                    <Link href="/guide#ev" className="help" aria-label="EV 설명">
-                      ?
-                    </Link>
-                  </th>
+                  <HelpHeader term="odds" anchor="odds" />
+                  <HelpHeader term="implied" anchor="odds" />
+                  <HelpHeader term="market" anchor="market" />
+                  <HelpHeader term="model" anchor="model" />
+                  <HelpHeader term="gap" anchor="gap" />
+                  <HelpHeader term="ev" anchor="ev" />
                 </tr>
               </thead>
               <tbody>
@@ -137,8 +115,8 @@ export default async function FixturePage({ params }: { params: Params }) {
                     <th scope="row">
                       {OUTCOME_LABEL[o.outcome]}
                       {o.exceeds_threshold && (
-                        <span className="badge" title="Edge와 EV가 모두 기준치 이상인 참고 신호">
-                          기준 초과
+                        <span className="badge" title={TERM_HELP.flag}>
+                          {TERM.flag}
                         </span>
                       )}
                     </th>
@@ -156,77 +134,83 @@ export default async function FixturePage({ params }: { params: Params }) {
             </table>
           </div>
           <p className="muted small">
-            북메이커 마진(overround) {pct(prediction.overround)} 제거 ({prediction.devig_method}).
-            Edge = 모델 − 공정확률, EV = 모델확률 × 배당 − 1. &lsquo;기준 초과&rsquo;는 Edge와 EV가
-            모두 {pct(prediction.value_threshold, 0)} 이상인 참고 신호일 뿐 추천이 아닙니다.
+            배당에 포함된 수수료 약 {pct(prediction.overround)}를 빼고 시장 예상을 계산했습니다.
+            차이 = 분석 확률 − 시장 예상, 기대값 = 분석 확률 × 배당 − 1. &lsquo;{TERM.flag}&rsquo;
+            표시는 차이와 기대값이 모두 {pct(prediction.value_threshold, 0)} 이상일 때만 붙는 참고
+            표시이며 추천이 아닙니다.
           </p>
 
-          <div className="grid-2">
-            <section className="card">
-              <h3 style={{ marginTop: 0 }}>데이터 기준 시각</h3>
-              <dl className="kv">
-                <dt>입력 데이터 as-of</dt>
-                <dd>
-                  <LocalTime iso={prediction.input_data_as_of} fallbackTz={tz} format="full" />
-                </dd>
-                <dt>배당 수집 시각</dt>
-                <dd>
-                  <LocalTime
-                    iso={prediction.market_odds_snapshot.captured_at}
-                    fallbackTz={tz}
-                    format="full"
-                  />
-                </dd>
-                <dt>예측 생성 시각</dt>
-                <dd>
-                  <LocalTime iso={prediction.created_at} fallbackTz={tz} format="full" />
-                </dd>
-                <dt>북메이커</dt>
-                <dd>{prediction.market_odds_snapshot.bookmaker}</dd>
-              </dl>
-            </section>
-            <section className="card">
-              <h3 style={{ marginTop: 0 }}>모델 정보</h3>
-              <dl className="kv">
-                <dt>모델</dt>
-                <dd>
-                  {prediction.model.name} v{prediction.model.version}
-                </dd>
-                <dt>git sha</dt>
-                <dd>
-                  <code>{prediction.model.git_sha}</code>
-                </dd>
-                <dt>feature set</dt>
-                <dd>{prediction.model.feature_set}</dd>
-                <dt>calibration</dt>
-                <dd>{prediction.model.calibration}</dd>
-                <dt>기대 득점</dt>
-                <dd>
-                  {prediction.expected_goals.home.toFixed(2)} :{" "}
-                  {prediction.expected_goals.away.toFixed(2)}
-                </dd>
-                <dt>Elo (홈/원정)</dt>
-                <dd>
-                  {String(prediction.features.elo_home ?? "–")} /{" "}
-                  {String(prediction.features.elo_away ?? "–")}
-                </dd>
-                <dt>학습 경기 수</dt>
-                <dd>{String(prediction.features.training_matches ?? "–")}</dd>
-              </dl>
-            </section>
-          </div>
+          <section className="card">
+            <h3 style={{ marginTop: 0 }}>언제 기준의 분석인가요?</h3>
+            <dl className="kv">
+              <dt>분석에 쓴 데이터</dt>
+              <dd>
+                <LocalTime iso={prediction.input_data_as_of} fallbackTz={tz} format="full" />
+                까지
+              </dd>
+              <dt>배당을 가져온 시각</dt>
+              <dd>
+                <LocalTime
+                  iso={prediction.market_odds_snapshot.captured_at}
+                  fallbackTz={tz}
+                  format="full"
+                />
+              </dd>
+              <dt>분석한 시각</dt>
+              <dd>
+                <LocalTime iso={prediction.created_at} fallbackTz={tz} format="full" />
+              </dd>
+              <dt>배당 출처</dt>
+              <dd>{prediction.market_odds_snapshot.bookmaker}</dd>
+              <dt>예상 골</dt>
+              <dd>
+                {fixture.home_team.short_name} {prediction.expected_goals.home.toFixed(1)} :{" "}
+                {prediction.expected_goals.away.toFixed(1)} {fixture.away_team.short_name}
+              </dd>
+            </dl>
+          </section>
+
+          <details className="card tech">
+            <summary>개발자용 모델 정보</summary>
+            <dl className="kv" style={{ marginTop: 10 }}>
+              <dt>모델</dt>
+              <dd>
+                {prediction.model.name} v{prediction.model.version}
+              </dd>
+              <dt>git sha</dt>
+              <dd>
+                <code>{prediction.model.git_sha}</code>
+              </dd>
+              <dt>feature set</dt>
+              <dd>{prediction.model.feature_set}</dd>
+              <dt>calibration</dt>
+              <dd>{prediction.model.calibration}</dd>
+              <dt>Elo (홈/원정)</dt>
+              <dd>
+                {String(prediction.features.elo_home ?? "–")} /{" "}
+                {String(prediction.features.elo_away ?? "–")}
+              </dd>
+              <dt>학습 경기 수</dt>
+              <dd>{String(prediction.features.training_matches ?? "–")}</dd>
+              <dt>출발점(prior)</dt>
+              <dd>
+                {String(prediction.features.prior_home ?? "–")} /{" "}
+                {String(prediction.features.prior_away ?? "–")}
+              </dd>
+            </dl>
+          </details>
         </>
       ) : (
         <div className="card">
           <p style={{ margin: 0 }}>
             {finished || fixture.status === "live"
-              ? "경기 시작 이후에는 새 예측을 만들지 않습니다. 이 경기에는 저장된 사전 예측이 없습니다."
-              : "아직 이 경기의 모델 예측이 없습니다. 시장 배당이 수집되면 예측이 생성됩니다."}
+              ? "경기가 시작된 뒤에는 새로 분석하지 않아요. 이 경기는 시작 전에 저장된 분석이 없습니다."
+              : "아직 이 경기의 분석이 없어요. 배당이 들어오면 자동으로 분석합니다."}
           </p>
         </div>
       )}
 
-      <h2>배당 변화 (append-only 스냅샷)</h2>
+      <h2>배당 변화 기록</h2>
       {fixture.odds_history.length === 0 ? (
         <p className="muted">수집된 배당이 없습니다.</p>
       ) : (
@@ -258,5 +242,16 @@ export default async function FixturePage({ params }: { params: Params }) {
 
       <Disclaimer />
     </>
+  );
+}
+
+function HelpHeader({ term, anchor }: { term: keyof typeof TERM; anchor: string }) {
+  return (
+    <th scope="col" title={TERM_HELP[term]}>
+      {TERM[term]}
+      <Link href={`/guide#${anchor}`} className="help" aria-label={`${TERM[term]} 설명`}>
+        ?
+      </Link>
+    </th>
   );
 }

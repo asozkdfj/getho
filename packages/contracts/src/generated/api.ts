@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/highlights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Highlights
+         * @description Upcoming matches where model and market disagree most (reference only, not advice).
+         */
+        get: operations["list_highlights_highlights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -301,6 +321,51 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "degraded";
+        };
+        /** HighlightListOut */
+        HighlightListOut: {
+            /** Items */
+            items: components["schemas"]["HighlightOut"][];
+            /** Min Edge */
+            min_edge: number;
+            /**
+             * Note
+             * @default 추천이 아닙니다. 통계 분석과 시장(배당)의 생각이 가장 다른 경기를 모은 참고 정보입니다.
+             */
+            note: string;
+            /**
+             * Range End Utc
+             * Format: date-time
+             */
+            range_end_utc: string;
+            /**
+             * Range Start Utc
+             * Format: date-time
+             */
+            range_start_utc: string;
+        };
+        /** HighlightOut */
+        HighlightOut: {
+            /**
+             * Caveats
+             * @description Reasons the model may be unreliable for this match
+             */
+            caveats: ("promoted_home" | "promoted_away" | "large_gap")[];
+            /** Decimal Odds */
+            decimal_odds: number;
+            /**
+             * Edge
+             * @description model_probability - fair_probability (> 0 by construction)
+             */
+            edge: number;
+            /** Expected Value */
+            expected_value: number;
+            /** Fair Probability */
+            fair_probability: number;
+            fixture: components["schemas"]["FixtureSummaryOut"];
+            /** Model Probability */
+            model_probability: number;
+            outcome: components["schemas"]["Outcome"];
         };
         /** ModelVersionOut */
         ModelVersionOut: {
@@ -626,6 +691,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    list_highlights_highlights_get: {
+        parameters: {
+            query?: {
+                /** @description Look-ahead window in days */
+                days?: number;
+                limit?: number;
+                min_edge?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HighlightListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

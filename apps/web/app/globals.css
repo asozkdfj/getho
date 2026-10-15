@@ -507,7 +507,8 @@ tbody tr:last-child td {
   /* brand on its own line, the four menu items share one row */
   .header-inner {
     gap: 0;
-    padding: 6px 0;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
   nav {
     width: 100%;
@@ -560,4 +561,63 @@ tbody tr:last-child td {
 }
 .summary-card p:last-child {
   margin-bottom: 0;
+}
+
+/* highlights ("matches to watch") */
+.highlights {
+  margin: 8px 0 4px;
+}
+.highlights h2 {
+  margin-top: 8px;
+}
+.highlight-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-left: 4px solid var(--positive);
+}
+.highlight-card:hover {
+  border-color: var(--accent);
+}
+.highlight-teams {
+  font-weight: 700;
+  margin-top: 4px;
+}
+.highlight-pick {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+.caveats {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--away);
+}
+.caveats li + li {
+  margin-top: 2px;
+}
+
+details.tech {
+  margin-top: 12px;
+  font-size: 0.88rem;
+}
+details.tech summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+table.glossary th,
+table.glossary td {
+  white-space: normal;
+  text-align: left;
+  vertical-align: top;
+}
+table.glossary th[scope="row"] {
+  white-space: nowrap;
+}
+
+.summary-card .caveats {
+  margin: 6px 0 8px;
 }

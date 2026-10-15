@@ -1,119 +1,157 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { TERM, TERM_HELP } from "@/lib/terms";
+
 export const metadata: Metadata = { title: "처음 오셨나요? 초보자 가이드" };
+
+const GLOSSARY: { key: keyof typeof TERM; example: string }[] = [
+  { key: "model", example: "홈승 46% → 우리 분석은 홈팀이 이길 가능성을 46%로 봄" },
+  { key: "market", example: "시장 40% → 배당을 보면 시장은 40%로 봄" },
+  { key: "gap", example: "+6%p → 분석이 시장보다 6%p 더 높게 봄" },
+  { key: "odds", example: "2.50 → 시장이 매긴 가격(낮을수록 유력)" },
+  { key: "ev", example: "+10% → 분석이 맞다면 장기 평균으로 10% 유리한 가격" },
+];
 
 export default function GuidePage() {
   return (
     <article className="prose">
       <h1>처음 오셨나요? 3분 가이드</h1>
-      <p className="muted">
-        EPL Edge Lab은 경기 결과를 &ldquo;맞혀 주는&rdquo; 곳이 아니라, <strong>통계 모델</strong>이
-        보는 가능성과 <strong>시장(배당)</strong>이 보는 가능성을 나란히 비교해 보여 주는 분석
-        도구입니다. 아래 용어 여섯 개만 알면 모든 화면을 읽을 수 있습니다.
+      <p>
+        이 사이트는 경기 결과를 <strong>맞혀 주는 곳이 아닙니다.</strong> 두 가지 생각을 나란히 보여
+        줄 뿐이에요.
+      </p>
+      <ul>
+        <li>
+          <strong>{TERM.model}</strong>: 과거 경기 결과로 계산한 통계 분석의 생각
+        </li>
+        <li>
+          <strong>{TERM.market}</strong>: 배당(시장 가격)에 담긴 시장의 생각
+        </li>
+      </ul>
+      <p>
+        둘이 비슷하면 평범한 경기, 많이 다르면 &ldquo;왜 다를까?&rdquo; 하고 볼 만한 경기입니다.
       </p>
 
-      <nav className="card toc" aria-label="목차">
-        <a href="#1x2">1X2</a>
-        <a href="#odds">배당</a>
-        <a href="#fair">시장 공정확률</a>
-        <a href="#model">모델 확률</a>
-        <a href="#edge">Edge</a>
-        <a href="#ev">EV</a>
-        <a href="#read">화면 읽는 법</a>
-        <a href="#caution">꼭 기억할 점</a>
-      </nav>
+      <h2>화면에 나오는 말, 한눈에</h2>
+      <div className="table-scroll">
+        <table className="glossary">
+          <thead>
+            <tr>
+              <th scope="col">화면 용어</th>
+              <th scope="col">뜻</th>
+              <th scope="col">예시</th>
+            </tr>
+          </thead>
+          <tbody>
+            {GLOSSARY.map(({ key, example }) => (
+              <tr key={key}>
+                <th scope="row">{TERM[key]}</th>
+                <td>{TERM_HELP[key]}</td>
+                <td className="muted">{example}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <h2 id="1x2">1. 1X2 — 경기 결과는 세 가지</h2>
+      <h2 id="read">경기 카드 읽는 법</h2>
+      <ol>
+        <li>
+          카드에는 <strong>홈승 · 무 · 원정승</strong> 세 칸이 있어요. 세 칸을 더하면 100%입니다.
+        </li>
+        <li>
+          칸마다 <strong>큰 숫자</strong>가 {TERM.model}, 그 아래 &lsquo;시장 ○○%&rsquo;가{" "}
+          {TERM.market}입니다.
+        </li>
+        <li>
+          맨 아래 <span className="positive">초록 +</span> /{" "}
+          <span className="negative">빨강 −</span> 숫자가 둘의 {TERM.gap}예요. 2%p보다 작으면 생각이
+          거의 같은 거예요.
+        </li>
+        <li>
+          카드를 누르면 맨 위 <strong>&lsquo;한눈에 보기&rsquo;</strong>가 이 경기를 한두 문장으로
+          설명해 줍니다.
+        </li>
+      </ol>
+
+      <h2 id="model">{TERM.model}은 어떻게 나오나요?</h2>
       <p>
-        축구 한 경기의 결과는 <strong>홈 승(1)</strong>, <strong>무승부(X)</strong>,{" "}
-        <strong>원정 승(2)</strong> 셋 중 하나입니다. 세 가능성을 더하면 항상 100%입니다.
+        팀마다 최근 경기에서 골을 얼마나 넣고 내줬는지, 오래 쌓인 전력 점수가 몇인지를 계산해서 이번
+        경기의 가능성을 숫자로 만듭니다. 사람이나 AI가 감으로 찍은 숫자가 아니라 정해진 공식으로
+        계산한 값이에요. 자세한 공식은 <Link href="/methodology">방법론</Link>에 공개합니다.
       </p>
 
-      <h2 id="odds">2. 배당 — 시장이 매긴 가격</h2>
+      <h2 id="odds">{TERM.odds}는 무엇인가요?</h2>
       <p>
-        배당(예: <code>2.50</code>)은 시장이 그 결과를 얼마나 일어날 것 같다고 보는지를 가격으로
-        표현한 숫자입니다. <strong>1 ÷ 배당</strong>을 하면 시장이 생각하는 가능성이 나옵니다.
+        배당은 시장이 결과마다 매긴 <strong>가격</strong>이에요. <strong>1 ÷ 배당</strong>을 하면
+        시장이 생각하는 가능성이 나와요.
       </p>
       <div className="formula">배당 2.50 → 1 ÷ 2.50 = 0.40 → 약 40%</div>
       <p>배당이 낮을수록(예: 1.30) 시장이 그 결과를 유력하게 본다는 뜻입니다.</p>
 
-      <h2 id="fair">3. 시장 공정확률 — 수수료를 뺀 시장의 생각</h2>
+      <h2 id="market">{TERM.market}은 왜 따로 계산하나요?</h2>
       <p>
-        세 결과의 1 ÷ 배당을 더하면 100%가 아니라 105% 정도가 됩니다. 넘치는 5%는 배당을 정하는
-        쪽(북메이커)의 수수료(마진)입니다. 이 수수료를 덜어 내 합계를 100%로 맞춘 값이{" "}
-        <strong>시장 공정확률</strong>이고, 화면에서 &lsquo;시장&rsquo;이라고 표시합니다.
+        세 결과의 &lsquo;1 ÷ 배당&rsquo;을 더하면 100%가 아니라 105%쯤 돼요. 넘치는 5%는 배당을
+        정하는 회사의 <strong>수수료</strong>입니다. 이 수수료를 빼서 합계를 100%로 맞춘 값이{" "}
+        {TERM.market}이에요.
       </p>
 
-      <h2 id="model">4. 모델 확률 — 통계 모델의 생각</h2>
+      <h2 id="gap">{TERM.gap}가 크면 좋은 건가요?</h2>
       <p>
-        과거 경기 결과로 팀의 공격력·수비력과 장기 전력(Elo)을 계산해서 각 결과의 가능성을 추정한
-        값입니다. 화면 카드의 <strong>큰 숫자</strong>가 모델 확률입니다. AI가 감으로 찍은 숫자가
-        아니라 공식으로 계산한 값이며, <Link href="/methodology">방법론</Link>에 계산 방식을
-        공개합니다.
+        꼭 그렇지 않아요. {TERM.gap}는 &ldquo;분석과 시장의 생각이 이만큼 다르다&rdquo;는 뜻일 뿐,
+        분석이 맞다는 뜻이 아닙니다.
       </p>
-
-      <h2 id="edge">5. Edge — 모델과 시장의 차이</h2>
-      <div className="formula">Edge = 모델 확률 − 시장 공정확률 (단위 %p)</div>
       <ul>
         <li>
-          <span className="positive">+초록</span>: 모델이 시장보다 그 결과를 <em>더 높게</em>{" "}
-          봅니다.
+          시장은 <strong>부상, 이적, 감독 교체</strong> 같은 최신 소식을 빠르게 반영해요. 우리
+          분석은 아직 경기 결과만 봅니다.
         </li>
         <li>
-          <span className="negative">−빨강</span>: 모델이 시장보다 <em>더 낮게</em> 봅니다.
+          그래서 {TERM.gap}가 아주 크면(10%p 이상) 분석이 무언가를 놓쳤을 가능성이 더 커요. 화면에 ⚠
+          표시로 알려 드립니다.
         </li>
-        <li>±2%p 안쪽이면 둘의 시각이 거의 같다고 보면 됩니다.</li>
+        <li>
+          <strong>승격팀</strong>(이번 시즌 새로 올라온 팀)은 데이터가 적어서 분석이 덜 정확해요.
+        </li>
       </ul>
+
+      <h2 id="ev">{TERM.ev}은 무엇인가요?</h2>
       <p>
-        차이가 크다고 모델이 옳다는 뜻은 아닙니다. 시장은 부상·이적 같은 최신 정보를 빠르게 반영하기
-        때문에, 큰 차이의 상당수는 <strong>모델이 놓친 정보</strong> 때문일 수 있습니다.
+        &ldquo;분석이 맞다고 치면, 같은 상황이 아주 여러 번 반복될 때 평균적으로 얼마나 유리한
+        가격인가&rdquo;를 숫자로 나타낸 값이에요.
+      </p>
+      <div className="formula">
+        {TERM.ev} = {TERM.model} × 배당 − 1 &nbsp;→&nbsp; 예: 0.45 × 2.50 − 1 = +12.5%
+      </div>
+      <p>
+        중요한 건 <strong>&ldquo;분석이 맞다면&rdquo;</strong>이라는 조건이에요. 분석이 틀리면{" "}
+        {TERM.ev}도 틀립니다. 한 경기의 결과는 운에 크게 좌우되니, {TERM.ev}가 플러스여도 그 결과가
+        나온다는 뜻은 아닙니다.
+      </p>
+      <p>
+        <span className="badge">{TERM.flag}</span> 표시는 {TERM.gap}와 {TERM.ev}가 모두 3% 이상일
+        때만 붙는 참고 표시이며, 추천이 아닙니다.
       </p>
 
-      <h2 id="ev">6. EV(기대값) — 모델이 맞다고 가정했을 때의 장기 평균</h2>
-      <div className="formula">EV = 모델 확률 × 배당 − 1</div>
+      <h2 id="watch">&lsquo;이번 주 주목할 경기&rsquo;는요?</h2>
       <p>
-        <strong>예시:</strong> 모델 확률 45%, 배당 2.50이면 EV = 0.45 × 2.50 − 1 ={" "}
-        <strong>+12.5%</strong>
-        입니다. &ldquo;모델이 정확하다면, 같은 상황이 아주 많이 반복될 때 평균적으로 12.5% 유리한
-        가격&rdquo;이라는 뜻입니다.
-      </p>
-      <p>
-        EV는 <strong>모델이 맞다는 가정</strong>에서만 성립합니다. 모델이 틀리면 EV도 틀립니다. 한두
-        경기의 결과는 운에 크게 좌우되며, EV가 플러스여도 그 경기에서 그 결과가 나온다는 뜻은 전혀
-        아닙니다.
-      </p>
-      <p>
-        <span className="badge">기준 초과</span> 표시는 Edge와 EV가 모두 3% 이상일 때만 붙는{" "}
-        <strong>참고 신호</strong>이며, 추천이 아닙니다.
+        이번 주 경기 중에서 분석이 시장보다 <strong>가장 높게 보는</strong> 결과를 최대 3개 모은
+        목록이에요. &ldquo;왜 이렇게 다를까?&rdquo; 살펴볼 만한 경기를 골라 둔 것이지, 추천이
+        아닙니다. 위에서 말한 이유(최신 소식, 승격팀) 때문에 분석이 틀렸을 가능성도 함께 표시해요.
       </p>
 
-      <h2 id="read">7. 화면 읽는 법 — 3단계</h2>
-      <ol>
-        <li>
-          <strong>경기 카드의 큰 숫자</strong>로 모델이 어떤 결과를 유력하게 보는지 확인합니다.
-        </li>
-        <li>
-          바로 아래 <strong>&lsquo;시장 ○○%&rsquo;</strong>와 비교합니다. 비슷하면 모델과 시장의
-          시각이 같은 경기입니다.
-        </li>
-        <li>
-          카드를 누르면 상세 화면 맨 위 <strong>&lsquo;한눈에 보기&rsquo;</strong>에서 차이를
-          문장으로 설명해 줍니다. 숫자 표는 그다음에 봐도 충분합니다.
-        </li>
-      </ol>
-
-      <h2 id="caution">8. 꼭 기억할 점</h2>
+      <h2 id="caution">꼭 기억할 점</h2>
       <ul>
         <li>모든 숫자는 추정치이며 어떤 결과도 보장하지 않습니다.</li>
         <li>
-          모델이 시장보다 낫다는 것은 수백 경기 이상의 기록으로만 판단할 수 있습니다. 아직은 그런
-          기록이 쌓이는 중입니다.
+          분석이 시장보다 정확한지는 수백 경기 이상의 기록으로만 판단할 수 있어요. 아직 기록을 쌓는
+          중입니다.
         </li>
         <li>EPL Edge Lab은 베팅을 권유·중개·실행하지 않습니다.</li>
         <li>
           스포츠 베팅은 지역에 따라 불법일 수 있습니다. 도박 문제로 어려움이 있다면
-          한국도박문제예방치유원(국번 없이 <strong>1336</strong>)에서 무료 상담을 받을 수 있습니다.
+          한국도박문제예방치유원(국번 없이 <strong>1336</strong>)에서 무료 상담을 받을 수 있어요.
         </li>
       </ul>
 

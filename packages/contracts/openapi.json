@@ -570,6 +570,104 @@
         "title": "HealthOut",
         "type": "object"
       },
+      "HighlightListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HighlightOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "min_edge": {
+            "title": "Min Edge",
+            "type": "number"
+          },
+          "note": {
+            "default": "추천이 아닙니다. 통계 분석과 시장(배당)의 생각이 가장 다른 경기를 모은 참고 정보입니다.",
+            "title": "Note",
+            "type": "string"
+          },
+          "range_end_utc": {
+            "format": "date-time",
+            "title": "Range End Utc",
+            "type": "string"
+          },
+          "range_start_utc": {
+            "format": "date-time",
+            "title": "Range Start Utc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "range_start_utc",
+          "range_end_utc",
+          "min_edge",
+          "items"
+        ],
+        "title": "HighlightListOut",
+        "type": "object"
+      },
+      "HighlightOut": {
+        "properties": {
+          "caveats": {
+            "description": "Reasons the model may be unreliable for this match",
+            "items": {
+              "enum": [
+                "promoted_home",
+                "promoted_away",
+                "large_gap"
+              ],
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decimal_odds": {
+            "title": "Decimal Odds",
+            "type": "number"
+          },
+          "edge": {
+            "description": "model_probability - fair_probability (> 0 by construction)",
+            "title": "Edge",
+            "type": "number"
+          },
+          "expected_value": {
+            "title": "Expected Value",
+            "type": "number"
+          },
+          "fair_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Fair Probability",
+            "type": "number"
+          },
+          "fixture": {
+            "$ref": "#/components/schemas/FixtureSummaryOut"
+          },
+          "model_probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Model Probability",
+            "type": "number"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          }
+        },
+        "required": [
+          "fixture",
+          "outcome",
+          "model_probability",
+          "fair_probability",
+          "edge",
+          "decimal_odds",
+          "expected_value",
+          "caveats"
+        ],
+        "title": "HighlightOut",
+        "type": "object"
+      },
       "ModelVersionOut": {
         "properties": {
           "calibration": {
@@ -1162,6 +1260,78 @@
         "summary": "Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/highlights": {
+      "get": {
+        "description": "Upcoming matches where model and market disagree most (reference only, not advice).",
+        "operationId": "list_highlights_highlights_get",
+        "parameters": [
+          {
+            "description": "Look-ahead window in days",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Look-ahead window in days",
+              "maximum": 14,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 3,
+              "maximum": 10,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_edge",
+            "required": false,
+            "schema": {
+              "default": 0.03,
+              "maximum": 0.5,
+              "minimum": 0.0,
+              "title": "Min Edge",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Highlights",
+        "tags": [
+          "highlights"
         ]
       }
     }

@@ -202,3 +202,27 @@ def test_openapi_schema_is_served(client):
         "/combinations/analyze",
     ]:
         assert p in paths
+
+
+def test_highlights_are_upcoming_distinct_and_sorted(client, now):
+    body = client.get("/highlights", params={"days": 7, "limit": 5}).json()
+    items = body["items"]
+    assert body["note"].startswith("추천이 아닙니다")
+    assert 0 < len(items) <= 5
+    edges = [h["edge"] for h in items]
+    assert edges == sorted(edges, reverse=True)
+    assert all(e >= body["min_edge"] for e in edges)
+    assert len({h["fixture"]["id"] for h in items}) == len(items)
+    for h in items:
+        assert h["fixture"]["status"] == "scheduled"
+        assert h["fixture"]["kickoff_at"] > now.isoformat().replace("+00:00", "Z")
+        assert h["edge"] == pytest.approx(h["model_probability"] - h["fair_probability"])
+        assert set(h["caveats"]) <= {"promoted_home", "promoted_away", "large_gap"}
+        assert ("large_gap" in h["caveats"]) == (h["edge"] >= 0.10)
+
+
+def test_highlights_respect_min_edge_and_validation(client):
+    none = client.get("/highlights", params={"min_edge": 0.5}).json()
+    assert none["items"] == []
+    assert client.get("/highlights", params={"limit": 0}).status_code == 422
+    assert client.get("/highlights", params={"days": 30}).status_code == 422

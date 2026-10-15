@@ -23,6 +23,9 @@ export type Selection = Schemas["SelectionIn"];
 export type CombinationRequest = Schemas["CombinationRequest"];
 export type CombinationLeg = Schemas["CombinationLegOut"];
 export type Combination = Schemas["CombinationOut"];
+export type Highlight = Schemas["HighlightOut"];
+export type HighlightList = Schemas["HighlightListOut"];
+export type HighlightCaveat = Highlight["caveats"][number];
 
 export type Outcome = Schemas["Outcome"];
 export const OUTCOMES = ["HOME", "DRAW", "AWAY"] as const satisfies readonly Outcome[];

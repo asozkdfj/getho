@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from edge_api.api.routes import combinations, fixtures, health
+from edge_api.api.routes import combinations, fixtures, health, highlights
 from edge_api.config import get_settings
 from edge_api.logging_setup import configure_logging
 
@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(fixtures.router)
+    app.include_router(highlights.router)
     app.include_router(combinations.router)
     return app
 

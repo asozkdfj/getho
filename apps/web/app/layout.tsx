@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "EPL Edge Lab", template: "%s · EPL Edge Lab" },
   description:
-    "EPL 경기의 모델 확률, 시장 공정확률(de-vig), Edge, 기대값을 투명하게 보여주는 데이터 분석 서비스",
+    "EPL 경기마다 통계 분석과 시장(배당)의 생각을 쉬운 말로 비교해 보여 주는 데이터 분석 서비스",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };

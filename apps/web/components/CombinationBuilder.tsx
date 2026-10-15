@@ -96,7 +96,7 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
                     <span>
                       {OUTCOME_SHORT[o]} · {odds(f.latest_odds?.[ODDS_KEY[o]])}
                     </span>
-                    <small>모델 {pct(f.model_probabilities?.[PROB_KEY[o]], 0)}</small>
+                    <small>분석 {pct(f.model_probabilities?.[PROB_KEY[o]], 0)}</small>
                   </button>
                 ))}
               </div>
@@ -147,11 +147,11 @@ function CombinationResult({ result, tz }: { result: Combination; tz: string }) 
       <h2>분석 결과</h2>
       <div className="stat-grid">
         <div className="stat">
-          <div className="label">모델 조합 확률</div>
+          <div className="label">모두 맞을 확률 (분석)</div>
           <div className="value">{pct(result.model_probability, 2)}</div>
         </div>
         <div className="stat">
-          <div className="label">시장 공정 조합 확률</div>
+          <div className="label">모두 맞을 확률 (시장 예상)</div>
           <div className="value">{pct(result.fair_market_probability, 2)}</div>
         </div>
         <div className="stat">
@@ -159,11 +159,11 @@ function CombinationResult({ result, tz }: { result: Combination; tz: string }) 
           <div className="value">{odds(result.combined_odds)}</div>
         </div>
         <div className="stat">
-          <div className="label">Edge</div>
+          <div className="label">차이</div>
           <div className={`value ${tone(result.edge, 0.001)}`}>{signedPoints(result.edge, 2)}</div>
         </div>
         <div className="stat">
-          <div className="label">EV (1 단위당)</div>
+          <div className="label">기대값</div>
           <div className={`value ${tone(result.expected_value)}`}>
             {signedPct(result.expected_value)}
           </div>
@@ -178,9 +178,9 @@ function CombinationResult({ result, tz }: { result: Combination; tz: string }) 
               <th scope="col">경기</th>
               <th scope="col">선택</th>
               <th scope="col">배당</th>
-              <th scope="col">모델</th>
-              <th scope="col">시장 공정</th>
-              <th scope="col">EV</th>
+              <th scope="col">분석</th>
+              <th scope="col">시장 예상</th>
+              <th scope="col">기대값</th>
             </tr>
           </thead>
           <tbody>
@@ -205,14 +205,14 @@ function CombinationResult({ result, tz }: { result: Combination; tz: string }) 
 
       <ul className="notes">
         <li>
-          계산 방식: <code>{result.method}</code> (근사치)
+          계산 방식: 각 경기 확률을 곱한 근사치 (<code>{result.method}</code>)
         </li>
         {result.notes.map((n) => (
           <li key={n}>{n}</li>
         ))}
         <li>
-          조합 배당의 내재확률 {pct(result.implied_probability, 2)} — 공정확률과의 차이는 누적된
-          북메이커 마진입니다.
+          조합 배당을 그대로 확률로 바꾸면 {pct(result.implied_probability, 2)}입니다. 시장 예상과의
+          차이는 경기마다 붙은 수수료가 쌓인 것입니다.
         </li>
       </ul>
     </section>

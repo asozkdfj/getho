@@ -29,7 +29,7 @@ from edge_api.services.analysis import (
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
 
-def _summary(
+def fixture_summary(
     fixture: Fixture, odds: OddsSnapshot | None, prediction: Prediction | None
 ) -> FixtureSummaryOut:
     return FixtureSummaryOut(
@@ -83,7 +83,7 @@ def list_fixtures(
         bookmaker=settings.bookmaker,
         range_start_utc=start.astimezone(UTC),
         range_end_utc=end.astimezone(UTC),
-        fixtures=[_summary(f, odds.get(f.id), preds.get(f.id)) for f in fixtures],
+        fixtures=[fixture_summary(f, odds.get(f.id), preds.get(f.id)) for f in fixtures],
     )
 
 
@@ -94,7 +94,7 @@ def get_fixture(fixture_id: int, db: DbSession, settings: AppSettings) -> Fixtur
         raise HTTPException(status_code=404, detail="fixture not found")
     history = queries.odds_history(db, fixture_id, settings.bookmaker)
     prediction = queries.latest_prediction(db, fixture_id)
-    summary = _summary(fixture, history[-1] if history else None, prediction)
+    summary = fixture_summary(fixture, history[-1] if history else None, prediction)
     return FixtureDetailOut(
         **summary.model_dump(),
         odds_history=[OddsSnapshotOut.model_validate(o) for o in history],

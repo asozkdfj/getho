@@ -26,7 +26,7 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
         <span className="team away">{fixture.away_team.name}</span>
       </div>
       {model && fair ? (
-        <div className="mini-grid" aria-label="모델 확률과 시장 공정확률 비교">
+        <div className="mini-grid" aria-label="분석 확률과 시장 예상 비교">
           {OUTCOMES.map((o) => {
             const m = model[KEY[o]];
             const f = fair[KEY[o]];
@@ -42,7 +42,7 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
         </div>
       ) : (
         <p className="muted small">
-          {finished ? "경기 종료" : fair ? "모델 예측 대기 중" : "시장 배당 수집 전"}
+          {finished ? "경기 종료" : fair ? "분석 준비 중" : "배당 수집 전"}
         </p>
       )}
     </Link>

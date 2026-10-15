@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { Disclaimer } from "@/components/Disclaimer";
 import { FixtureCard } from "@/components/FixtureCard";
-import { fetchFixtures } from "@/lib/api";
+import { Highlights } from "@/components/Highlights";
+import { fetchFixtures, fetchHighlights } from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
 import { providerLabel } from "@/lib/format";
+import { TERM } from "@/lib/terms";
 import { formatInTz, localDateKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +32,10 @@ export default async function FixturesPage({
   // EPL matches are mostly at weekends, so "today" is usually empty: default to the week.
   const range: Range = rawRange === "today" ? "today" : "week";
   const tz = DEFAULT_TZ;
-  const data = await fetchFixtures({ days: range === "week" ? 7 : 1, tz });
+  const [data, highlights] = await Promise.all([
+    fetchFixtures({ days: range === "week" ? 7 : 1, tz }),
+    fetchHighlights({ days: 7, limit: 3 }),
+  ]);
   const groups = groupByDay(data.fixtures, tz);
 
   return (
@@ -39,10 +44,10 @@ export default async function FixturesPage({
         <div>
           <h1>EPL 경기</h1>
           <p className="muted small" style={{ margin: 0 }}>
-            모델 확률 vs 시장 공정확률(마진 제거) · 기준 시간대 {tz}
+            통계 분석과 시장(배당)의 생각을 비교합니다 · 시간대 {tz}
           </p>
           <p className="muted small" style={{ margin: 0 }}>
-            데이터: {providerLabel(data.data_provider)} · 시장 기준 북메이커: {data.bookmaker}
+            데이터: {providerLabel(data.data_provider)} · 배당 출처: {data.bookmaker}
           </p>
         </div>
         <nav className="tabs" aria-label="기간">
@@ -55,10 +60,16 @@ export default async function FixturesPage({
         </nav>
       </div>
 
+      <Highlights data={highlights} tz={tz} />
+
+      <h2>경기 목록</h2>
       <div className="legend">
-        <span>큰 숫자 = 모델 확률</span>
-        <span>시장 = 수수료를 뺀 시장 확률</span>
-        <span>%p = 모델 − 시장 차이(Edge)</span>
+        <span>큰 숫자 = {TERM.model}</span>
+        <span>시장 = {TERM.market}</span>
+        <span>
+          <span className="positive">초록</span>/<span className="negative">빨강</span> = 분석과
+          시장의 {TERM.gap}
+        </span>
         <Link href="/guide">처음이세요? 3분 가이드 →</Link>
       </div>
 

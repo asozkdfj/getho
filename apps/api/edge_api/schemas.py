@@ -171,3 +171,29 @@ class CombinationOut(ApiModel):
 
 class ErrorOut(ApiModel):
     detail: str
+
+
+HighlightCaveat = Literal["promoted_home", "promoted_away", "large_gap"]
+
+
+class HighlightOut(ApiModel):
+    fixture: FixtureSummaryOut
+    outcome: Outcome
+    model_probability: Probability
+    fair_probability: Probability
+    edge: float = Field(description="model_probability - fair_probability (> 0 by construction)")
+    decimal_odds: float
+    expected_value: float
+    caveats: list[HighlightCaveat] = Field(
+        description="Reasons the model may be unreliable for this match"
+    )
+
+
+class HighlightListOut(ApiModel):
+    range_start_utc: datetime
+    range_end_utc: datetime
+    min_edge: float
+    items: list[HighlightOut]
+    note: str = (
+        "추천이 아닙니다. 통계 분석과 시장(배당)의 생각이 가장 다른 경기를 모은 참고 정보입니다."
+    )
