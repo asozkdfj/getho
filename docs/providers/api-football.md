@@ -11,7 +11,7 @@
    ```dotenv
    DATA_PROVIDER=api_football
    API_FOOTBALL_KEY=발급받은_키
-   PRIMARY_BOOKMAKER=bet365            # 시장 기준 북메이커 (아래 3단계에서 목록 확인)
+   PRIMARY_BOOKMAKER=pinnacle          # 시장 기준 북메이커 (마진이 낮고 가격이 정확함; 3단계에서 목록 확인)
    PIPELINE_INTERVAL_SECONDS=10800     # 3시간마다 수집 (배당 갱신 주기와 같음)
    ```
 3. **DB에 쓰기 전에 키와 응답 형식을 검증합니다.** DB에 아무것도 쓰지 않는 dry run이고 약 6~8 요청을 씁니다.
@@ -75,7 +75,7 @@ Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간�
 
 ## 4. 실제 응답 검증 현황
 
-2026-10-15에 Free 플랜 키로 `make check-provider`(`API_FOOTBALL_SEASON=2024`)를 실행해 확인했습니다.
+2026-10-15에 Free 플랜(`API_FOOTBALL_SEASON=2024`)과 Pro 플랜(현재 시즌)으로 `make check-provider`를 실행해 확인했습니다.
 
 - [x] Premier League `league` id = 39: 시즌별 380경기(20팀 × 38라운드)
 - [x] `/teams`, `/fixtures` 응답 파싱: 2023-24와 2024-25 시즌 760경기, 팀 연결 누락 0
@@ -84,8 +84,9 @@ Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간�
 - [x] 일일 남은 요청 수 헤더 `x-ratelimit-requests-remaining`, `/status`, 응답 본문의 `errors` 처리
 - [x] **Free 플랜은 2022~2024 시즌만 조회할 수 있습니다** (`Free plans do not have access to this season`).
       현재 시즌의 일정과 배당은 유료 플랜(Pro 이상)이 필요합니다.
-- [ ] `/odds` 응답 형식: `update` 필드, `bet=1` = "Match Winner"(Home/Draw/Away), 페이지 크기와
-      `paging.total`. 지난 시즌 배당은 제공되지 않아서 현재 시즌을 조회할 수 있어야 검증할 수 있습니다.
+- [x] `/odds` 응답 형식(Pro 플랜, 2026-27): `update` 필드, `bet=1` = "Match Winner"(Home/Draw/Away),
+      페이지 처리. 앞으로 14일 20경기 중 19경기에 배당, 10개 북메이커(1xbet, bet365, betano, betfair,
+      betvictor, dafabet, marathonbet, pinnacle, sbo, williamhill)에서 174개 스냅샷을 파싱했습니다.
 
 검증용으로 `API_FOOTBALL_SEASON`을 과거 시즌으로 고정하면, 그 시즌은 수집 범위(오늘 기준 400일 전 ~
 30일 후) 밖이라 `fixtures_in_ingest_window`가 0이 됩니다. 정상입니다. 운영할 때는 이 값을 비워 두세요.
