@@ -16,7 +16,7 @@ import json
 import sys
 from collections import Counter
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from edge_api.config import Settings, get_settings
@@ -24,9 +24,11 @@ from edge_api.db.session import session_scope
 from edge_api.logging_setup import configure_logging
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
-from edge_ingestion.jobs import run_ingestion, run_pipeline
+from edge_ingestion.jobs import INGEST_LOOKAHEAD, INGEST_LOOKBACK, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
+
+EVERYTHING = (datetime(1900, 1, 1, tzinfo=UTC), datetime(2200, 1, 1, tzinfo=UTC))
 
 
 def _parse_now(value: str | None) -> datetime:
@@ -48,15 +50,29 @@ def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
         }
         report["seasons"] = provider.seasons
     teams = provider.get_teams()
-    fixtures = provider.get_fixtures(now - timedelta(days=400), now + timedelta(days=30))
+    # Count everything the provider returned (a pinned past season lies outside the
+    # ingestion window), then report the window the real ingestion would use.
+    fixtures = provider.get_fixtures(EVERYTHING[0], EVERYTHING[1])
+    window = (now - INGEST_LOOKBACK, now + INGEST_LOOKAHEAD)
+    in_window = [f for f in fixtures if window[0] <= f.kickoff_at < window[1]]
     upcoming = [
-        f for f in fixtures if f.status == "scheduled" and f.kickoff_at <= now + timedelta(days=14)
+        f
+        for f in fixtures
+        if f.status == "scheduled" and now < f.kickoff_at <= now + timedelta(days=14)
     ]
     odds = provider.get_odds([f.provider_id for f in upcoming])
+    team_ids = {t.provider_id for t in teams}
+    finished = sorted((f for f in fixtures if f.status == "finished"), key=lambda f: f.kickoff_at)
     report.update(
         teams=len(teams),
         fixtures=len(fixtures),
+        fixtures_by_season=dict(Counter(f.season for f in fixtures)),
+        fixtures_in_ingest_window=len(in_window),
         fixture_statuses=dict(Counter(f.status for f in fixtures)),
+        fixtures_with_unknown_team=sum(
+            1 for f in fixtures if {f.home_team_provider_id, f.away_team_provider_id} - team_ids
+        ),
+        sample_finished_fixture=asdict(finished[-1]) if finished else None,
         upcoming_14d=len(upcoming),
         odds_snapshots=len(odds),
         fixtures_with_primary_bookmaker_odds=len(

@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 # Serialises concurrent pipeline runs (CLI seed vs. Celery beat) per database.
 PIPELINE_LOCK_KEY = 7_243_001
 VALID_STATUSES = {s.value for s in FixtureStatus}
+# Results window kept in sync with the DB (history for rating fits + upcoming fixtures).
+INGEST_LOOKBACK = timedelta(days=400)
+INGEST_LOOKAHEAD = timedelta(days=30)
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,8 +170,8 @@ def run_ingestion(
     provider: FootballDataProvider,
     *,
     now: datetime,
-    lookback: timedelta = timedelta(days=400),
-    lookahead: timedelta = timedelta(days=30),
+    lookback: timedelta = INGEST_LOOKBACK,
+    lookahead: timedelta = INGEST_LOOKAHEAD,
 ) -> IngestionResult:
     now = ensure_utc(now)
     date_from, date_to = now - lookback, now + lookahead

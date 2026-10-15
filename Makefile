@@ -32,7 +32,7 @@ seed: ## (Re)seed data + predictions inside the running stack (idempotent)
 	docker compose exec api python -m edge_ingestion.cli seed
 
 check-provider: ## Dry-run the configured data provider (verifies API key; no DB writes)
-	docker compose run --rm --no-deps -e RUN_MIGRATIONS_ON_STARTUP=false -e SEED_ON_STARTUP=false \
+	docker compose run --rm --no-deps --build -e RUN_MIGRATIONS_ON_STARTUP=false -e SEED_ON_STARTUP=false \
 		api python -m edge_ingestion.cli check-provider
 
 # ---------------------------------------------------------------- local
