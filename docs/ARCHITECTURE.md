@@ -35,8 +35,32 @@ Provider ─>│ get_teams / get_fixtures / get_odds  ->  jobs.run_ingestion    
                 Next.js (SSR, cache: no-store)
 ```
 
-`run_pipeline`(CLI `seed`, Celery task)은 수집과 예측을 한 트랜잭션에서 실행합니다. 이때
-`pg_advisory_xact_lock`으로 동시 실행을 직렬화합니다.
+`run_pipeline`(CLI `seed`, Celery task)은 수집 → 예측 → 픽 정산 → (선정 시각 이후) 오늘의 픽 선정을 한
+트랜잭션에서 실행합니다. 이때 `pg_advisory_xact_lock`으로 동시 실행을 직렬화하고, 실행마다
+`ingestion_runs`에 성공/실패를 기록합니다(실패는 별도 트랜잭션).
+
+### 오늘의 픽
+
+```
+predictions(최신, 현재 모델) ─> quality.assess (7개 점검) ─> edge_ml.picks.select_pick
+                                                            │  (백테스트와 같은 함수)
+                                                            v
+             daily_picks INSERT ... ON CONFLICT (provider, pick_date, revision) DO NOTHING
+                                                            │
+     fixture 종료/취소 ─> settle_daily_picks ─> daily_pick_events (settled | voided, 1회)
+```
+
+- 근거(evidence JSONB)에 후보 전체와 제외 사유, 선택된 예측의 확률·특성·데이터 점검 결과, 그 시점의
+  백테스트 요약, 모델 버전, `is_demo`를 저장합니다. 화면 설명은 이 값만 인용합니다.
+- `/picks/today`는 선정 시각 전에는 `scheduled`를 돌려주고, 이후 첫 요청이나 파이프라인이 선정합니다.
+  어느 쪽이 먼저든 결과는 하나입니다.
+
+### 평가
+
+- `edge backtest`(ml/edge_ml/backtest.py)가 실데이터로 walk-forward 평가를 하고 JSON 보고서를 만듭니다.
+  `seed`가 커밋된 보고서를 `model_evaluations`에 넣습니다(sha256 중복 방지).
+- `/performance`는 그 보고서와, 저장된 예측을 실제 결과로 채점한 실시간 지표(모델 vs 시장)를 함께
+  돌려줍니다.
 
 ## 스키마
 
@@ -46,6 +70,10 @@ Provider ─>│ get_teams / get_fixtures / get_odds  ->  jobs.run_ingestion    
 | `fixtures` | provider_id, season, round, kickoff_at(UTC), home/away_team_id, status, score | UQ(provider, provider_id), CK(home≠away), IX(kickoff_at) |
 | `odds_snapshots` | fixture_id, bookmaker, market, odds_home/draw/away, captured_at, raw_payload | UQ(fixture, bookmaker, market, captured_at), CK(odds>1), **append-only trigger** |
 | `model_versions` | name, version(semver), git_sha, feature_set, calibration, params, metrics, artifact_uri | UQ(name, version, git_sha, feature_set) |
+| `ingestion_runs` | provider, started_at, finished_at, status, counts, error | IX(provider, started_at), **append-only trigger** |
+| `model_evaluations` | model_name/version, feature_set, dataset, report(JSONB), report_sha256 | UQ(report_sha256), **append-only trigger** |
+| `daily_picks` | provider, pick_date, tz, revision, status, fixture_id, prediction_id, model_version_id, outcome, probability, input_data_as_of, evidence, policy, published_at | UQ(provider, pick_date, revision), CK(published면 필수 컬럼), **append-only trigger** |
+| `daily_pick_events` | pick_id, event(settled/voided), actual_outcome, hit, reason | UQ(pick_id, event), **append-only trigger** |
 | `predictions` | fixture_id, model_version_id, market_odds_snapshot_id, created_at, input_data_as_of, probability_home/draw/away, expected_goals_*, features | UQ(fixture, model_version, odds_snapshot, input_data_as_of), CK(합=1, 0..1), **append-only trigger** |
 
 ### Idempotency와 snapshot 규칙

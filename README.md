@@ -4,6 +4,8 @@ EPL 경기의 통계 데이터와 시장 배당으로 **1X2 모델 확률 · 시
 계산하고, 2~3경기 조합을 분석하는 **스포츠 데이터/확률 분석 플랫폼** MVP입니다.
 
 - 확률은 **통계 모델(Poisson + Elo)** 이 계산합니다. LLM은 확률을 정하지 않습니다(설명/구조화는 Phase 3).
+- 모델 성과는 실제 EPL 8시즌(3,040경기) walk-forward 백테스트로 측정했습니다
+  ([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). mock 데이터 결과는 성과 근거로 쓰지 않습니다.
 - 베팅 실행·계정 연동·자동 주문 기능은 **없고, 만들지 않습니다**.
 - 유료 API 키 없이 **결정적(deterministic) MockProvider + seed 데이터**로 전체가 동작합니다.
   데모 데이터의 결과·배당은 합성 데이터이며 실제와 무관합니다.
@@ -100,12 +102,38 @@ lint/typecheck/test/build, API contract drift, `docker compose up` smoke 및 see
 | GET | `/fixtures/{id}` | 경기 상세 + 배당 스냅샷 이력 |
 | GET | `/fixtures/{id}/prediction` | 최신 예측 snapshot: 모델확률, 공정확률, overround, Edge, EV, as-of 시각, 모델 버전 |
 | POST | `/combinations/analyze` | 서로 다른 경기 2~3개 selection 조합 (`method: independence_approximation`) |
+| GET | `/highlights?days=7&limit=3` | 분석이 시장보다 가장 높게 보는 결과(주의 표시 포함, 추천 아님) |
+| GET | `/picks/today` | 오늘(KST)의 픽: 선정 시각에 한 번 고정된 결과, 근거·데이터 점검·백테스트 요약 |
+| GET | `/picks/history?limit=60` | 지난 픽(선정 당시 값 보존) + 적중률·Wilson 범위·평균 확률·표본 수 |
+| GET | `/performance` | 실데이터 walk-forward 백테스트 지표 + 저장된 예측의 실시간 모델 vs 시장 채점 |
+| GET | `/status/data` | 마지막 수집 성공/실패, 데이터 신선도 |
 
 ```bash
 curl -s localhost:8000/fixtures?days=7 | jq '.fixtures[0]'
 curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: application/json' \
   -d '{"selections":[{"fixture_id":1,"outcome":"HOME"},{"fixture_id":2,"outcome":"DRAW"}]}'
 ```
+
+## 오늘의 픽 (Today's Pick)
+
+하루(KST)에 최대 한 경기, **데이터 점검을 통과한 오늘 경기 중 분석 확률이 가장 높은 결과 하나**를
+보여 줍니다. 추천이나 보장이 아니라 "모델이 가장 확신하는 결과"에 대한 설명입니다.
+
+- 선정 시각(`PICK_PUBLISH_HOUR`, 기본 09:00 KST)에 한 번 정해지고 `daily_picks`에 고정됩니다
+  (append-only, `INSERT ... ON CONFLICT DO NOTHING`). 새로고침·재시작·동시 요청에도 바뀌거나 중복되지
+  않습니다.
+- 기준 확률(`PICK_MIN_PROBABILITY`, 기본 0.55)은 실데이터 백테스트에서 정했습니다
+  ([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). 못 넘으면 그날은 "픽 없음"입니다.
+- 데이터 점검: 경기 시작 전, 최근 수집 성공(`INGEST_MAX_AGE_HOURS`), 현재 모델 버전, 확률 정상, 배당
+  최신(`ODDS_MAX_AGE_HOURS`), 두 팀 경기 기록(`MIN_TEAM_MATCHES`).
+- 경기가 취소·연기되면 "무효"로 남기고 적중률에서 뺍니다. 교체 픽은 `PICK_REPLACE_ON_VOID=true`일 때만.
+- mock 데이터의 픽은 `is_demo=true`로 저장되고 화면에 데모로 표시됩니다.
+
+| 화면 | 내용 |
+| --- | --- |
+| `/` | 맨 위에 오늘의 픽 카드, 데이터 신선도 배지 |
+| `/picks` | 지난 픽 이력과 요약 |
+| `/performance` | 모델 성과(지표·보정 그래프·시즌별·픽 규칙 백테스트) |
 
 ## 저장소 구조
 

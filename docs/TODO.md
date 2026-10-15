@@ -8,7 +8,7 @@
 | 1 | 공개 전 API-Football 라이선스 확인 | 연동은 실제 응답으로 모두 검증했습니다(2026-10-15, Pro 플랜, [가이드 §4](providers/api-football.md)). 공개 서비스(배당 표시·광고) 전에는 약관 확인이 필요합니다. | 공개 직전 |
 | 1a | 백테스트용 과거 배당 소스 | API-Football은 배당을 약 7일만 보관해서 과거 시즌 배당을 받을 수 없습니다. football-data.co.uk CSV 같은 별도 소스가 필요합니다(라이선스 확인 포함). | Phase 2 walk-forward 검증 전 |
 | 1b | provider 응답 캐시(Redis), circuit breaker, raw payload 원본 보관(S3) | 지금 요청량(약 60/일)에서는 캐시가 없어도 Free 한도 안에 들어갑니다. 재시도와 요청 간격은 이미 있습니다. | 수집 대상 리그나 빈도를 늘릴 때 |
-| 2 | Calibration 학습(temperature/isotonic) | 보정은 예측-결과 쌍이 충분해야 의미가 있습니다. 지금은 `IdentityCalibrator`만 둡니다. | 사전 예측 300~500경기 누적 후 |
+| 2 | Calibration 학습(isotonic) | temperature 보정은 구현·평가했지만 교체 기준 미달(ADR-011)입니다. isotonic은 표본이 더 필요합니다. | 실시간 예측 500경기 누적 후 재평가 |
 | 3 | 시장 확률과의 비교(과거 구간) / CLV | 백테스트 엔진과 지표는 구현했습니다([MODEL_EVALUATION](MODEL_EVALUATION.md)). 공개 과거 데이터(openfootball)에 배당이 없어서 시장 비교는 아직 측정하지 않았습니다. `--source football-data`로 CSV를 넣으면 측정할 수 있습니다. | 배당 포함 데이터 확보 시 |
 | 4 | 휴식일·일정 밀도, xG 특성 | 실험 하네스는 준비됐지만, 공개 데이터에 컵·유럽대항전 일정과 xG가 없어 평가할 수 없습니다. | 데이터 확보 시 |
 | 5 | Dixon-Coles | 실데이터 검증 결과 rho < 0이 오히려 나빠서 기각했습니다(기본 0). | 재평가 시 |
@@ -18,7 +18,10 @@
 | 9 | 운영 배포(이미지 레지스트리, 마이그레이션 릴리스 단계, Sentry, structured JSON logs) | MVP는 로컬 compose가 목표입니다. production에서는 `RUN_MIGRATIONS_ON_STARTUP=false`, `SEED_ON_STARTUP=false`로 둡니다. | 공개 베타 전 |
 | 10 | Celery beat 분리 | 로컬은 `worker -B` 하나로 충분합니다. 다중 worker에서는 beat를 단일 프로세스로 분리해야 합니다. | 배포 시 |
 | 11 | SEO 페이지(`/matches/{home}-vs-{away}-{date}`, sitemap, SportsEvent 구조화 데이터) | Phase 3 범위입니다. 지금 URL은 `/fixtures/{id}`입니다. | Phase 3 |
-| 12 | 지연/실패 표시 고도화 | 지금은 as-of 시각, 배당 수집 시각, 에러 페이지까지만 표시합니다. 수집 job 상태 테이블과 "데이터 지연" 배지는 실제 provider를 붙일 때 필요합니다. | #1과 함께 |
+| 12 | 데이터 지연 알림(메일/Slack) | `ingestion_runs`와 `/status/data`, 화면 배지까지는 구현했습니다. 외부 알림 채널은 운영 환경이 정해져야 합니다. | 배포 시 |
 | 13 | `npm audit`: `braces` (high, ESLint 플러그인 → fast-glob → micromatch 경유) | 개발 전용 lint 도구 체인이라 런타임이나 배포 이미지에는 포함되지 않습니다. 아직 패치 버전이 없습니다(`braces *`). | upstream 패치 시 `npm update` |
 | 14 | DB 레이어를 `packages/db`로 분리 | 지금은 ingestion이 `edge_api.db`를 import합니다(ADR-001). | ingestion을 별도 서비스로 분리할 때 |
 | 15 | 로그인/즐겨찾기/알림, 분석 이벤트(PostHog) | 기획서상 트래픽을 확인한 뒤 추가합니다. | Phase 3+ |
+| 16 | 오늘의 픽 실시간 성과 | 엔진과 이력은 구현했습니다. 실데이터 픽은 매일 1개라 의미 있는 적중률(수백 개)까지 시간이 걸립니다. 그 전까지는 백테스트 수치만 근거로 씁니다. | 실데이터 운영 6개월 이상 |
+| 17 | 팀 로고 | 현재 teams 테이블에 로고 URL이 없습니다. API-Football 응답에는 있어 수집 컬럼을 추가하면 됩니다(라이선스 확인 필요, #1). | #1과 함께 |
+| 18 | 픽 선정 시각 경쟁 상황의 부하 테스트 | 동시 요청 안전성은 유니크 키로 보장하고 통합 테스트로 확인했습니다. 실제 다중 프로세스 부하 테스트는 하지 않았습니다. | 배포 전 |
