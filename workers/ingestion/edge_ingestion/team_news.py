@@ -184,6 +184,7 @@ def ingest_appearances(
     now: datetime,
     scope: frozenset[str] | None,
     limit: int,
+    lookback: timedelta = APPEARANCE_LOOKBACK,
 ) -> int:
     missing = ~exists().where(PlayerAppearance.fixture_id == Fixture.id)
     rows = session.execute(
@@ -192,7 +193,7 @@ def ingest_appearances(
             Fixture.provider == provider.name,
             Fixture.status == FixtureStatus.FINISHED.value,
             Fixture.kickoff_at < now,
-            Fixture.kickoff_at >= now - APPEARANCE_LOOKBACK,
+            Fixture.kickoff_at >= now - lookback,
             missing,
         )
         .order_by(Fixture.kickoff_at.desc())

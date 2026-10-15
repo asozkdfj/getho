@@ -142,3 +142,24 @@ def test_api_football_team_news_parsing():
     lineups = p.get_lineups(finished)
     assert lineups and all(len(lu.starters) == 11 for lu in lineups)
     assert all(lu.formation == "4-3-3" for lu in lineups)
+
+
+def test_lineup_backtest_runs_on_collected_player_minutes(db_session, now):
+    """The `--source db` path end to end on mock data (a code check, not evidence)."""
+    from edge_ingestion.lineup_backtest import evaluate_split, load_db_matches
+    from edge_ingestion.team_news import ingest_appearances
+    from edge_ml.model import ModelParams
+
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    ingest_appearances(
+        db_session, provider, now=now, scope=None, limit=10_000, lookback=timedelta(days=420)
+    )
+    db_session.commit()
+    data, names = load_db_matches(db_session, "mock", min_matches=200)
+    assert {"eng-1", "esp-1"} <= set(data)
+    m = data["eng-1"][0]
+    assert len(m.lineups.home.starters) == 11 and sum(m.lineups.home.minutes.values()) == 990
+    res = evaluate_split({"eng-1": data["eng-1"]}, names, ModelParams(), 0.6)
+    assert set(res["test"]["models"]) == {"base_rate", "production", "production_lineup"}
+    assert res["test"]["n_matches"] > 50

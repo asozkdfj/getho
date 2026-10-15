@@ -42,6 +42,8 @@ mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같�
 | `/leagues?current=true` | 1 | 리그 목록, 형식(리그/컵), 현재 시즌, 배당 제공 여부 |
 | `/fixtures?date=D&timezone=UTC` | 약 12 | 하루치 **모든 리그** 경기가 한 번에 옴. 3일 전 ~ 8일 후 |
 | `/odds?date=D&bet=1&page=N` | 날짜별 페이지 수 | 페이지당 10경기, 앞으로 3일(`ODDS_LOOKAHEAD_DAYS`). 필요한 경기를 다 찾으면 멈춤 |
+| `/injuries?date=D` | 약 2 | 앞으로 48시간 경기의 결장·불투명 선수(검증된 리그) |
+| `/fixtures?ids=a-b-…` | 20경기당 1 | 선발 명단(킥오프 90분 전부터, 10분마다) + 끝난 경기의 선수별 출전 시간(실행당 200경기) |
 | `/fixtures?league=L&season=S` | 리그당 2 | 과거 결과(현재 + 직전 시즌). **리그마다 한 번만**, 실행당 최대 40개 리그 |
 
 - 날짜 단위로 받기 때문에 리그 수가 늘어도 일정 요청은 거의 늘지 않습니다. 배당은 경기 수에 비례합니다
@@ -106,6 +108,8 @@ mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같�
 - [ ] `/fixtures?date=`: 여러 리그 경기가 한 응답에 오는지, `league.id/season/round`
 - [ ] `/odds?date=`: 날짜 단위 페이지 처리
 - [ ] 분당 한도 헤더 `x-ratelimit-limit`
+- [ ] `/injuries?date=`: `player.type`("Missing Fixture"/"Questionable"), `reason`, `fixture.id`
+- [ ] `/fixtures?ids=`: `lineups[].startXI`, `players[].players[].statistics[0].games.minutes`
 
 `make check-provider` 결과의 `leagues`, `busiest_leagues`, `odds_snapshots_sampled`가 0이 아니면 확인된 것입니다.
 

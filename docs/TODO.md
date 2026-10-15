@@ -13,7 +13,7 @@
 | 4 | 휴식일·일정 밀도, xG 특성 | 실험 하네스는 준비됐지만, 공개 데이터에 컵·유럽대항전 일정과 xG가 없어 평가할 수 없습니다. | 데이터 확보 시 |
 | 5 | Dixon-Coles | 실데이터 검증 결과 rho < 0이 오히려 나빠서 기각했습니다(기본 0). | 재평가 시 |
 | 6 | Shin / power de-vig | MVP는 설명하기 쉬운 proportional만 씁니다(ADR-008). | Phase 2 |
-| 7 | players, team_match_stats, injury_events, lineup_snapshots, llm_events 테이블 | Phase 1 범위 밖입니다(xG, 라인업, 부상, LLM은 Phase 2~3). 같은 append-only 패턴으로 추가합니다. | Phase 2~3 |
+| 7 | players, team_match_stats, llm_events 테이블 (선발 명단·결장·출전 시간은 `team_news_snapshots`, `player_appearances`로 구현) | Phase 1 범위 밖입니다(xG, 라인업, 부상, LLM은 Phase 2~3). 같은 append-only 패턴으로 추가합니다. | Phase 2~3 |
 | 8 | Playwright E2E를 CI에서 실행 | CI 시간과 비용 때문입니다. 지금은 Vitest 단위 테스트와 compose smoke(HTTP + 조합 API)로 대신합니다. 로컬에서는 Playwright로 모바일/데스크톱 렌더링을 수동 확인했습니다. | 화면이 늘어나면 |
 | 9 | 운영 배포(이미지 레지스트리, 마이그레이션 릴리스 단계, Sentry, structured JSON logs) | MVP는 로컬 compose가 목표입니다. production에서는 `RUN_MIGRATIONS_ON_STARTUP=false`, `SEED_ON_STARTUP=false`로 둡니다. | 공개 베타 전 |
 | 10 | Celery beat 분리 | 로컬은 `worker -B` 하나로 충분합니다. 다중 worker에서는 beat를 단일 프로세스로 분리해야 합니다. | 배포 시 |
@@ -30,3 +30,6 @@
 | 21 | 컵 대회 예측(전역 레이팅) | 서로 다른 리그 팀을 잇는 레이팅(유럽대항전·컵 결과로 리그 간 수준 차이 추정)이 필요합니다. | 리그 확장 이후 |
 | 22 | 더 많은 리그 검증 | openfootball에 완전한 시즌이 있는 10개 리그만 검증했습니다. 나머지 리그는 API-Football 과거 결과로 같은 백테스트를 돌리면 검증할 수 있습니다(요청량 필요). | 실데이터 운영 시작 후 |
 | 23 | 전체 리그 API 응답 실검증 | `/leagues?current=true`, 날짜 단위 `/fixtures`·`/odds`는 문서 형식으로만 테스트했습니다. `make check-provider`로 확인해야 합니다. | 다음 실행 때 |
+| 24 | 선발 명단 변수 서비스 반영(3단계) | 2단계 백테스트는 채택 가능 조건을 만족했지만 효과가 작고 CI가 0을 포함합니다. 경기 직전 예측 갱신 job, 예측 행에 명단 입력 기록, 모델 버전 0.3.0이 필요합니다. | 더 큰 표본 재측정 후 사용자 결정 |
+| 25 | 큰 표본 명단 백테스트 | API-Football 과거 경기 출전 시간(`edge backfill-appearances`, 20경기/요청)으로 검증된 10개 리그 2시즌을 채우면 약 7,000경기로 다시 잴 수 있습니다. | 실데이터 운영 시작 후 |
+| 26 | 팀 뉴스 API 응답 실검증 | `/injuries?date=`, `/fixtures?ids=`의 형식은 문서 기준으로만 테스트했습니다. | 다음 `check-provider` 실행 때 |

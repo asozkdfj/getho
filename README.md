@@ -164,6 +164,19 @@ curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: applicatio
 | `/picks` | 지난 픽 이력과 요약 |
 | `/performance` | 모델 성과(지표·보정 그래프·시즌별·픽 규칙 백테스트) |
 
+## 선발 명단과 결장 정보
+
+- 결장·출전 불투명 선수(경기 2일 전부터), 공식 선발 명단(킥오프 약 1시간 전, worker가 10분마다 확인), 끝난 경기의
+  선수별 출전 시간을 수집해 경기 상세 화면에 보여 줍니다(`TEAM_NEWS_LEAGUES`, 기본: 검증된 리그).
+- **분석 확률에는 아직 반영하지 않습니다.** 반영 효과를 잰 실험 결과는
+  [MODEL_EVALUATION](docs/MODEL_EVALUATION.md)의 "선발 명단 변수 실험"에 있습니다.
+
+```bash
+python -m edge_ingestion.cli backtest-lineups                 # StatsBomb 공개 데이터로 실험
+python -m edge_ingestion.cli backfill-appearances --days 420  # API-Football 과거 출전 시간 채우기
+python -m edge_ingestion.cli backtest-lineups --source db     # 내 DB 데이터로 같은 실험
+```
+
 ## 저장소 구조
 
 ```

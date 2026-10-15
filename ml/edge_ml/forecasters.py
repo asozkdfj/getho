@@ -22,11 +22,27 @@ from edge_ml.poisson import probabilities_from_expected_goals
 
 
 @dataclass(frozen=True, slots=True)
+class TeamSheet:
+    """Who started for one team and how long everyone who played was on the pitch."""
+
+    starters: tuple[str, ...]
+    minutes: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class MatchLineups:
+    home: TeamSheet
+    away: TeamSheet
+
+
+@dataclass(frozen=True, slots=True)
 class BacktestMatch:
-    """A finished match plus (optionally) the market prices available before kickoff."""
+    """A finished match plus (optionally) the market prices available before kickoff
+    and the line-ups published before kickoff."""
 
     result: MatchResult
     odds: tuple[float, float, float] | None = None
+    lineups: MatchLineups | None = None
 
     @property
     def outcome_index(self) -> int:

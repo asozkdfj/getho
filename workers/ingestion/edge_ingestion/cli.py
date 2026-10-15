@@ -25,7 +25,7 @@ from edge_api.logging_setup import configure_logging
 from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
-from edge_ingestion import backtest_cli
+from edge_ingestion import backtest_cli, lineup_backtest
 from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
@@ -94,7 +94,22 @@ def main(argv: list[str] | None = None) -> int:
         sp = sub.add_parser(name)
         sp.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     backtest_cli.add_arguments(sub.add_parser("backtest", help="walk-forward model evaluation"))
+    lineup_backtest.add_arguments(
+        sub.add_parser("backtest-lineups", help="does line-up strength improve the model?")
+    )
+    bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
+    bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
+    bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
+    bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     args = parser.parse_args(argv)
+
+    if args.command == "backtest-lineups":
+        configure_logging(get_settings().log_level)
+        report = lineup_backtest.run(args)
+        print(
+            json.dumps({k: report[k] for k in ("lineup_fit", "per_league", "promotion")}, indent=2)
+        )
+        return 0
 
     if args.command == "backtest":
         configure_logging(get_settings().log_level)
@@ -112,7 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     now = _parse_now(args.now)
 
     try:
-        result = _run(args.command, settings, now)
+        if args.command == "backfill-appearances":
+            result = _backfill_appearances(settings, now, args.days, args.limit)
+        else:
+            result = _run(args.command, settings, now)
     except (ProviderError, ValueError) as exc:
         # Clean, secret-free failure message instead of a traceback.
         print(json.dumps({"command": args.command, "error": str(exc)}), file=sys.stderr)
@@ -126,6 +144,23 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+
+
+def _backfill_appearances(settings: Settings, now: datetime, days: int, limit: int) -> dict:
+    from edge_api.services.leagues import scoped_league_ids
+    from edge_ingestion.team_news import ingest_appearances
+
+    provider = get_provider(settings.data_provider, settings=settings, reference_time=now)
+    with session_scope() as session:
+        inserted = ingest_appearances(
+            session,
+            provider,
+            now=now,
+            scope=scoped_league_ids(session, provider.name, settings.team_news_leagues),
+            limit=limit,
+            lookback=timedelta(days=days),
+        )
+    return {"appearances_inserted": inserted, "requests_used": provider.requests_made}
 
 
 def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
