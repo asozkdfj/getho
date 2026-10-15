@@ -8,6 +8,8 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # Default market-baseline bookmaker per data provider (slugs as stored in odds_snapshots).
 DEFAULT_BOOKMAKERS = {"mock": "mockbook", "api_football": "bet365"}
+# API-Football refreshes odds ~every 3h; the mock captures at 10d/48h/6h before kickoff.
+DEFAULT_ODDS_MAX_AGE_HOURS = {"mock": 72.0, "api_football": 12.0}
 
 
 class Settings(BaseSettings):
@@ -43,6 +45,17 @@ class Settings(BaseSettings):
     )
     value_threshold: float = 0.03
 
+    # --- Today's Pick (thresholds come from the backtest, see docs/MODEL_EVALUATION.md)
+    pick_min_probability: float = 0.55
+    pick_tz: str = "Asia/Seoul"
+    pick_publish_hour: int = 9  # local hour (pick_tz) when the day's pick is decided
+    pick_replace_on_void: bool = False  # publish a new pick if the chosen match is voided
+
+    # --- data quality gates
+    odds_max_age_hours: float | None = None  # None -> provider default
+    ingest_max_age_hours: float = 8.0
+    min_team_matches: int = 10
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:
@@ -62,11 +75,16 @@ class Settings(BaseSettings):
         "primary_bookmaker",
         "api_football_season",
         "api_football_bookmaker_id",
+        "odds_max_age_hours",
         mode="before",
     )
     @classmethod
     def _empty_is_none(cls, v: object) -> object:
         return None if v == "" else v
+
+    @property
+    def odds_max_age(self) -> float:
+        return self.odds_max_age_hours or DEFAULT_ODDS_MAX_AGE_HOURS.get(self.data_provider, 12.0)
 
     @property
     def bookmaker(self) -> str:

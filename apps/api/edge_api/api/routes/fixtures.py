@@ -16,6 +16,8 @@ from edge_api.schemas import (
     FixtureSummaryOut,
     OddsSnapshotOut,
     PredictionOut,
+    QualityCheckOut,
+    QualityOut,
     TeamOut,
 )
 from edge_api.services import queries
@@ -25,6 +27,7 @@ from edge_api.services.analysis import (
     model_probabilities,
     to_probabilities_out,
 )
+from edge_api.services.quality import assess, last_successful_run
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
@@ -106,10 +109,27 @@ def get_fixture(fixture_id: int, db: DbSession, settings: AppSettings) -> Fixtur
     response_model=PredictionOut,
     responses={404: {"model": ErrorOut}},
 )
-def get_prediction(fixture_id: int, db: DbSession, settings: AppSettings) -> PredictionOut:
+def get_prediction(
+    fixture_id: int, db: DbSession, settings: AppSettings, now: Now
+) -> PredictionOut:
     if queries.get_fixture(db, fixture_id) is None:
         raise HTTPException(status_code=404, detail="fixture not found")
+    fixture = queries.get_fixture(db, fixture_id)
     prediction = queries.latest_prediction(db, fixture_id)
-    if prediction is None:
+    if fixture is None or prediction is None:
         raise HTTPException(status_code=404, detail="no prediction for this fixture yet")
-    return build_prediction_out(prediction, settings.value_threshold)
+    out = build_prediction_out(prediction, settings.value_threshold)
+    report = assess(
+        fixture,
+        prediction,
+        now=now,
+        settings=settings,
+        last_run=last_successful_run(db, settings.data_provider),
+    )
+    out.quality = QualityOut(
+        ok=report.ok,
+        checks=[
+            QualityCheckOut(name=c.name, passed=c.passed, detail=c.detail) for c in report.checks
+        ],
+    )
+    return out

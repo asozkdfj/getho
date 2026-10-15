@@ -112,10 +112,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Performance
+         * @description Backtest results of the production model plus live scoring of stored predictions.
+         */
+        get: operations["performance_performance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/picks/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_picks_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/picks/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today
+         * @description The day's single highest-probability outcome that passed the quality gate.
+         */
+        get: operations["today_picks_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/status/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Status Data
+         * @description Freshness of collected data (monitoring).
+         */
+        get: operations["status_data_status_data_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CalibrationBinOut */
+        CalibrationBinOut: {
+            /** Count */
+            count: number;
+            /** Lower */
+            lower: number;
+            /** Mean Predicted */
+            mean_predicted: number | null;
+            /** Observed Frequency */
+            observed_frequency: number | null;
+            outcome: components["schemas"]["Outcome"];
+            /** Upper */
+            upper: number;
+        };
         /** CombinationLegOut */
         CombinationLegOut: {
             away_team: components["schemas"]["TeamOut"];
@@ -192,10 +283,95 @@ export interface components {
             /** Selections */
             selections: components["schemas"]["SelectionIn"][];
         };
+        /** DailyPickBacktestRowOut */
+        DailyPickBacktestRowOut: {
+            /** Days With Pick */
+            days_with_pick: number;
+            /** Hit Rate */
+            hit_rate: number | null;
+            /** Hit Rate Ci */
+            hit_rate_ci: number[] | null;
+            /** Hits */
+            hits: number;
+            /** Match Days */
+            match_days: number;
+            /** Mean Pick Probability */
+            mean_pick_probability: number | null;
+            /** Min Probability */
+            min_probability: number;
+        };
+        /** DataStatusOut */
+        DataStatusOut: {
+            /** Bookmaker */
+            bookmaker: string;
+            /** Ingest Max Age Hours */
+            ingest_max_age_hours: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Success Age Hours */
+            last_success_age_hours: number | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Latest Odds Captured At */
+            latest_odds_captured_at: string | null;
+            /** Latest Prediction At */
+            latest_prediction_at: string | null;
+            /** Provider */
+            provider: string;
+            /** Recent Failures */
+            recent_failures: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "stale";
+        };
         /** ErrorOut */
         ErrorOut: {
             /** Detail */
             detail: string;
+        };
+        /** EvaluationOut */
+        EvaluationOut: {
+            /** Calibration */
+            calibration: components["schemas"]["CalibrationBinOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Daily Picks */
+            daily_picks: components["schemas"]["DailyPickBacktestRowOut"][];
+            /** Dataset */
+            dataset: string;
+            /** Has Odds */
+            has_odds: boolean;
+            /** Id */
+            id: number;
+            /** License */
+            license: string | null;
+            /** N Matches */
+            n_matches: number;
+            /** Production Version */
+            production_version: string;
+            /** Promotion Decisions */
+            promotion_decisions: {
+                [key: string]: string[];
+            };
+            /** Seasons */
+            seasons: string[];
+            /** Split */
+            split: {
+                [key: string]: string;
+            };
+            /** Test */
+            test: components["schemas"]["ModelMetricOut"][];
+            /** Test Per Season */
+            test_per_season: components["schemas"]["SeasonMetricOut"][];
+            /** Validation */
+            validation: components["schemas"]["ModelMetricOut"][];
         };
         /** ExpectedGoalsOut */
         ExpectedGoalsOut: {
@@ -367,6 +543,45 @@ export interface components {
             model_probability: number;
             outcome: components["schemas"]["Outcome"];
         };
+        /** LiveEvaluationOut */
+        LiveEvaluationOut: {
+            /** Is Demo */
+            is_demo: boolean;
+            market?: components["schemas"]["LiveSideOut"] | null;
+            model?: components["schemas"]["LiveSideOut"] | null;
+            /** N Matches */
+            n_matches: number;
+            /** Provider */
+            provider: string;
+        };
+        /** LiveSideOut */
+        LiveSideOut: {
+            /** Brier */
+            brier: number;
+            /** Log Loss */
+            log_loss: number;
+            /** Log Loss Ci */
+            log_loss_ci: number[];
+        };
+        /** ModelMetricOut */
+        ModelMetricOut: {
+            /** Accuracy */
+            accuracy: number;
+            /** Brier */
+            brier: number;
+            /** Ece */
+            ece: number;
+            /** Log Loss */
+            log_loss: number;
+            /** Log Loss Ci */
+            log_loss_ci: number[];
+            /** N */
+            n: number;
+            /** Name */
+            name: string;
+            /** Rps */
+            rps: number;
+        };
         /** ModelVersionOut */
         ModelVersionOut: {
             /** Calibration */
@@ -441,6 +656,143 @@ export interface components {
             model_probability: number;
             outcome: components["schemas"]["Outcome"];
         };
+        /** PerformanceOut */
+        PerformanceOut: {
+            evaluation: components["schemas"]["EvaluationOut"] | null;
+            live: components["schemas"]["LiveEvaluationOut"];
+            /**
+             * Note
+             * @default 백테스트는 과거 실제 경기 결과(openfootball)로 계산했습니다. 공개 데이터에 과거 배당이 없어 시장 확률과의 과거 비교는 포함되지 않았고, 실시간 비교는 수집된 예측이 쌓이면 표시됩니다.
+             */
+            note: string;
+        };
+        /** PickBacktestOut */
+        PickBacktestOut: {
+            /** Dataset */
+            dataset: string;
+            /** Days With Pick */
+            days_with_pick: number;
+            /** Hit Rate */
+            hit_rate: number;
+            /** Hit Rate Ci */
+            hit_rate_ci: number[];
+            /** Match Days */
+            match_days: number;
+            /** Mean Pick Probability */
+            mean_pick_probability: number;
+            /** Period */
+            period: string | null;
+            /** Threshold */
+            threshold: number;
+        };
+        /** PickCandidateOut */
+        PickCandidateOut: {
+            /** Away */
+            away: string;
+            best_outcome?: components["schemas"]["Outcome"] | null;
+            /** Best Probability */
+            best_probability?: number | null;
+            /** Eligible */
+            eligible: boolean;
+            /** Excluded Reasons */
+            excluded_reasons: string[];
+            /** Fixture Id */
+            fixture_id: number;
+            /** Home */
+            home: string;
+            /**
+             * Kickoff At
+             * Format: date-time
+             */
+            kickoff_at: string;
+        };
+        /** PickHistoryItemOut */
+        PickHistoryItemOut: {
+            actual_outcome: components["schemas"]["Outcome"] | null;
+            /** Away */
+            away: string | null;
+            /** Date */
+            date: string;
+            /** Fixture Id */
+            fixture_id: number | null;
+            /** Hit */
+            hit: boolean | null;
+            /** Home */
+            home: string | null;
+            /** Kickoff At */
+            kickoff_at: string | null;
+            /** Model Version */
+            model_version: string | null;
+            outcome: components["schemas"]["Outcome"] | null;
+            /** Pick Id */
+            pick_id: number;
+            /** Probability */
+            probability: number | null;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "published" | "no_qualifying_match" | "no_matches" | "voided" | "settled";
+        };
+        /** PickHistoryOut */
+        PickHistoryOut: {
+            /** Is Demo */
+            is_demo: boolean;
+            /** Items */
+            items: components["schemas"]["PickHistoryItemOut"][];
+            /**
+             * Note
+             * @default 선정 당시의 확률을 그대로 보존합니다. 표본이 작을 때의 적중률은 우연의 영향이 큽니다.
+             */
+            note: string;
+            summary: components["schemas"]["PickHistorySummaryOut"];
+        };
+        /** PickHistorySummaryOut */
+        PickHistorySummaryOut: {
+            /** Hit Rate */
+            hit_rate: number | null;
+            /** Hit Rate Ci */
+            hit_rate_ci: number[] | null;
+            /** Hits */
+            hits: number;
+            /** Mean Probability */
+            mean_probability: number | null;
+            /** Pending */
+            pending: number;
+            /** Published */
+            published: number;
+            /** Settled */
+            settled: number;
+            /** Voided */
+            voided: number;
+        };
+        /** PickResultOut */
+        PickResultOut: {
+            actual_outcome: components["schemas"]["Outcome"] | null;
+            /**
+             * Event
+             * @enum {string}
+             */
+            event: "settled" | "voided";
+            /** Hit */
+            hit: boolean | null;
+            /** Reason */
+            reason: string | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+        };
         /** PredictionOut */
         PredictionOut: {
             /**
@@ -477,6 +829,7 @@ export interface components {
             /** Prediction Id */
             prediction_id: number;
             probabilities: components["schemas"]["ProbabilitiesOut"];
+            quality?: components["schemas"]["QualityOut"] | null;
             /** Value Threshold */
             value_threshold: number;
         };
@@ -488,6 +841,35 @@ export interface components {
             draw: number;
             /** Home */
             home: number;
+        };
+        /** QualityCheckOut */
+        QualityCheckOut: {
+            /** Detail */
+            detail: string;
+            /** Name */
+            name: string;
+            /** Passed */
+            passed: boolean;
+        };
+        /** QualityOut */
+        QualityOut: {
+            /** Checks */
+            checks: components["schemas"]["QualityCheckOut"][];
+            /** Ok */
+            ok: boolean;
+        };
+        /** SeasonMetricOut */
+        SeasonMetricOut: {
+            /** Accuracy */
+            accuracy: number;
+            /** Brier */
+            brier: number;
+            /** Log Loss */
+            log_loss: number;
+            /** N */
+            n: number;
+            /** Season */
+            season: string;
         };
         /** SelectionIn */
         SelectionIn: {
@@ -503,6 +885,61 @@ export interface components {
             name: string;
             /** Short Name */
             short_name: string;
+        };
+        /** TodayPickOut */
+        TodayPickOut: {
+            backtest?: components["schemas"]["PickBacktestOut"] | null;
+            /** Candidates */
+            candidates?: components["schemas"]["PickCandidateOut"][];
+            /** Date */
+            date: string;
+            /**
+             * Disclaimer
+             * @default Today's Pick은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.
+             */
+            disclaimer: string;
+            expected_goals?: components["schemas"]["ExpectedGoalsOut"] | null;
+            /** Factors Used */
+            factors_used?: string[];
+            /** Features */
+            features?: {
+                [key: string]: unknown;
+            };
+            fixture?: components["schemas"]["FixtureSummaryOut"] | null;
+            /** Input Data As Of */
+            input_data_as_of?: string | null;
+            /** Is Demo */
+            is_demo: boolean;
+            model?: components["schemas"]["ModelVersionOut"] | null;
+            outcome?: components["schemas"]["Outcome"] | null;
+            /** Pick Id */
+            pick_id?: number | null;
+            /** Prediction Id */
+            prediction_id?: number | null;
+            probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
+            /** Probability */
+            probability?: number | null;
+            /**
+             * Publish At
+             * Format: date-time
+             */
+            publish_at: string;
+            /** Published At */
+            published_at?: string | null;
+            /** Quality Checks */
+            quality_checks?: components["schemas"]["QualityCheckOut"][];
+            result?: components["schemas"]["PickResultOut"] | null;
+            /** Revision */
+            revision?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "published" | "no_qualifying_match" | "no_matches" | "voided" | "settled";
+            /** Threshold */
+            threshold: number;
+            /** Tz */
+            tz: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -725,6 +1162,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    performance_performance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerformanceOut"];
+                };
+            };
+        };
+    };
+    history_picks_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PickHistoryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    today_picks_today_get: {
+        parameters: {
+            query?: {
+                /** @description Only the configured pick timezone is supported */
+                tz?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodayPickOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    status_data_status_data_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStatusOut"];
                 };
             };
         };

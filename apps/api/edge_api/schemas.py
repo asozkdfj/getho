@@ -125,6 +125,7 @@ class PredictionOut(ApiModel):
     outcomes: list[OutcomeAnalysisOut]
     value_threshold: float
     features: dict[str, Any]
+    quality: QualityOut | None = None
     disclaimer: str = DISCLAIMER
 
 
@@ -197,3 +198,220 @@ class HighlightListOut(ApiModel):
     note: str = (
         "추천이 아닙니다. 통계 분석과 시장(배당)의 생각이 가장 다른 경기를 모은 참고 정보입니다."
     )
+
+
+# ---------------------------------------------------------------- data quality
+class QualityCheckOut(ApiModel):
+    name: str
+    passed: bool
+    detail: str
+
+
+class QualityOut(ApiModel):
+    ok: bool
+    checks: list[QualityCheckOut]
+
+
+class DataStatusOut(ApiModel):
+    provider: str
+    is_demo: bool
+    bookmaker: str
+    status: Literal["ok", "stale"]
+    last_success_at: datetime | None
+    last_success_age_hours: float | None
+    ingest_max_age_hours: float
+    recent_failures: int
+    last_error: str | None
+    latest_odds_captured_at: datetime | None
+    latest_prediction_at: datetime | None
+
+
+# ---------------------------------------------------------------- Today's Pick
+PICK_DISCLAIMER = (
+    "Today's Pick은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. "
+    "확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다."
+)
+
+
+class PickBacktestOut(ApiModel):
+    dataset: str
+    period: str | None
+    threshold: float
+    days_with_pick: int
+    match_days: int
+    hit_rate: float
+    hit_rate_ci: list[float]
+    mean_pick_probability: float
+
+
+class PickCandidateOut(ApiModel):
+    fixture_id: int
+    home: str
+    away: str
+    kickoff_at: datetime
+    best_outcome: Outcome | None = None
+    best_probability: float | None = None
+    eligible: bool
+    excluded_reasons: list[str]
+
+
+class PickResultOut(ApiModel):
+    event: Literal["settled", "voided"]
+    actual_outcome: Outcome | None
+    hit: bool | None
+    reason: str | None
+    recorded_at: datetime
+
+
+TodayPickStatus = Literal[
+    "scheduled", "published", "no_qualifying_match", "no_matches", "voided", "settled"
+]
+
+
+class TodayPickOut(ApiModel):
+    date: str
+    tz: str
+    status: TodayPickStatus
+    is_demo: bool
+    publish_at: datetime
+    threshold: float
+    pick_id: int | None = None
+    revision: int | None = None
+    published_at: datetime | None = None
+    fixture: FixtureSummaryOut | None = None
+    outcome: Outcome | None = None
+    probability: Probability | None = None
+    probabilities: ProbabilitiesOut | None = None
+    expected_goals: ExpectedGoalsOut | None = None
+    model: ModelVersionOut | None = None
+    prediction_id: int | None = None
+    input_data_as_of: datetime | None = None
+    factors_used: list[str] = Field(default_factory=list)
+    features: dict[str, Any] = Field(default_factory=dict)
+    quality_checks: list[QualityCheckOut] = Field(default_factory=list)
+    candidates: list[PickCandidateOut] = Field(default_factory=list)
+    backtest: PickBacktestOut | None = None
+    result: PickResultOut | None = None
+    disclaimer: str = PICK_DISCLAIMER
+
+
+class PickHistoryItemOut(ApiModel):
+    pick_id: int
+    date: str
+    revision: int
+    status: TodayPickStatus
+    fixture_id: int | None
+    home: str | None
+    away: str | None
+    kickoff_at: datetime | None
+    outcome: Outcome | None
+    probability: float | None
+    model_version: str | None
+    actual_outcome: Outcome | None
+    hit: bool | None
+    reason: str | None
+    published_at: datetime
+
+
+class PickHistorySummaryOut(ApiModel):
+    published: int
+    settled: int
+    voided: int
+    pending: int
+    hits: int
+    hit_rate: float | None
+    hit_rate_ci: list[float] | None
+    mean_probability: float | None
+
+
+class PickHistoryOut(ApiModel):
+    is_demo: bool
+    items: list[PickHistoryItemOut]
+    summary: PickHistorySummaryOut
+    note: str = (
+        "선정 당시의 확률을 그대로 보존합니다. 표본이 작을 때의 적중률은 우연의 영향이 큽니다."
+    )
+
+
+# ---------------------------------------------------------------- performance
+class ModelMetricOut(ApiModel):
+    name: str
+    n: int
+    log_loss: float
+    log_loss_ci: list[float]
+    brier: float
+    rps: float
+    accuracy: float
+    ece: float
+
+
+class SeasonMetricOut(ApiModel):
+    season: str
+    n: int
+    log_loss: float
+    brier: float
+    accuracy: float
+
+
+class CalibrationBinOut(ApiModel):
+    outcome: Outcome
+    lower: float
+    upper: float
+    count: int
+    mean_predicted: float | None
+    observed_frequency: float | None
+
+
+class DailyPickBacktestRowOut(ApiModel):
+    min_probability: float
+    match_days: int
+    days_with_pick: int
+    hits: int
+    hit_rate: float | None
+    hit_rate_ci: list[float] | None
+    mean_pick_probability: float | None
+
+
+class EvaluationOut(ApiModel):
+    id: int
+    created_at: datetime
+    dataset: str
+    license: str | None
+    n_matches: int
+    seasons: list[str]
+    has_odds: bool
+    split: dict[str, str]
+    production_version: str
+    validation: list[ModelMetricOut]
+    test: list[ModelMetricOut]
+    test_per_season: list[SeasonMetricOut]
+    calibration: list[CalibrationBinOut]
+    daily_picks: list[DailyPickBacktestRowOut]
+    promotion_decisions: dict[str, list[str]]
+
+
+class LiveSideOut(ApiModel):
+    log_loss: float
+    log_loss_ci: list[float]
+    brier: float
+
+
+class LiveEvaluationOut(ApiModel):
+    provider: str
+    is_demo: bool
+    n_matches: int
+    model: LiveSideOut | None = None
+    market: LiveSideOut | None = None
+
+
+class PerformanceOut(ApiModel):
+    evaluation: EvaluationOut | None
+    live: LiveEvaluationOut
+    note: str = (
+        "백테스트는 과거 실제 경기 결과(openfootball)로 계산했습니다. "
+        "공개 데이터에 과거 배당이 없어 시장 확률과의 과거 비교는 포함되지 않았고, "
+        "실시간 비교는 수집된 예측이 쌓이면 표시됩니다."
+    )
+
+
+PredictionOut.model_rebuild()

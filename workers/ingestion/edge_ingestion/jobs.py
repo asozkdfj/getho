@@ -10,16 +10,19 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy import Result, func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from edge_api.db.models import Fixture, FixtureStatus, OddsSnapshot, Team
+from edge_api.config import Settings
+from edge_api.db.models import Fixture, FixtureStatus, IngestionRun, OddsSnapshot, Team
+from edge_api.services.picks import local_day, publish_daily_pick, settle_daily_picks
 from edge_api.services.prediction_job import PredictionJobResult, run_prediction_job
-from edge_api.timeutil import ensure_utc
+from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion.providers.base import FootballDataProvider
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ class IngestionResult:
 class PipelineResult:
     ingestion: IngestionResult
     predictions: PredictionJobResult
+    picks: dict[str, Any] = field(default_factory=dict)
 
 
 def _key_map(rows: Result[tuple[str, int]]) -> dict[str, int]:
@@ -184,10 +188,48 @@ def run_ingestion(
 
 
 def run_pipeline(
-    session: Session, provider: FootballDataProvider, *, now: datetime, bookmaker: str
+    session: Session,
+    provider: FootballDataProvider,
+    *,
+    now: datetime,
+    bookmaker: str,
+    settings: Settings | None = None,
 ) -> PipelineResult:
-    """Ingest then predict, in one transaction, guarded by an advisory lock."""
+    """Ingest, predict, settle and (when due) publish Today's Pick in one
+    transaction, guarded by an advisory lock. Each run is logged."""
+    started = utcnow()
     session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": PIPELINE_LOCK_KEY})
     ingestion = run_ingestion(session, provider, now=now)
     predictions = run_prediction_job(session, now=now, bookmaker=bookmaker, provider=provider.name)
-    return PipelineResult(ingestion, predictions)
+    session.add(
+        IngestionRun(
+            provider=provider.name,
+            started_at=started,
+            finished_at=utcnow(),
+            status="success",
+            counts={"ingestion": asdict(ingestion), "predictions": asdict(predictions)},
+        )
+    )
+    session.flush()
+    picks: dict[str, Any] = {}
+    if settings is not None:
+        picks["settled"] = settle_daily_picks(session, settings, now)
+        if now >= local_day(now, settings).publish_at:
+            picks["published"] = publish_daily_pick(session, settings, now).status
+    return PipelineResult(ingestion, predictions, picks)
+
+
+def record_failed_run(provider: str, started: datetime, error: BaseException) -> None:
+    """Log a failed run in its own transaction (the pipeline's was rolled back)."""
+    from edge_api.db.session import session_scope
+
+    with session_scope() as s:
+        s.add(
+            IngestionRun(
+                provider=provider,
+                started_at=started,
+                finished_at=utcnow(),
+                status="failed",
+                error=f"{type(error).__name__}: {error}"[:2000],
+            )
+        )

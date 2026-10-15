@@ -169,6 +169,8 @@ class PoissonEloModel:
             "supremacy_poisson": round(supremacy_poisson, 4),
             "supremacy_elo": round(supremacy_elo, 4),
             "training_matches": self.strengths.n_matches,
+            "matches_home": self.elo.matches_played.get(home, 0),
+            "matches_away": self.elo.matches_played.get(away, 0),
             "prior_home": self._prior_kind(home),
             "prior_away": self._prior_kind(away),
             "calibrator": self.calibrator.name,

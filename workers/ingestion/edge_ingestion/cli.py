@@ -22,10 +22,17 @@ from typing import Any
 from edge_api.config import Settings, get_settings
 from edge_api.db.session import session_scope
 from edge_api.logging_setup import configure_logging
+from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion import backtest_cli
-from edge_ingestion.jobs import INGEST_LOOKAHEAD, INGEST_LOOKBACK, run_ingestion, run_pipeline
+from edge_ingestion.jobs import (
+    INGEST_LOOKAHEAD,
+    INGEST_LOOKBACK,
+    record_failed_run,
+    run_ingestion,
+    run_pipeline,
+)
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
 
@@ -146,9 +153,21 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                     settings.data_provider, settings=settings, reference_time=now
                 )
                 if command == "seed":
-                    result = asdict(
-                        run_pipeline(session, provider, now=now, bookmaker=settings.bookmaker)
-                    )
+                    started = utcnow()
+                    try:
+                        pipeline = run_pipeline(
+                            session,
+                            provider,
+                            now=now,
+                            bookmaker=settings.bookmaker,
+                            settings=settings,
+                        )
+                    except Exception as exc:
+                        session.rollback()
+                        record_failed_run(provider.name, started, exc)
+                        raise
+                    result = asdict(pipeline)
+                    result["evaluation_imported"] = import_report(session)
                 else:
                     result = asdict(run_ingestion(session, provider, now=now))
     return result

@@ -10,13 +10,15 @@ Conventions
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -187,3 +189,96 @@ class Prediction(Base):
     fixture: Mapped[Fixture] = relationship()
     model_version: Mapped[ModelVersion] = relationship(lazy="joined")
     odds_snapshot: Mapped[OddsSnapshot] = relationship(lazy="joined")
+
+
+class IngestionRun(Base):
+    """One pipeline run (ingest + predict) per row: the data-freshness audit log."""
+
+    __tablename__ = "ingestion_runs"
+    __table_args__ = (Index("ix_ingestion_runs_provider_finished", "provider", "finished_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    started_at: Mapped[datetime] = _ts()
+    finished_at: Mapped[datetime] = _ts()
+    status: Mapped[str] = mapped_column(String(16))  # success | failed
+    counts: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class ModelEvaluation(Base):
+    """A stored backtest report (append-only, deduplicated by content hash)."""
+
+    __tablename__ = "model_evaluations"
+    __table_args__ = (UniqueConstraint("report_sha256", name="report_sha256"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    model_name: Mapped[str] = mapped_column(String(64))
+    model_version: Mapped[str] = mapped_column(String(32))
+    feature_set: Mapped[str] = mapped_column(String(128))
+    dataset: Mapped[str] = mapped_column(String(128))
+    report: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    report_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class DailyPickStatus(StrEnum):
+    PUBLISHED = "published"
+    NO_QUALIFYING_MATCH = "no_qualifying_match"
+    NO_MATCHES = "no_matches"
+
+
+class DailyPick(Base):
+    """The Today's Pick decision for one local day, frozen at publication.
+
+    Append-only: later facts (result, cancellation) are DailyPickEvent rows.
+    ``revision`` > 1 only exists when the replace-on-void policy is enabled.
+    """
+
+    __tablename__ = "daily_picks"
+    __table_args__ = (
+        UniqueConstraint("provider", "pick_date", "revision", name="day_revision"),
+        CheckConstraint(
+            "status <> 'published' OR (fixture_id IS NOT NULL AND prediction_id IS NOT NULL "
+            "AND outcome IS NOT NULL AND probability BETWEEN 0 AND 1)",
+            name="published_pick_complete",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    pick_date: Mapped[date] = mapped_column(Date)
+    tz: Mapped[str] = mapped_column(String(64))
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32))
+    fixture_id: Mapped[int | None] = mapped_column(ForeignKey("fixtures.id"))
+    prediction_id: Mapped[int | None] = mapped_column(ForeignKey("predictions.id"))
+    model_version_id: Mapped[int | None] = mapped_column(ForeignKey("model_versions.id"))
+    outcome: Mapped[str | None] = mapped_column(String(8))
+    probability: Mapped[float | None] = mapped_column(Float)
+    input_data_as_of: Mapped[datetime | None] = _ts(nullable=True)
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    policy: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    published_at: Mapped[datetime] = _ts(server_default=func.now())
+
+    fixture: Mapped[Fixture | None] = relationship(lazy="joined")
+    prediction: Mapped[Prediction | None] = relationship(lazy="joined")
+    events: Mapped[list[DailyPickEvent]] = relationship(
+        lazy="selectin", order_by="DailyPickEvent.id"
+    )
+
+
+class DailyPickEvent(Base):
+    """Facts learned after publication: 'settled' (result) or 'voided' (reason)."""
+
+    __tablename__ = "daily_pick_events"
+    __table_args__ = (UniqueConstraint("pick_id", "event", name="one_per_kind"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pick_id: Mapped[int] = mapped_column(ForeignKey("daily_picks.id"))
+    event: Mapped[str] = mapped_column(String(16))  # settled | voided
+    actual_outcome: Mapped[str | None] = mapped_column(String(8))
+    hit: Mapped[bool | None] = mapped_column(Boolean)
+    reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())

@@ -1,6 +1,57 @@
 {
   "components": {
     "schemas": {
+      "CalibrationBinOut": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "lower": {
+            "title": "Lower",
+            "type": "number"
+          },
+          "mean_predicted": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Predicted"
+          },
+          "observed_frequency": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Frequency"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "upper": {
+            "title": "Upper",
+            "type": "number"
+          }
+        },
+        "required": [
+          "outcome",
+          "lower",
+          "upper",
+          "count",
+          "mean_predicted",
+          "observed_frequency"
+        ],
+        "title": "CalibrationBinOut",
+        "type": "object"
+      },
       "CombinationLegOut": {
         "properties": {
           "away_team": {
@@ -180,6 +231,178 @@
         "title": "CombinationRequest",
         "type": "object"
       },
+      "DailyPickBacktestRowOut": {
+        "properties": {
+          "days_with_pick": {
+            "title": "Days With Pick",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate"
+          },
+          "hit_rate_ci": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate Ci"
+          },
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "match_days": {
+            "title": "Match Days",
+            "type": "integer"
+          },
+          "mean_pick_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Pick Probability"
+          },
+          "min_probability": {
+            "title": "Min Probability",
+            "type": "number"
+          }
+        },
+        "required": [
+          "min_probability",
+          "match_days",
+          "days_with_pick",
+          "hits",
+          "hit_rate",
+          "hit_rate_ci",
+          "mean_pick_probability"
+        ],
+        "title": "DailyPickBacktestRowOut",
+        "type": "object"
+      },
+      "DataStatusOut": {
+        "properties": {
+          "bookmaker": {
+            "title": "Bookmaker",
+            "type": "string"
+          },
+          "ingest_max_age_hours": {
+            "title": "Ingest Max Age Hours",
+            "type": "number"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_success_age_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success Age Hours"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "latest_odds_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Odds Captured At"
+          },
+          "latest_prediction_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Prediction At"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "recent_failures": {
+            "title": "Recent Failures",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "is_demo",
+          "bookmaker",
+          "status",
+          "last_success_at",
+          "last_success_age_hours",
+          "ingest_max_age_hours",
+          "recent_failures",
+          "last_error",
+          "latest_odds_captured_at",
+          "latest_prediction_at"
+        ],
+        "title": "DataStatusOut",
+        "type": "object"
+      },
       "ErrorOut": {
         "properties": {
           "detail": {
@@ -191,6 +414,124 @@
           "detail"
         ],
         "title": "ErrorOut",
+        "type": "object"
+      },
+      "EvaluationOut": {
+        "properties": {
+          "calibration": {
+            "items": {
+              "$ref": "#/components/schemas/CalibrationBinOut"
+            },
+            "title": "Calibration",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "daily_picks": {
+            "items": {
+              "$ref": "#/components/schemas/DailyPickBacktestRowOut"
+            },
+            "title": "Daily Picks",
+            "type": "array"
+          },
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "has_odds": {
+            "title": "Has Odds",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "n_matches": {
+            "title": "N Matches",
+            "type": "integer"
+          },
+          "production_version": {
+            "title": "Production Version",
+            "type": "string"
+          },
+          "promotion_decisions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Promotion Decisions",
+            "type": "object"
+          },
+          "seasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seasons",
+            "type": "array"
+          },
+          "split": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Split",
+            "type": "object"
+          },
+          "test": {
+            "items": {
+              "$ref": "#/components/schemas/ModelMetricOut"
+            },
+            "title": "Test",
+            "type": "array"
+          },
+          "test_per_season": {
+            "items": {
+              "$ref": "#/components/schemas/SeasonMetricOut"
+            },
+            "title": "Test Per Season",
+            "type": "array"
+          },
+          "validation": {
+            "items": {
+              "$ref": "#/components/schemas/ModelMetricOut"
+            },
+            "title": "Validation",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "dataset",
+          "license",
+          "n_matches",
+          "seasons",
+          "has_odds",
+          "split",
+          "production_version",
+          "validation",
+          "test",
+          "test_per_season",
+          "calibration",
+          "daily_picks",
+          "promotion_decisions"
+        ],
+        "title": "EvaluationOut",
         "type": "object"
       },
       "ExpectedGoalsOut": {
@@ -668,6 +1009,126 @@
         "title": "HighlightOut",
         "type": "object"
       },
+      "LiveEvaluationOut": {
+        "properties": {
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveSideOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveSideOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "n_matches": {
+            "title": "N Matches",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "is_demo",
+          "n_matches"
+        ],
+        "title": "LiveEvaluationOut",
+        "type": "object"
+      },
+      "LiveSideOut": {
+        "properties": {
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "log_loss": {
+            "title": "Log Loss",
+            "type": "number"
+          },
+          "log_loss_ci": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Log Loss Ci",
+            "type": "array"
+          }
+        },
+        "required": [
+          "log_loss",
+          "log_loss_ci",
+          "brier"
+        ],
+        "title": "LiveSideOut",
+        "type": "object"
+      },
+      "ModelMetricOut": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "ece": {
+            "title": "Ece",
+            "type": "number"
+          },
+          "log_loss": {
+            "title": "Log Loss",
+            "type": "number"
+          },
+          "log_loss_ci": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Log Loss Ci",
+            "type": "array"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rps": {
+            "title": "Rps",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "n",
+          "log_loss",
+          "log_loss_ci",
+          "brier",
+          "rps",
+          "accuracy",
+          "ece"
+        ],
+        "title": "ModelMetricOut",
+        "type": "object"
+      },
       "ModelVersionOut": {
         "properties": {
           "calibration": {
@@ -816,6 +1277,476 @@
         "title": "OutcomeAnalysisOut",
         "type": "object"
       },
+      "PerformanceOut": {
+        "properties": {
+          "evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "live": {
+            "$ref": "#/components/schemas/LiveEvaluationOut"
+          },
+          "note": {
+            "default": "백테스트는 과거 실제 경기 결과(openfootball)로 계산했습니다. 공개 데이터에 과거 배당이 없어 시장 확률과의 과거 비교는 포함되지 않았고, 실시간 비교는 수집된 예측이 쌓이면 표시됩니다.",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evaluation",
+          "live"
+        ],
+        "title": "PerformanceOut",
+        "type": "object"
+      },
+      "PickBacktestOut": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "days_with_pick": {
+            "title": "Days With Pick",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "title": "Hit Rate",
+            "type": "number"
+          },
+          "hit_rate_ci": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Hit Rate Ci",
+            "type": "array"
+          },
+          "match_days": {
+            "title": "Match Days",
+            "type": "integer"
+          },
+          "mean_pick_probability": {
+            "title": "Mean Pick Probability",
+            "type": "number"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dataset",
+          "period",
+          "threshold",
+          "days_with_pick",
+          "match_days",
+          "hit_rate",
+          "hit_rate_ci",
+          "mean_pick_probability"
+        ],
+        "title": "PickBacktestOut",
+        "type": "object"
+      },
+      "PickCandidateOut": {
+        "properties": {
+          "away": {
+            "title": "Away",
+            "type": "string"
+          },
+          "best_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "best_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Probability"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "excluded_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded Reasons",
+            "type": "array"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "home": {
+            "title": "Home",
+            "type": "string"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "home",
+          "away",
+          "kickoff_at",
+          "eligible",
+          "excluded_reasons"
+        ],
+        "title": "PickCandidateOut",
+        "type": "object"
+      },
+      "PickHistoryItemOut": {
+        "properties": {
+          "actual_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "away": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "fixture_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixture Id"
+          },
+          "hit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit"
+          },
+          "home": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home"
+          },
+          "kickoff_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kickoff At"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pick_id": {
+            "title": "Pick Id",
+            "type": "integer"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "published",
+              "no_qualifying_match",
+              "no_matches",
+              "voided",
+              "settled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pick_id",
+          "date",
+          "revision",
+          "status",
+          "fixture_id",
+          "home",
+          "away",
+          "kickoff_at",
+          "outcome",
+          "probability",
+          "model_version",
+          "actual_outcome",
+          "hit",
+          "reason",
+          "published_at"
+        ],
+        "title": "PickHistoryItemOut",
+        "type": "object"
+      },
+      "PickHistoryOut": {
+        "properties": {
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PickHistoryItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "default": "선정 당시의 확률을 그대로 보존합니다. 표본이 작을 때의 적중률은 우연의 영향이 큽니다.",
+            "title": "Note",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PickHistorySummaryOut"
+          }
+        },
+        "required": [
+          "is_demo",
+          "items",
+          "summary"
+        ],
+        "title": "PickHistoryOut",
+        "type": "object"
+      },
+      "PickHistorySummaryOut": {
+        "properties": {
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate"
+          },
+          "hit_rate_ci": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate Ci"
+          },
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "mean_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Probability"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "published": {
+            "title": "Published",
+            "type": "integer"
+          },
+          "settled": {
+            "title": "Settled",
+            "type": "integer"
+          },
+          "voided": {
+            "title": "Voided",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "published",
+          "settled",
+          "voided",
+          "pending",
+          "hits",
+          "hit_rate",
+          "hit_rate_ci",
+          "mean_probability"
+        ],
+        "title": "PickHistorySummaryOut",
+        "type": "object"
+      },
+      "PickResultOut": {
+        "properties": {
+          "actual_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event": {
+            "enum": [
+              "settled",
+              "voided"
+            ],
+            "title": "Event",
+            "type": "string"
+          },
+          "hit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "actual_outcome",
+          "hit",
+          "reason",
+          "recorded_at"
+        ],
+        "title": "PickResultOut",
+        "type": "object"
+      },
       "PredictionOut": {
         "properties": {
           "created_at": {
@@ -876,6 +1807,16 @@
           "probabilities": {
             "$ref": "#/components/schemas/ProbabilitiesOut"
           },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "value_threshold": {
             "title": "Value Threshold",
             "type": "number"
@@ -929,6 +1870,83 @@
         "title": "ProbabilitiesOut",
         "type": "object"
       },
+      "QualityCheckOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "passed",
+          "detail"
+        ],
+        "title": "QualityCheckOut",
+        "type": "object"
+      },
+      "QualityOut": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/QualityCheckOut"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "checks"
+        ],
+        "title": "QualityOut",
+        "type": "object"
+      },
+      "SeasonMetricOut": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "log_loss": {
+            "title": "Log Loss",
+            "type": "number"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "season": {
+            "title": "Season",
+            "type": "string"
+          }
+        },
+        "required": [
+          "season",
+          "n",
+          "log_loss",
+          "brier",
+          "accuracy"
+        ],
+        "title": "SeasonMetricOut",
+        "type": "object"
+      },
       "SelectionIn": {
         "properties": {
           "fixture_id": {
@@ -967,6 +1985,224 @@
           "short_name"
         ],
         "title": "TeamOut",
+        "type": "object"
+      },
+      "TodayPickOut": {
+        "properties": {
+          "backtest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickBacktestOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PickCandidateOut"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "Today's Pick은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "expected_goals": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedGoalsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "factors_used": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Factors Used",
+            "type": "array"
+          },
+          "features": {
+            "additionalProperties": true,
+            "title": "Features",
+            "type": "object"
+          },
+          "fixture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input_data_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Data As Of"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelVersionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pick_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pick Id"
+          },
+          "prediction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Id"
+          },
+          "probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "publish_at": {
+            "format": "date-time",
+            "title": "Publish At",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "quality_checks": {
+            "items": {
+              "$ref": "#/components/schemas/QualityCheckOut"
+            },
+            "title": "Quality Checks",
+            "type": "array"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickResultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "published",
+              "no_qualifying_match",
+              "no_matches",
+              "voided",
+              "settled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          },
+          "tz": {
+            "title": "Tz",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "tz",
+          "status",
+          "is_demo",
+          "publish_at",
+          "threshold"
+        ],
+        "title": "TodayPickOut",
         "type": "object"
       },
       "ValidationError": {
@@ -1332,6 +2568,141 @@
         "summary": "List Highlights",
         "tags": [
           "highlights"
+        ]
+      }
+    },
+    "/performance": {
+      "get": {
+        "description": "Backtest results of the production model plus live scoring of stored predictions.",
+        "operationId": "performance_performance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Performance",
+        "tags": [
+          "performance"
+        ]
+      }
+    },
+    "/picks/history": {
+      "get": {
+        "operationId": "history_picks_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 60,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickHistoryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "picks"
+        ]
+      }
+    },
+    "/picks/today": {
+      "get": {
+        "description": "The day's single highest-probability outcome that passed the quality gate.",
+        "operationId": "today_picks_today_get",
+        "parameters": [
+          {
+            "description": "Only the configured pick timezone is supported",
+            "in": "query",
+            "name": "tz",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "Only the configured pick timezone is supported",
+              "title": "Tz",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayPickOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Today",
+        "tags": [
+          "picks"
+        ]
+      }
+    },
+    "/status/data": {
+      "get": {
+        "description": "Freshness of collected data (monitoring).",
+        "operationId": "status_data_status_data_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status Data",
+        "tags": [
+          "performance"
         ]
       }
     }

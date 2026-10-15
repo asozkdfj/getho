@@ -226,3 +226,49 @@ def test_highlights_respect_min_edge_and_validation(client):
     assert none["items"] == []
     assert client.get("/highlights", params={"limit": 0}).status_code == 422
     assert client.get("/highlights", params={"days": 30}).status_code == 422
+
+
+def test_prediction_includes_quality_report(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    body = client.get(f"/fixtures/{fid}/prediction").json()
+    q = body["quality"]
+    names = {c["name"] for c in q["checks"]}
+    assert {"upcoming", "ingestion_recent", "current_model", "odds_fresh", "team_history"} <= names
+    assert q["ok"] == all(c["passed"] for c in q["checks"])
+
+
+def test_today_pick_endpoint(client):
+    body = client.get("/picks/today").json()
+    assert body["tz"] == "Asia/Seoul" and body["is_demo"] is True
+    assert body["status"] in {"published", "no_qualifying_match", "no_matches"}
+    if body["status"] == "published":
+        assert body["fixture"] and body["outcome"] in ("HOME", "DRAW", "AWAY")
+        assert sum(body["probabilities"].values()) == pytest.approx(1.0)
+        assert body["model"]["version"] and body["input_data_as_of"]
+    again = client.get("/picks/today").json()
+    assert again["pick_id"] == body["pick_id"]  # stable across refreshes
+    assert client.get("/picks/today", params={"tz": "UTC"}).status_code == 422
+
+
+def test_pick_history_and_status_endpoints(client):
+    client.get("/picks/today")
+    hist = client.get("/picks/history").json()
+    assert hist["is_demo"] is True and len(hist["items"]) == 1
+    assert hist["summary"]["settled"] == 0
+    status = client.get("/status/data").json()
+    assert status["provider"] == "mock" and status["last_success_at"]
+
+
+def test_performance_endpoint_serves_imported_backtest(client, session_factory):
+    from edge_api.services.evaluations import import_report
+
+    with session_factory() as s:
+        import_report(s)
+        s.commit()
+    body = client.get("/performance").json()
+    ev = body["evaluation"]
+    assert ev["n_matches"] >= 3000 and ev["has_odds"] is False
+    names = {m["name"] for m in ev["test"]}
+    assert {"base_rate", "production"} <= names
+    assert ev["calibration"] and ev["daily_picks"]
+    assert body["live"]["is_demo"] is True

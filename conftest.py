@@ -25,7 +25,10 @@ TEST_DATABASE_URL = os.getenv(
 )
 # A fixed "now" keeps every DB test deterministic (Thursday, inside a mock round).
 NOW = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
-TABLES = "predictions, odds_snapshots, fixtures, teams, model_versions"
+TABLES = (
+    "daily_pick_events, daily_picks, model_evaluations, ingestion_runs, "
+    "predictions, odds_snapshots, fixtures, teams, model_versions"
+)
 
 
 @pytest.fixture(scope="session")
