@@ -6,13 +6,19 @@
 
 ## 1. 설정 (5분)
 
-1. https://dashboard.api-football.com 에서 가입하고 API 키를 발급받습니다(Free: 하루 100 요청).
-2. 저장소 루트에 `.env`를 만듭니다(`.env`는 git에서 제외되어 있습니다).
+1. https://dashboard.api-football.com 에서 가입하고 API 키를 발급받습니다. Free 플랜(하루 100 요청)은
+   2022~2024 시즌만 조회할 수 있어서, 현재 시즌을 쓰려면 Pro 이상이 필요합니다.
+2. 저장소 루트에서 `cp .env.example .env` 후 아래 값을 바꿉니다(`.env`는 git에서 제외되어 있습니다).
+   주석은 반드시 별도 줄에 둡니다. docker compose는 `KEY=   # 메모`의 주석을 값으로 읽습니다.
    ```dotenv
    DATA_PROVIDER=api_football
    API_FOOTBALL_KEY=발급받은_키
-   PRIMARY_BOOKMAKER=pinnacle          # 시장 기준 북메이커 (마진이 낮고 가격이 정확함; 3단계에서 목록 확인)
-   PIPELINE_INTERVAL_SECONDS=10800     # 3시간마다 수집 (배당 갱신 주기와 같음)
+   # 시장 기준 북메이커: 마진이 낮고 가격이 정확한 pinnacle 추천 (3단계 bookmakers 목록에서 확인)
+   PRIMARY_BOOKMAKER=pinnacle
+   # 3시간마다 수집 (배당 갱신 주기와 같음)
+   PIPELINE_INTERVAL_SECONDS=10800
+   # Pro 플랜이면 요청 간격을 줄입니다 (Free는 기본값 6.5 유지)
+   API_FOOTBALL_MIN_INTERVAL_SECONDS=0.3
    ```
 3. **DB에 쓰기 전에 키와 응답 형식을 검증합니다.** DB에 아무것도 쓰지 않는 dry run이고 약 6~8 요청을 씁니다.
    ```bash
