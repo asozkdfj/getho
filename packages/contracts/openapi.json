@@ -784,6 +784,17 @@
             ],
             "title": "Prediction Id"
           },
+          "prediction_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed"
+          },
           "round": {
             "anyOf": [
               {
@@ -972,6 +983,17 @@
               }
             ],
             "title": "Prediction Id"
+          },
+          "prediction_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed"
           },
           "round": {
             "anyOf": [

@@ -282,3 +282,19 @@ export function backtestTimingText(decisionHour: number | null | undefined): str
   }
   return `서비스처럼 오전 ${decisionHour}시에 그 뒤 경기만 후보로 보고 다시 계산했어요(배당·수집 상태 점검은 재현하지 않음).`;
 }
+
+/**
+ * Failed data checks worth showing next to an upcoming match's analysis
+ * (QA-05). After kickoff the checks fail by nature (the match is no longer
+ * upcoming, odds stop updating), so nothing is shown: the analysis on the page
+ * is the one saved before kickoff.
+ */
+export function qualityWarnings(
+  quality: { ok: boolean; checks: { name: string; passed: boolean }[] } | null | undefined,
+  status: string,
+): string[] {
+  if (!quality || quality.ok || status !== "scheduled") return [];
+  return quality.checks
+    .filter((c) => !c.passed)
+    .map((c) => `${qualityCheckLabel(c.name)} 확인 안 됨`);
+}

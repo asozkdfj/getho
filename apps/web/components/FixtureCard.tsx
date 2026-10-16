@@ -15,7 +15,8 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
   return (
     <Link href={`/fixtures/${fixture.id}`} className="card fixture-card">
       <div className="fixture-meta">
-        <LocalTime iso={fixture.kickoff_at} fallbackTz={tz} format="time" />
+        {/* time only: keep it in the zone the day headings are grouped by (QA-04) */}
+        <LocalTime iso={fixture.kickoff_at} fallbackTz={tz} format="time" fixed />
         <span className="fixture-tags">
           {fixture.lineups_announced && fixture.status === "scheduled" && (
             <span className="status lineup-out">명단 발표</span>

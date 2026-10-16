@@ -127,6 +127,11 @@ def test_combination_analyze(client, n_legs):
     assert body["combined_odds"] == pytest.approx(odds)
     assert body["expected_value"] == pytest.approx(p_model * odds - 1)
     assert body["edge"] == pytest.approx(p_model - p_fair)
+    # the list shows the same odds the combination is priced on (QA-02)
+    odds_key = {"HOME": "odds_home", "DRAW": "odds_draw", "AWAY": "odds_away"}
+    for f, leg in zip(fixtures, body["legs"], strict=True):
+        assert leg["odds_snapshot_id"] == f["prediction_odds"]["id"]
+        assert leg["decimal_odds"] == pytest.approx(f["prediction_odds"][odds_key[leg["outcome"]]])
 
 
 def test_combination_rejects_same_fixture(client):

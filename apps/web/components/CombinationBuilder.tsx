@@ -13,6 +13,8 @@ import {
   blockReason,
   legLabel,
   matchesTeam,
+  oddsUpdatedSincePrediction,
+  pricedOdds,
   selectedLegs,
   selectedPerLeague,
   toggleSelection,
@@ -247,6 +249,13 @@ export function CombinationBuilder({
                         {reason && chosen === undefined && (
                           <span className="small muted">{reason}</span>
                         )}
+                        {oddsUpdatedSincePrediction(f) && (
+                          <span className="small muted">
+                            배당이 새로 들어왔어요. 분석이 갱신될 때까지{" "}
+                            <LocalTime iso={pricedOdds(f)!.captured_at} fallbackTz={tz} /> 배당으로
+                            계산해요.
+                          </span>
+                        )}
                       </div>
                       <div
                         className="pick-buttons"
@@ -262,7 +271,7 @@ export function CombinationBuilder({
                             onClick={() => pick(f, o)}
                           >
                             <small>{OUTCOME_SHORT[o]}</small>
-                            <strong>{odds(f.latest_odds?.[ODDS_KEY[o]])}</strong>
+                            <strong>{odds(pricedOdds(f)?.[ODDS_KEY[o]])}</strong>
                             <small>분석 {pct(f.model_probabilities?.[PROB_KEY[o]], 0)}</small>
                           </button>
                         ))}

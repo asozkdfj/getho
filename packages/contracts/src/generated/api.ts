@@ -513,6 +513,8 @@ export interface components {
             odds_history: components["schemas"]["OddsSnapshotOut"][];
             /** Prediction Id */
             prediction_id?: number | null;
+            /** @description Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed */
+            prediction_odds?: components["schemas"]["OddsSnapshotOut"] | null;
             /** Round */
             round: number | null;
             /** Season */
@@ -578,6 +580,8 @@ export interface components {
             model_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
             /** Prediction Id */
             prediction_id?: number | null;
+            /** @description Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed */
+            prediction_odds?: components["schemas"]["OddsSnapshotOut"] | null;
             /** Round */
             round: number | null;
             /** Season */

@@ -3,7 +3,18 @@ import { MAX_COMBINATION_LEGS, type FixtureSummary, type Outcome } from "@edge/c
 export type Selections = Record<number, Outcome>;
 
 export function isSelectable(f: FixtureSummary): boolean {
-  return f.status === "scheduled" && f.prediction_id != null && f.latest_odds != null;
+  return f.status === "scheduled" && f.prediction_id != null && pricedOdds(f) != null;
+}
+
+/** The odds a combination is priced on: the snapshot the stored prediction uses. */
+export function pricedOdds(f: FixtureSummary) {
+  return f.prediction_odds ?? null;
+}
+
+/** True when newer odds arrived after the prediction (the combination still uses the older ones). */
+export function oddsUpdatedSincePrediction(f: FixtureSummary): boolean {
+  const priced = pricedOdds(f);
+  return priced != null && f.latest_odds != null && f.latest_odds.id !== priced.id;
 }
 
 /**

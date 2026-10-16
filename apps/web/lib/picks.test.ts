@@ -12,6 +12,7 @@ import {
   pickReasons,
   pickStatusInfo,
   qualityCheckLabel,
+  qualityWarnings,
   rateWithCi,
   reliabilityPoints,
   thresholdText,
@@ -114,6 +115,20 @@ describe("status and labels", () => {
     expect(qualityCheckLabel("odds_fresh")).toBe("배당 정보 최신");
     expect(voidReasonText("fixture postponed")).toBe("경기 연기");
     expect(voidReasonText(null)).toBe("");
+  });
+
+  it("lists failed data checks for the detail page (QA-05)", () => {
+    const quality = {
+      ok: false,
+      checks: [
+        { name: "odds_fresh", passed: false },
+        { name: "current_model", passed: true },
+      ],
+    };
+    expect(qualityWarnings(quality, "scheduled")).toEqual(["배당 정보 최신 확인 안 됨"]);
+    expect(qualityWarnings(quality, "finished")).toEqual([]); // after kickoff checks fail by nature
+    expect(qualityWarnings({ ok: true, checks: [] }, "scheduled")).toEqual([]);
+    expect(qualityWarnings(null, "scheduled")).toEqual([]);
   });
 
   it("formats rates with their range", () => {

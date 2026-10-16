@@ -13,6 +13,7 @@ import { plainSummary } from "@/lib/explain";
 import { leagueLabel, leagueNote } from "@/lib/leagues";
 import { DEFAULT_TZ } from "@/lib/config";
 import { OUTCOME_LABEL, odds, pct, signedPct, signedPoints, statusLabel, tone } from "@/lib/format";
+import { qualityWarnings } from "@/lib/picks";
 import { TERM, TERM_HELP } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export default async function FixturePage({ params }: { params: Params }) {
   const { fixture, prediction } = await load((await params).id);
   const tz = DEFAULT_TZ;
   const finished = fixture.status === "finished";
+  const warnings = qualityWarnings(prediction?.quality, fixture.status);
   const summary = prediction
     ? plainSummary(
         prediction,
@@ -79,12 +81,21 @@ export default async function FixturePage({ params }: { params: Params }) {
             <p>{summary.mostLikely}</p>
             <p>{summary.comparison}</p>
             {summary.ev && <p className="small">{summary.ev}</p>}
-            {summary.cautions.length > 0 && (
+            {(summary.cautions.length > 0 || warnings.length > 0) && (
               <ul className="caveats">
+                {warnings.length > 0 && (
+                  <li>
+                    ⚠ 데이터 점검을 통과하지 못한 항목이 있어 오늘의 픽 후보에서 빠져요:{" "}
+                    {warnings.join(", ")}
+                  </li>
+                )}
                 {summary.cautions.map((c) => (
                   <li key={c}>⚠ {c}</li>
                 ))}
               </ul>
+            )}
+            {fixture.status !== "scheduled" && (
+              <p className="small muted">경기 시작 전에 저장된 분석이에요.</p>
             )}
             <p className="small muted">
               용어가 낯설다면 <Link href="/guide">3분 가이드</Link>를 먼저 보세요.

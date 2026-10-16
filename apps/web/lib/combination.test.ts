@@ -6,6 +6,8 @@ import {
   isSelectable,
   legLabel,
   matchesTeam,
+  oddsUpdatedSincePrediction,
+  pricedOdds,
   selectedLegs,
   selectedPerLeague,
   toRequest,
@@ -38,6 +40,15 @@ function fx(id: number, home: number, away: number, extra: Partial<FixtureSummar
     fair_market_probabilities: { home: 0.48, draw: 0.28, away: 0.24 },
     model_probabilities: { home: 0.5, draw: 0.27, away: 0.23 },
     prediction_id: id * 100,
+    prediction_odds: {
+      id: id * 10,
+      bookmaker: "mockbook",
+      market: "1X2",
+      odds_home: 2,
+      odds_draw: 3.4,
+      odds_away: 3.8,
+      captured_at: "2026-10-15T06:30:00Z",
+    },
     ...extra,
   } satisfies FixtureSummary;
 }
@@ -70,7 +81,9 @@ describe("combination selection", () => {
   it("only allows upcoming fixtures with prediction and odds", () => {
     expect(isSelectable(fx(9, 10, 11, { status: "finished" }))).toBe(false);
     expect(isSelectable(fx(9, 10, 11, { prediction_id: null }))).toBe(false);
-    expect(isSelectable(fx(9, 10, 11, { latest_odds: null }))).toBe(false);
+    expect(isSelectable(fx(9, 10, 11, { prediction_odds: null }))).toBe(false);
+    // newer market odds do not matter: the combination is priced on the prediction's odds
+    expect(isSelectable(fx(9, 10, 11, { latest_odds: null }))).toBe(true);
     expect(blockReason({}, fx(9, 10, 11, { prediction_id: null }), all)).toMatch(/예측/);
   });
 
@@ -81,6 +94,16 @@ describe("combination selection", () => {
         { fixture_id: 2, outcome: "AWAY" },
       ],
     });
+  });
+});
+
+describe("priced odds (QA-02)", () => {
+  it("flags odds that arrived after the prediction", () => {
+    const fresh = fx(1, 1, 2);
+    expect(oddsUpdatedSincePrediction(fresh)).toBe(false);
+    const stale = fx(1, 1, 2, { latest_odds: { ...fresh.latest_odds!, id: 999, odds_home: 2.4 } });
+    expect(oddsUpdatedSincePrediction(stale)).toBe(true);
+    expect(pricedOdds(stale)?.odds_home).toBe(2);
   });
 });
 

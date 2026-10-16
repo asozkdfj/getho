@@ -124,6 +124,11 @@ class FixtureSummaryOut(ApiModel):
     fair_market_probabilities: ProbabilitiesOut | None = None
     model_probabilities: ProbabilitiesOut | None = None
     prediction_id: int | None = None
+    prediction_odds: OddsSnapshotOut | None = Field(
+        default=None,
+        description="Odds snapshot the stored prediction uses (combinations are priced on it);"
+        " can be older than latest_odds until the prediction is refreshed",
+    )
     lineups_announced: bool = False
 
 

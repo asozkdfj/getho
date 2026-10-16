@@ -67,6 +67,9 @@ def fixture_summary(
             to_probabilities_out(model_probabilities(prediction)) if prediction else None
         ),
         prediction_id=prediction.id if prediction else None,
+        prediction_odds=(
+            OddsSnapshotOut.model_validate(prediction.odds_snapshot) if prediction else None
+        ),
         lineups_announced=lineups_announced,
     )
 
