@@ -74,7 +74,7 @@ export default async function LeaguePage({ params }: { params: Params }) {
       )}
 
       {highlights && highlights.items.length > 0 && (
-        <Highlights data={highlights} tz={tz} title="이 리그에서 주목할 경기" />
+        <Highlights data={highlights} tz={tz} title="이 리그에서 주목할 경기" showLeague={false} />
       )}
 
       <h2>경기 일정</h2>

@@ -1,7 +1,13 @@
 import type { HighlightList } from "@edge/contracts";
 import Link from "next/link";
 
-import { caveatText, highlightSentence, outcomeName } from "@/lib/highlights";
+import {
+  caveatText,
+  highlightSentence,
+  outcomeName,
+  sharedCaveatText,
+  sharedCaveats,
+} from "@/lib/highlights";
 import { leagueLabel } from "@/lib/leagues";
 
 import { LocalTime } from "./LocalTime";
@@ -10,17 +16,28 @@ export function Highlights({
   data,
   tz,
   title = "이번 주 주목할 경기",
+  showLeague = true,
 }: {
   data: HighlightList;
   tz: string;
   title?: string;
+  /** Off on a league page, where every card is the same league. */
+  showLeague?: boolean;
 }) {
+  const shared = sharedCaveats(data.items);
   return (
     <section className="highlights" aria-labelledby="highlights-title">
       <h2 id="highlights-title">{title}</h2>
       <p className="muted small" style={{ marginTop: 0 }}>
         {data.note} <Link href="/guide#gap">왜 차이가 날까요?</Link>
       </p>
+      {shared.length > 0 && (
+        <ul className="caveats">
+          {shared.map((c) => (
+            <li key={c}>⚠ {sharedCaveatText(c)}</li>
+          ))}
+        </ul>
+      )}
       {data.items.length === 0 ? (
         <p className="card small">
           이번 주에는 분석과 시장의 생각이 크게 다른 경기가 없어요. 둘의 시각이 비슷하다는 뜻이에요.
@@ -37,7 +54,7 @@ export function Highlights({
                 <LocalTime iso={h.fixture.kickoff_at} fallbackTz={tz} />
                 <span className="positive small">+{Math.round(h.edge * 100)}%p</span>
               </div>
-              <div className="muted small">{leagueLabel(h.fixture.league)}</div>
+              {showLeague && <div className="muted small">{leagueLabel(h.fixture.league)}</div>}
               <div className="highlight-teams">
                 {h.fixture.home_team.name} <span className="muted">vs</span>{" "}
                 {h.fixture.away_team.name}
@@ -46,11 +63,13 @@ export function Highlights({
               <p className="small" style={{ margin: "4px 0 0" }}>
                 {highlightSentence(h)}
               </p>
-              {h.caveats.length > 0 && (
+              {h.caveats.some((c) => !shared.includes(c)) && (
                 <ul className="caveats">
-                  {h.caveats.map((c) => (
-                    <li key={c}>⚠ {caveatText(c, h)}</li>
-                  ))}
+                  {h.caveats
+                    .filter((c) => !shared.includes(c))
+                    .map((c) => (
+                      <li key={c}>⚠ {caveatText(c, h)}</li>
+                    ))}
                 </ul>
               )}
             </Link>

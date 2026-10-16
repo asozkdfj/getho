@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 
+import { SiteNav } from "@/components/SiteNav";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,15 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="brand">
               EPL <span>Edge Lab</span>
             </Link>
-            <nav aria-label="주요 메뉴">
-              <Link href="/">경기</Link>
-              <Link href="/leagues">리그</Link>
-              <Link href="/picks">지난 픽</Link>
-              <Link href="/performance">모델 성과</Link>
-              <Link href="/guide">가이드</Link>
-              <Link href="/combinations">조합</Link>
-              <Link href="/methodology">방법론</Link>
-            </nav>
+            <SiteNav />
           </div>
         </header>
         <main className="container">{children}</main>

@@ -62,8 +62,10 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
               : "분석 준비 중 · 지금은 시장 예상만 있어요"}
           </p>
         </>
-      ) : (
-        <p className="muted small">{finished ? "경기 종료" : "배당 수집 전"}</p>
+      ) : finished ? null : (
+        <p className="muted small" style={{ margin: 0 }}>
+          배당 수집 전
+        </p>
       )}
     </Link>
   );

@@ -7,33 +7,60 @@ import {
   type Combination,
   type FixtureSummary,
 } from "@edge/contracts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { blockReason, toggleSelection, toRequest, type Selections } from "@/lib/combination";
 import {
-  OUTCOME_LABEL,
-  OUTCOME_SHORT,
-  odds,
-  pct,
-  signedPct,
-  signedPoints,
-  tone,
-} from "@/lib/format";
+  blockReason,
+  legLabel,
+  matchesTeam,
+  selectedLegs,
+  selectedPerLeague,
+  toggleSelection,
+  toRequest,
+  type Selections,
+} from "@/lib/combination";
+import { OUTCOME_SHORT, odds, pct, signedPct, signedPoints, tone } from "@/lib/format";
+import { groupByLeague, leagueLabel } from "@/lib/leagues";
 
+import { LeagueBadge } from "./LeagueBadge";
+import { LeagueMark } from "./LeagueMark";
 import { LocalTime } from "./LocalTime";
 
 const ODDS_KEY = { HOME: "odds_home", DRAW: "odds_draw", AWAY: "odds_away" } as const;
 const PROB_KEY = { HOME: "home", DRAW: "draw", AWAY: "away" } as const;
+/** With many leagues, only the first few groups start open. */
+const OPEN_GROUPS = 4;
 
-export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[]; tz: string }) {
+export function CombinationBuilder({
+  fixtures,
+  tz,
+  order = [],
+}: {
+  fixtures: FixtureSummary[];
+  tz: string;
+  /** League ids in display order (featured ranking first). */
+  order?: number[];
+}) {
   const [selections, setSelections] = useState<Selections>({});
   const [result, setResult] = useState<Combination | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [league, setLeague] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [toggled, setToggled] = useState<Set<number>>(new Set());
   const count = Object.keys(selections).length;
   const ready = count >= MIN_COMBINATION_LEGS && count <= MAX_COMBINATION_LEGS;
   const resultRef = useRef<HTMLElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
+
+  const groups = useMemo(() => groupByLeague(fixtures, order), [fixtures, order]);
+  const legs = selectedLegs(selections, fixtures);
+  const perLeague = selectedPerLeague(selections, fixtures);
+  const searching = query.trim() !== "";
+  const visible = groups
+    .filter((g) => league === null || g.league.id === league)
+    .map((g) => ({ ...g, fixtures: g.fixtures.filter((f) => matchesTeam(f, query)) }))
+    .filter((g) => g.fixtures.length > 0);
 
   // Bring the outcome into view as soon as it arrives (the list can be long).
   useEffect(() => {
@@ -44,10 +71,37 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
     target.focus({ preventScroll: true });
   }, [result, error]);
 
-  function pick(f: FixtureSummary, outcome: (typeof OUTCOMES)[number]) {
-    setSelections((s) => toggleSelection(s, f, outcome, fixtures));
+  function update(next: Selections) {
+    setSelections(next);
     setResult(null);
     setError(null);
+  }
+
+  function pick(f: FixtureSummary, outcome: (typeof OUTCOMES)[number]) {
+    update(toggleSelection(selections, f, outcome, fixtures));
+  }
+
+  function remove(id: number) {
+    const next = { ...selections };
+    delete next[id];
+    update(next);
+  }
+
+  // A group is open by default when it is among the first few, holds a
+  // selection, or the list is narrowed (one league or a search); a click flips it.
+  function isOpen(id: number, index: number) {
+    const byDefault =
+      index < OPEN_GROUPS || league !== null || searching || (perLeague.get(id) ?? 0) > 0;
+    return toggled.has(id) ? !byDefault : byDefault;
+  }
+
+  function flip(id: number) {
+    setToggled((t) => {
+      const next = new Set(t);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function analyze() {
@@ -81,77 +135,174 @@ export function CombinationBuilder({ fixtures, tz }: { fixtures: FixtureSummary[
 
   return (
     <>
-      <div className="stack">
-        {fixtures.map((f) => {
-          const reason = blockReason(selections, f, fixtures);
-          return (
-            <div key={f.id} className="card pick-row">
-              <div className="fixture-meta">
-                <LocalTime iso={f.kickoff_at} fallbackTz={tz} />
-                {reason && selections[f.id] === undefined && (
-                  <span className="small">{reason}</span>
-                )}
-              </div>
-              <div className="teams">
-                {f.home_team.name} <span className="muted">vs</span> {f.away_team.name}
-              </div>
-              <div className="pick-buttons" role="group" aria-label="결과 선택">
-                {OUTCOMES.map((o) => (
-                  <button
-                    key={o}
-                    type="button"
-                    aria-pressed={selections[f.id] === o}
-                    disabled={reason !== null && selections[f.id] === undefined}
-                    onClick={() => pick(f, o)}
-                  >
-                    <span>
-                      {OUTCOME_SHORT[o]} · {odds(f.latest_odds?.[ODDS_KEY[o]])}
-                    </span>
-                    <small>분석 {pct(f.model_probabilities?.[PROB_KEY[o]], 0)}</small>
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div className="picker-tools">
+        <input
+          type="search"
+          className="picker-search"
+          placeholder="팀 이름으로 찾기"
+          aria-label="팀 이름으로 경기 찾기"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="league-chips" role="group" aria-label="리그 선택">
+          <button
+            type="button"
+            className="chip"
+            aria-pressed={league === null}
+            onClick={() => setLeague(null)}
+          >
+            전체 리그 <span className="chip-count">{fixtures.length}</span>
+          </button>
+          {groups.map((g) => (
+            <button
+              key={g.league.id}
+              type="button"
+              className="chip"
+              aria-pressed={league === g.league.id}
+              onClick={() => setLeague(league === g.league.id ? null : g.league.id)}
+            >
+              <LeagueMark league={g.league} size={16} />
+              {g.league.name}
+              <span className="chip-count">{g.fixtures.length}</span>
+              {(perLeague.get(g.league.id) ?? 0) > 0 && (
+                <span className="chip-picked" aria-label={`${perLeague.get(g.league.id)}개 선택됨`}>
+                  {perLeague.get(g.league.id)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="sticky-bar">
-        {result ? (
-          <button
-            type="button"
-            className="sticky-summary"
-            onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
-          >
-            모두 맞을 확률 <strong>분석 {pct(result.model_probability, 1)}</strong>
-            <span className="muted"> · 시장 {pct(result.fair_market_probability, 1)}</span>
-            <span className="small"> 결과 보기 ↓</span>
-          </button>
-        ) : (
-          <span>
-            선택 <strong>{count}</strong> / {MAX_COMBINATION_LEGS}
-            {count < MIN_COMBINATION_LEGS && (
-              <span className="muted small"> · 최소 {MIN_COMBINATION_LEGS}경기</span>
+      {visible.length === 0 && (
+        <p className="card small">
+          {searching ? `'${query.trim()}'이(가) 들어간 팀의 경기가 없어요.` : "경기가 없어요."}
+        </p>
+      )}
+
+      {visible.map((g, index) => {
+        const open = isOpen(g.league.id, index);
+        const picked = perLeague.get(g.league.id) ?? 0;
+        return (
+          <section key={g.league.id} className="picker-group">
+            <h2 className="picker-group-head">
+              <button
+                type="button"
+                aria-expanded={open}
+                aria-controls={`league-${g.league.id}`}
+                onClick={() => flip(g.league.id)}
+              >
+                <span className="picker-caret" aria-hidden="true">
+                  {open ? "▾" : "▸"}
+                </span>
+                <LeagueMark league={g.league} />
+                <span className="picker-group-name" title={leagueLabel(g.league)}>
+                  <span className="muted hide-narrow">{g.league.country_ko} · </span>
+                  {g.league.name}
+                </span>
+                <span className="muted small nowrap">{g.fixtures.length}경기</span>
+                {picked > 0 && <span className="chip-picked nowrap">{picked}개 선택</span>}
+              </button>
+              <LeagueBadge league={g.league} />
+            </h2>
+            {open && (
+              <div className="card picker-rows" id={`league-${g.league.id}`}>
+                {g.fixtures.map((f) => {
+                  const reason = blockReason(selections, f, fixtures);
+                  const chosen = selections[f.id];
+                  return (
+                    <div key={f.id} className={`pick-row${chosen ? " chosen" : ""}`}>
+                      <div className="pick-info">
+                        <span className="muted small">
+                          <LocalTime iso={f.kickoff_at} fallbackTz={tz} />
+                        </span>
+                        <span className="teams">
+                          {f.home_team.name} <span className="muted">vs</span> {f.away_team.name}
+                        </span>
+                        {reason && chosen === undefined && (
+                          <span className="small muted">{reason}</span>
+                        )}
+                      </div>
+                      <div
+                        className="pick-buttons"
+                        role="group"
+                        aria-label={`${f.home_team.name} vs ${f.away_team.name} 결과 선택`}
+                      >
+                        {OUTCOMES.map((o) => (
+                          <button
+                            key={o}
+                            type="button"
+                            aria-pressed={chosen === o}
+                            disabled={reason !== null && chosen === undefined}
+                            onClick={() => pick(f, o)}
+                          >
+                            <small>{OUTCOME_SHORT[o]}</small>
+                            <strong>{odds(f.latest_odds?.[ODDS_KEY[o]])}</strong>
+                            <small>분석 {pct(f.model_probabilities?.[PROB_KEY[o]], 0)}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          </span>
+          </section>
+        );
+      })}
+
+      <div className="sticky-bar">
+        {legs.length > 0 && (
+          <ul className="tray" aria-label="고른 결과">
+            {legs.map(({ fixture, outcome }) => (
+              <li key={fixture.id}>
+                <button
+                  type="button"
+                  className="tray-item"
+                  onClick={() => remove(fixture.id)}
+                  aria-label={`${legLabel(fixture, outcome)} 선택 해제`}
+                  title={`${fixture.home_team.name} vs ${fixture.away_team.name}`}
+                >
+                  {legLabel(fixture, outcome)} <span aria-hidden="true">✕</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-        <span style={{ display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => {
-              setSelections({});
-              setResult(null);
-              setError(null);
-            }}
-            disabled={count === 0}
-          >
-            초기화
-          </button>
-          <button type="button" className="btn" disabled={!ready || loading} onClick={analyze}>
-            {loading ? "계산 중…" : "조합 분석"}
-          </button>
-        </span>
+        <div className="sticky-row">
+          {result ? (
+            <button
+              type="button"
+              className="sticky-summary"
+              onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
+            >
+              <span className="hide-narrow">모두 맞을 확률 </span>
+              <strong>분석 {pct(result.model_probability, 1)}</strong>
+              <span className="muted"> · 시장 {pct(result.fair_market_probability, 1)}</span>
+              <span className="small nowrap"> 결과 ↓</span>
+            </button>
+          ) : (
+            <span className="sticky-status">
+              선택 <strong>{count}</strong> / {MAX_COMBINATION_LEGS}
+              {count < MIN_COMBINATION_LEGS && (
+                <span className="muted small"> · {MIN_COMBINATION_LEGS - count}경기 더</span>
+              )}
+            </span>
+          )}
+          <span className="sticky-actions">
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => update({})}
+              disabled={count === 0}
+            >
+              초기화
+            </button>
+            <button type="button" className="btn" disabled={!ready || loading} onClick={analyze}>
+              {loading ? "계산 중…" : "조합 분석"}
+            </button>
+          </span>
+        </div>
       </div>
 
       {error && (
@@ -206,8 +357,7 @@ function CombinationResult({
         <table>
           <thead>
             <tr>
-              <th scope="col">경기</th>
-              <th scope="col">선택</th>
+              <th scope="col">선택한 결과</th>
               <th scope="col">배당</th>
               <th scope="col">분석</th>
               <th scope="col">시장 예상</th>
@@ -217,13 +367,15 @@ function CombinationResult({
           <tbody>
             {result.legs.map((leg) => (
               <tr key={leg.fixture_id}>
-                <td>
-                  {leg.home_team.short_name} vs {leg.away_team.short_name}
-                  <div className="muted small">
+                <td className="leg-cell">
+                  <strong>{legLabel(leg, leg.outcome)}</strong>
+                  <div className="small">
+                    {leg.home_team.name} vs {leg.away_team.name}
+                  </div>
+                  <div className="muted small hide-narrow">
                     배당 <LocalTime iso={leg.odds_captured_at} fallbackTz={tz} /> 기준
                   </div>
                 </td>
-                <td>{OUTCOME_LABEL[leg.outcome]}</td>
                 <td>{odds(leg.decimal_odds)}</td>
                 <td>{pct(leg.model_probability)}</td>
                 <td>{pct(leg.fair_probability)}</td>

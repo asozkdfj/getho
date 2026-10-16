@@ -60,7 +60,7 @@ export default async function LeaguesPage({
           type="search"
           name="q"
           defaultValue={q}
-          placeholder="리그나 나라 이름 (예: 스페인, K League)"
+          placeholder="리그·나라 검색 (예: 스페인)"
           aria-label="리그 검색"
         />
         <button type="submit" className="btn secondary">

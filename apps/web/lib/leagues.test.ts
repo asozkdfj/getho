@@ -1,4 +1,4 @@
-import type { FixtureSummary, LeagueRef, LeagueSummary } from "@edge/contracts";
+import type { FixtureSummary, LeagueList, LeagueRef, LeagueSummary } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,6 +7,7 @@ import {
   leagueBadge,
   leagueLabel,
   leagueNote,
+  leagueOrder,
   matchesQuery,
 } from "./leagues";
 import { TEST_LEAGUE } from "./testing";
@@ -66,6 +67,44 @@ describe("grouping", () => {
     ]);
     expect(groups.map((g) => g.league.name)).toEqual(["FA Cup", "Premier League", "K League 1"]);
     expect(groups[1]!.fixtures.map((f) => f.id)).toEqual([2, 4]);
+  });
+
+  it("follows an explicit league order when given", () => {
+    const groups = groupByLeague(
+      [
+        fixture(1, kl, "2026-10-17T05:00:00Z"),
+        fixture(2, epl, "2026-10-17T14:00:00Z"),
+        fixture(3, cup, "2026-10-17T11:00:00Z"),
+      ],
+      [1, 2],
+    );
+    expect(groups.map((g) => g.league.name)).toEqual(["Premier League", "K League 1", "FA Cup"]);
+  });
+
+  it("orders leagues by featured rank, then by upcoming matches", () => {
+    const summary = (id: number, featured: boolean, upcoming: number): LeagueSummary => ({
+      ...league({ id, featured }),
+      upcoming_count: upcoming,
+      predicted_count: upcoming,
+    });
+    const list = {
+      featured: [summary(5, true, 2), summary(1, true, 9)],
+      regions: [
+        {
+          region: "europe",
+          name_ko: "유럽",
+          countries: [
+            {
+              country: "England",
+              country_ko: "잉글랜드",
+              leagues: [summary(5, true, 2), summary(7, false, 3), summary(8, false, 11)],
+            },
+          ],
+        },
+      ],
+    } as unknown as LeagueList;
+    expect(leagueOrder(list)).toEqual([5, 1, 8, 7]);
+    expect(leagueOrder(null)).toEqual([]);
   });
 
   it("groups by local day (KST) and then by league", () => {

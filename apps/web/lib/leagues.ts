@@ -1,4 +1,4 @@
-import type { FixtureSummary, LeagueRef, LeagueSummary } from "@edge/contracts";
+import type { FixtureSummary, LeagueList, LeagueRef, LeagueSummary } from "@edge/contracts";
 
 import { localDateKey } from "./time";
 
@@ -61,20 +61,43 @@ export interface LeagueGroup {
   fixtures: FixtureSummary[];
 }
 
-/** Fixtures grouped by league: featured leagues first, then by earliest kickoff. */
-export function groupByLeague(fixtures: FixtureSummary[]): LeagueGroup[] {
+/**
+ * Fixtures grouped by league. With `order` (league ids, e.g. the featured
+ * ranking from /leagues) groups follow it; otherwise, and for leagues missing
+ * from it, featured leagues come first, then the earliest kickoff.
+ */
+export function groupByLeague(
+  fixtures: FixtureSummary[],
+  order: readonly number[] = [],
+): LeagueGroup[] {
   const groups = new Map<number, LeagueGroup>();
   for (const f of fixtures) {
     const g = groups.get(f.league.id);
     if (g) g.fixtures.push(f);
     else groups.set(f.league.id, { league: f.league, fixtures: [f] });
   }
+  const rank = (id: number) => {
+    const i = order.indexOf(id);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
   return [...groups.values()].sort((a, b) => {
+    const r = rank(a.league.id) - rank(b.league.id);
+    if (r !== 0) return r;
     if (a.league.featured !== b.league.featured) return a.league.featured ? -1 : 1;
     const ka = a.fixtures[0]!.kickoff_at;
     const kb = b.fixtures[0]!.kickoff_at;
     return ka < kb ? -1 : ka > kb ? 1 : a.league.name.localeCompare(b.league.name);
   });
+}
+
+/** League ids in display order: the featured ranking, then the busiest leagues. */
+export function leagueOrder(list: LeagueList | null): number[] {
+  if (!list) return [];
+  const rest = list.regions
+    .flatMap((r) => r.countries.flatMap((c) => c.leagues))
+    .filter((lg) => !lg.featured)
+    .sort((a, b) => b.upcoming_count - a.upcoming_count);
+  return [...list.featured, ...rest].map((lg) => lg.id);
 }
 
 export interface DayGroup {
@@ -83,7 +106,11 @@ export interface DayGroup {
   leagues: LeagueGroup[];
 }
 
-export function groupByDayAndLeague(fixtures: FixtureSummary[], tz: string): DayGroup[] {
+export function groupByDayAndLeague(
+  fixtures: FixtureSummary[],
+  tz: string,
+  order: readonly number[] = [],
+): DayGroup[] {
   const days = new Map<string, FixtureSummary[]>();
   for (const f of fixtures) {
     const key = localDateKey(f.kickoff_at, tz);
@@ -92,7 +119,7 @@ export function groupByDayAndLeague(fixtures: FixtureSummary[], tz: string): Day
   return [...days.entries()].map(([day, list]) => ({
     day,
     first: list[0]!.kickoff_at,
-    leagues: groupByLeague(list),
+    leagues: groupByLeague(list, order),
   }));
 }
 

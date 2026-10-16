@@ -1,7 +1,16 @@
 import type { FixtureSummary } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
-import { blockReason, isSelectable, toRequest, toggleSelection } from "./combination";
+import {
+  blockReason,
+  isSelectable,
+  legLabel,
+  matchesTeam,
+  selectedLegs,
+  selectedPerLeague,
+  toRequest,
+  toggleSelection,
+} from "./combination";
 import { TEST_LEAGUE } from "./testing";
 
 function fx(id: number, home: number, away: number, extra: Partial<FixtureSummary> = {}) {
@@ -72,5 +81,40 @@ describe("combination selection", () => {
         { fixture_id: 2, outcome: "AWAY" },
       ],
     });
+  });
+});
+
+describe("picker helpers", () => {
+  const named = [
+    fx(1, 1, 2, {
+      home_team: { id: 1, name: "Arsenal", short_name: "ARS" },
+      away_team: { id: 2, name: "Crystal Palace", short_name: "CRY" },
+    }),
+    fx(2, 3, 4, {
+      league: { ...TEST_LEAGUE, id: 2, name: "La Liga" },
+      kickoff_at: "2026-10-17T19:00:00Z",
+    }),
+    fx(3, 5, 6, { league: { ...TEST_LEAGUE, id: 2, name: "La Liga" } }),
+  ];
+
+  it("searches team names on either side", () => {
+    expect(matchesTeam(named[0]!, "palace")).toBe(true);
+    expect(matchesTeam(named[0]!, " ars ")).toBe(true);
+    expect(matchesTeam(named[0]!, "chelsea")).toBe(false);
+    expect(matchesTeam(named[0]!, "")).toBe(true);
+  });
+
+  it("lists selections in list order with short labels", () => {
+    const legs = selectedLegs({ 3: "DRAW", 1: "AWAY", 99: "HOME" }, named);
+    expect(legs.map((l) => l.fixture.id)).toEqual([1, 3]);
+    expect(legLabel(named[0]!, "AWAY")).toBe("Crystal Palace 승");
+    expect(legLabel(named[0]!, "HOME")).toBe("Arsenal 승");
+    expect(legLabel(named[0]!, "DRAW")).toBe("ARS-CRY 무");
+  });
+
+  it("counts selections per league", () => {
+    const counts = selectedPerLeague({ 2: "HOME", 3: "AWAY", 1: "DRAW" }, named);
+    expect(counts.get(TEST_LEAGUE.id)).toBe(1);
+    expect(counts.get(2)).toBe(2);
   });
 });

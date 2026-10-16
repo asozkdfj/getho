@@ -123,7 +123,7 @@ export default async function FixturePage({ params }: { params: Params }) {
                 <tr>
                   <th scope="col">결과</th>
                   <HelpHeader term="odds" anchor="odds" />
-                  <HelpHeader term="implied" anchor="odds" />
+                  <HelpHeader term="implied" anchor="odds" className="hide-narrow" />
                   <HelpHeader term="market" anchor="market" />
                   <HelpHeader term="model" anchor="model" />
                   <HelpHeader term="gap" anchor="gap" />
@@ -142,7 +142,7 @@ export default async function FixturePage({ params }: { params: Params }) {
                       )}
                     </th>
                     <td>{odds(o.decimal_odds)}</td>
-                    <td className="muted">{pct(o.implied_probability)}</td>
+                    <td className="muted hide-narrow">{pct(o.implied_probability)}</td>
                     <td>{pct(o.fair_probability)}</td>
                     <td>
                       <strong>{pct(o.model_probability)}</strong>
@@ -160,7 +160,23 @@ export default async function FixturePage({ params }: { params: Params }) {
             표시는 차이와 기대값이 모두 {pct(prediction.value_threshold, 0)} 이상일 때만 붙는 참고
             표시이며 추천이 아닙니다.
           </p>
+        </>
+      ) : (
+        <div className="card">
+          <p style={{ margin: 0 }}>
+            {fixture.league.type === "cup" || !fixture.league.predicted
+              ? leagueNote(fixture.league)
+              : finished || fixture.status === "live"
+                ? "경기가 시작된 뒤에는 새로 분석하지 않아요. 이 경기는 시작 전에 저장된 분석이 없습니다."
+                : "아직 이 경기의 분석이 없어요. 배당이 들어오면 자동으로 분석합니다."}
+          </p>
+        </div>
+      )}
 
+      {fixture.team_news && <TeamNewsSection news={fixture.team_news} tz={tz} />}
+
+      {prediction && (
+        <>
           <section className="card">
             <h3 style={{ marginTop: 0 }}>언제 기준의 분석인가요?</h3>
             <dl className="kv">
@@ -221,19 +237,7 @@ export default async function FixturePage({ params }: { params: Params }) {
             </dl>
           </details>
         </>
-      ) : (
-        <div className="card">
-          <p style={{ margin: 0 }}>
-            {fixture.league.type === "cup" || !fixture.league.predicted
-              ? leagueNote(fixture.league)
-              : finished || fixture.status === "live"
-                ? "경기가 시작된 뒤에는 새로 분석하지 않아요. 이 경기는 시작 전에 저장된 분석이 없습니다."
-                : "아직 이 경기의 분석이 없어요. 배당이 들어오면 자동으로 분석합니다."}
-          </p>
-        </div>
       )}
-
-      {fixture.team_news && <TeamNewsSection news={fixture.team_news} tz={tz} />}
 
       <h2>배당 변화 기록</h2>
       {fixture.odds_history.length === 0 ? (
@@ -270,9 +274,17 @@ export default async function FixturePage({ params }: { params: Params }) {
   );
 }
 
-function HelpHeader({ term, anchor }: { term: keyof typeof TERM; anchor: string }) {
+function HelpHeader({
+  term,
+  anchor,
+  className,
+}: {
+  term: keyof typeof TERM;
+  anchor: string;
+  className?: string;
+}) {
   return (
-    <th scope="col" title={TERM_HELP[term]}>
+    <th scope="col" title={TERM_HELP[term]} className={className}>
       {TERM[term]}
       <Link href={`/guide#${anchor}`} className="help" aria-label={`${TERM[term]} 설명`}>
         ?

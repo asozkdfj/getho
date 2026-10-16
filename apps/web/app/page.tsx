@@ -17,9 +17,9 @@ import {
 } from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
 import { providerLabel } from "@/lib/format";
-import { groupByDayAndLeague } from "@/lib/leagues";
+import { groupByDayAndLeague, leagueOrder } from "@/lib/leagues";
 import { TERM } from "@/lib/terms";
-import { formatInTz } from "@/lib/time";
+import { dayLabel, formatInTz } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,7 @@ export default async function FixturesPage({
     orNull(fetchDataStatus()),
     orNull(fetchLeagues({ days: 7 })),
   ]);
-  const groups = groupByDayAndLeague(data.fixtures, tz);
+  const groups = groupByDayAndLeague(data.fixtures, tz, leagueOrder(leagues));
   const featured = leagues?.featured ?? [];
   const others = (leagues?.regions ?? [])
     .flatMap((r) => r.countries.flatMap((c) => c.leagues))
@@ -123,6 +123,18 @@ export default async function FixturesPage({
       {scope === "all" && (
         <p className="muted small">전체 리그는 경기가 많아 오늘 경기만 보여 드려요.</p>
       )}
+      {groups.length > 1 && (
+        <nav className="league-chips day-chips" aria-label="날짜 바로가기">
+          {groups.map((day) => (
+            <a key={day.day} href={`#day-${day.day}`} className="chip">
+              {dayLabel(day.first, tz)}
+              <span className="chip-count">
+                {day.leagues.reduce((n, g) => n + g.fixtures.length, 0)}
+              </span>
+            </a>
+          ))}
+        </nav>
+      )}
 
       {groups.length === 0 ? (
         <div className="card" style={{ marginTop: 16 }}>
@@ -137,7 +149,7 @@ export default async function FixturesPage({
         </div>
       ) : (
         groups.map((day) => (
-          <section key={day.day} className="day-group">
+          <section key={day.day} className="day-group" id={`day-${day.day}`}>
             <h2>{formatInTz(day.first, tz, "date")}</h2>
             {day.leagues.map((g) => (
               <div key={g.league.id} className="league-group">
