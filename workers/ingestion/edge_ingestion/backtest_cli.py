@@ -71,6 +71,11 @@ def add_arguments(p: argparse.ArgumentParser) -> None:
     p.add_argument("--cache-dir", type=Path, default=Path(".cache/history"))
     p.add_argument("--tune", action="store_true", help="coordinate search on validation seasons")
     p.add_argument("--out", type=Path, help="write the full JSON report here")
+    p.add_argument(
+        "--market-report",
+        type=Path,
+        help="attach the summary of an `edge backtest-market` report (model vs market)",
+    )
 
 
 def _codes(args: argparse.Namespace) -> list[str]:
@@ -171,6 +176,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     test_preds = walk_forward(matches, forecasters, test_cfg)
     report["test"] = evaluate(test_preds, test_cfg)
     _add_leagues(report, args, test_preds)
+    if getattr(args, "market_report", None):
+        report["market_baseline"] = market_baseline(json.loads(args.market_report.read_text()))
     if candidate is not None:
         report["promotion"] = dataclasses.asdict(decide(report["test"]))
     report["promotion_calibrated"] = dataclasses.asdict(
@@ -216,6 +223,33 @@ def league_summary(code: str, evaluation: dict[str, Any], n_total: int) -> dict[
             "ci_high": vs["ci_high"],
         },
         "verified": bool(n >= MIN_VERIFIED_TEST_MATCHES and vs["ci_low"] > 0),
+    }
+
+
+def market_baseline(market: dict[str, Any]) -> dict[str, Any]:
+    """The parts of a market-baseline report the performance page shows."""
+    part_a = market["part_a_model_vs_market"]
+    fu = part_a["follow_up"]
+    return {
+        "source": market["source"],
+        "leagues": market["leagues"],
+        "period": ">= " + market["follow_up"]["seasons"][0],
+        "n_matches": fu["n_matches"],
+        "production": fu["production"],
+        "market": fu["market"],
+        "log_loss_diff": fu["market_vs_production"]["log_loss_diff"],
+        "log_loss_diff_ci": fu["market_vs_production"]["log_loss_diff_ci95_weekly"],
+        "per_league": {
+            code: {
+                "n_matches": x["n_matches"],
+                "production_log_loss": x["production"]["log_loss"],
+                "market_log_loss": x["market"]["log_loss"],
+                "production_accuracy": x["production"]["accuracy"],
+                "market_accuracy": x["market"]["accuracy"],
+            }
+            for code, x in part_a["per_league_follow_up"].items()
+        },
+        "value_flags": market.get("descriptive_value_flags", {}).get("follow_up", []),
     }
 
 

@@ -785,6 +785,9 @@ td.leg-cell {
   font-size: 0.8rem;
   color: var(--away);
 }
+.caution-note {
+  color: var(--away);
+}
 .caveats li + li {
   margin-top: 2px;
 }

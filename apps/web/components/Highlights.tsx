@@ -8,6 +8,7 @@ import {
   sharedCaveatText,
   sharedCaveats,
 } from "@/lib/highlights";
+import { MARKET_ACCURACY_NOTE } from "@/lib/explain";
 import { leagueLabel } from "@/lib/leagues";
 
 import { LocalTime } from "./LocalTime";
@@ -41,6 +42,9 @@ export function Highlights({
       <h2 id="highlights-title">{title}</h2>
       <p className="muted small" style={{ marginTop: 0 }}>
         {data.note} <Link href="/guide#gap">왜 차이가 날까요?</Link>
+      </p>
+      <p className="small caution-note" style={{ marginTop: 0 }}>
+        ⚠ {MARKET_ACCURACY_NOTE} <Link href="/performance#market">측정 결과 보기</Link>
       </p>
       {shared.length > 0 && (
         <ul className="caveats">

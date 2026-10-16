@@ -1,0 +1,1268 @@
+{
+  "generated_at": "2026-10-16T10:28:33.311492+00:00",
+  "experiment": "goal_markets_v1",
+  "production_model": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "protocol": "`edge backtest-goal-markets` - over/under 2.5 and Asian handicap from the model.\n\nPre-registered protocol (committed before the first run; do not edit after results):\n\nQuestion  Can the service show over/under 2.5 and Asian handicap probabilities\n          derived from its production model as its own analysis, the way it\n          shows 1X2? The model is NOT changed or refitted for these markets.\nData      Club Football Match Data (football-data.co.uk results + Bet365 odds,\n          MIT copy), 2018-19..2025-26, file SHA-256 in the report; the same 9\n          leagues as the market baseline, pooled: en.1 en.2 de.1 de.2 es.1 it.1\n          fr.1 nl.1 pt.1. Prices: Bet365 Over25/Under25 and the Asian handicap\n          line (HandiSize, home team's line) with HandiHome/HandiAway. The copy\n          rounds quarter lines to one decimal (-0.3 = -0.25, -0.8 = -0.75); they\n          are mapped back, other unexpected lines are dropped. Capture time of\n          the odds is undocumented (pre-match, maybe later than 09:00 KST).\nTiming    Production expected goals from the shared walk-forward engine: refit\n          weekly, results enter training 3 h after kickoff, refit grid\n          restarting at the warm-up (2019-20), validation (2020-21..2022-23)\n          and follow-up (2023-24..2025-26) starts.\nModel     The production score matrix from those expected goals (independent\n          Poisson, the production rho and max goals). Over 2.5 = P(total >= 3).\n          Handicap at Bet365's line: home probability A / (A + B), A and B the\n          expected share of the stake won and lost (quarter lines split the\n          stake, whole lines can push).\nMarket    Bet365's two prices with the margin removed proportionally.\nNaive     Over/under: the league's share of over-2.5 matches among results\n          known at the refit time (all loaded seasons). Handicap: 0.5 (the\n          bookmaker sets the line to split the action).\nScores    Weighted log loss and Brier: each match counts by the share of the\n          stake that was settled (full result 1, half win/loss 0.5, push 0), so\n          A / (A + B) is the proper target. Weekly cluster-bootstrap 95% CI of\n          paired differences (per-match contributions scaled by n / sum of\n          weights). Each market uses its own common sample (all three\n          forecasts known).\nDecision  Per market, the model probability may be offered for display\n          (still a product decision, nothing is deployed automatically) only if\n          D1 informative: model beats naive in validation AND in follow-up with\n             a follow-up gain >= 0.002 and weekly CI upper bound < 0, and\n          D2 calibrated (follow-up): |mean predicted - observed| <= 0.02 and\n             ECE (10 bins) <= 0.03.\n          Model vs market is measured and reported, not a criterion (the 1X2\n          market was already more accurate than the model; that is disclosed).\nDescriptive (no decision): per-league follow-up; handicap half lines only\n          (no pushes); predicted vs observed mean total goals; flagged prices\n          (model - market >= t and model expected profit >= t, t in 0.03, 0.05,\n          0.10), 1 unit each, realised return with weekly CI. The product never\n          places bets.\n",
+  "source": {
+    "url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/Matches.csv",
+    "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221",
+    "attribution": "football-data.co.uk via xgabora/Club-Football-Match-Data (MIT)"
+  },
+  "leagues": [
+    "en.1",
+    "en.2",
+    "de.1",
+    "de.2",
+    "es.1",
+    "it.1",
+    "fr.1",
+    "nl.1",
+    "pt.1"
+  ],
+  "matches_per_season": {
+    "en.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "en.2": {
+      "2018-19": 552,
+      "2019-20": 552,
+      "2020-21": 552,
+      "2021-22": 552,
+      "2022-23": 552,
+      "2023-24": 552,
+      "2024-25": 550,
+      "2025-26": 552
+    },
+    "de.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "de.2": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "es.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "it.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "fr.1": {
+      "2018-19": 380,
+      "2019-20": 279,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 306,
+      "2024-25": 305,
+      "2025-26": 306
+    },
+    "nl.1": {
+      "2018-19": 306,
+      "2019-20": 232,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "pt.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    }
+  },
+  "n_predicted": 22672,
+  "dropped": {
+    "no_over_under": 2,
+    "no_handicap": 37
+  },
+  "markets": {
+    "over_under_2_5": {
+      "n_matches": 22670,
+      "validation": {
+        "n_matches": 9886,
+        "settled_weight": 9886.0,
+        "model": {
+          "log_loss": 0.6883811239799209,
+          "brier": 0.24740669879331162,
+          "mean_predicted": 0.5121139220304132,
+          "observed": 0.5149706655876998,
+          "ece": 0.031847726609372906
+        },
+        "market": {
+          "log_loss": 0.6760737129258173,
+          "brier": 0.2416157394365936,
+          "mean_predicted": 0.5155799515580058,
+          "observed": 0.5149706655876998,
+          "ece": 0.01299436277653397
+        },
+        "naive": {
+          "log_loss": 0.6885489192585699,
+          "brier": 0.2476950416324556,
+          "mean_predicted": 0.5237050514781963,
+          "observed": 0.5149706655876998,
+          "ece": 0.008734385890496585
+        },
+        "model_vs_naive": {
+          "log_loss_diff": -0.00016779527864896213,
+          "ci95_weekly": [
+            -0.0037808501263494375,
+            0.003405487993733877
+          ],
+          "weeks": 123
+        },
+        "market_vs_model": {
+          "log_loss_diff": -0.012307411054103552,
+          "ci95_weekly": [
+            -0.01516600592406418,
+            -0.009379479291948411
+          ],
+          "weeks": 123
+        }
+      },
+      "follow_up": {
+        "n_matches": 9663,
+        "settled_weight": 9663.0,
+        "model": {
+          "log_loss": 0.6827823422210637,
+          "brier": 0.24475408411906205,
+          "mean_predicted": 0.5270368323091708,
+          "observed": 0.5401014177791577,
+          "ece": 0.035888477647864646
+        },
+        "market": {
+          "log_loss": 0.6708569692743892,
+          "brier": 0.23909440290399747,
+          "mean_predicted": 0.5320574170935911,
+          "observed": 0.5401014177791577,
+          "ece": 0.01099492945954858
+        },
+        "naive": {
+          "log_loss": 0.6865678851490113,
+          "brier": 0.2467331878692681,
+          "mean_predicted": 0.5268437922740381,
+          "observed": 0.5401014177791577,
+          "ece": 0.014399399826998742
+        },
+        "model_vs_naive": {
+          "log_loss_diff": -0.003785542927947605,
+          "ci95_weekly": [
+            -0.008473985696269216,
+            0.0008499796525496527
+          ],
+          "weeks": 121
+        },
+        "market_vs_model": {
+          "log_loss_diff": -0.011925372946674435,
+          "ci95_weekly": [
+            -0.014917621631309332,
+            -0.008864499256449122
+          ],
+          "weeks": 121
+        }
+      },
+      "decision": {
+        "d1_informative": {
+          "validation_gain_vs_naive": 0.00016779527864896338,
+          "follow_up_gain_vs_naive": 0.003785542927947605,
+          "follow_up_ci95_weekly": [
+            -0.008473985696269216,
+            0.0008499796525496527
+          ],
+          "passed": false
+        },
+        "d2_calibrated": {
+          "mean_gap": 0.0130645854699869,
+          "ece": 0.035888477647864646,
+          "passed": false
+        },
+        "eligible_for_display": false
+      },
+      "descriptive": {
+        "per_league_follow_up": {
+          "en.1": {
+            "n_matches": 1140,
+            "settled_weight": 1140.0,
+            "model": {
+              "log_loss": 0.6829142638171075,
+              "brier": 0.2447376683737202,
+              "mean_predicted": 0.5706870707798661,
+              "observed": 0.5877192982456141,
+              "ece": 0.06687542270882785
+            },
+            "market": {
+              "log_loss": 0.6712521013123474,
+              "brier": 0.23926446482635463,
+              "mean_predicted": 0.5748524716890072,
+              "observed": 0.5877192982456141,
+              "ece": 0.022348900048868657
+            },
+            "naive": {
+              "log_loss": 0.6828953573310999,
+              "brier": 0.2448827395295808,
+              "mean_predicted": 0.543419756772997,
+              "observed": 0.5877192982456141,
+              "ece": 0.044299541472616964
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 1.8906486007632595e-05,
+              "ci95_weekly": [
+                -0.011931654223141963,
+                0.01170300241843813
+              ],
+              "weeks": 109
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.01166216250476027,
+              "ci95_weekly": [
+                -0.018131550133538097,
+                -0.005282274693252211
+              ],
+              "weeks": 109
+            }
+          },
+          "en.2": {
+            "n_matches": 1654,
+            "settled_weight": 1654.0,
+            "model": {
+              "log_loss": 0.6975955774651474,
+              "brier": 0.25199215917692663,
+              "mean_predicted": 0.47404358277387565,
+              "observed": 0.4909310761789601,
+              "ece": 0.03767415657245378
+            },
+            "market": {
+              "log_loss": 0.684488977754198,
+              "brier": 0.24569737950800571,
+              "mean_predicted": 0.4892638228207155,
+              "observed": 0.4909310761789601,
+              "ece": 0.004752912499288863
+            },
+            "naive": {
+              "log_loss": 0.6941673911737984,
+              "brier": 0.2505084933353574,
+              "mean_predicted": 0.4693396761993086,
+              "observed": 0.4909310761789601,
+              "ece": 0.021591399979651513
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.0034281862913488606,
+              "ci95_weekly": [
+                -0.006419805991255846,
+                0.012579290777802773
+              ],
+              "weeks": 106
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.013106599710949445,
+              "ci95_weekly": [
+                -0.02025255606424602,
+                -0.005641699767470998
+              ],
+              "weeks": 106
+            }
+          },
+          "de.1": {
+            "n_matches": 918,
+            "settled_weight": 918.0,
+            "model": {
+              "log_loss": 0.6544111665332765,
+              "brier": 0.23108465634701628,
+              "mean_predicted": 0.6103597350027761,
+              "observed": 0.6198257080610022,
+              "ece": 0.04613199874249324
+            },
+            "market": {
+              "log_loss": 0.6428792331433862,
+              "brier": 0.22576197912972099,
+              "mean_predicted": 0.5992610654311654,
+              "observed": 0.6198257080610022,
+              "ece": 0.036037218514956997
+            },
+            "naive": {
+              "log_loss": 0.6645471973688161,
+              "brier": 0.2358305140613337,
+              "mean_predicted": 0.6124604068465579,
+              "observed": 0.6198257080610022,
+              "ece": 0.007365301214444268
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.010136030835539395,
+              "ci95_weekly": [
+                -0.02364824988345812,
+                0.0034846018367195473
+              ],
+              "weeks": 100
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.011531933389890425,
+              "ci95_weekly": [
+                -0.0199697609022343,
+                -0.0029876048877641895
+              ],
+              "weeks": 100
+            }
+          },
+          "de.2": {
+            "n_matches": 918,
+            "settled_weight": 918.0,
+            "model": {
+              "log_loss": 0.6858943092567351,
+              "brier": 0.24610813572692913,
+              "mean_predicted": 0.5810114183684955,
+              "observed": 0.593681917211329,
+              "ece": 0.05925315706917007
+            },
+            "market": {
+              "log_loss": 0.6719890795808701,
+              "brier": 0.23955600193198798,
+              "mean_predicted": 0.5832704464548356,
+              "observed": 0.593681917211329,
+              "ece": 0.011084582677421928
+            },
+            "naive": {
+              "log_loss": 0.6760922133868044,
+              "brier": 0.24151612831326144,
+              "mean_predicted": 0.5826458920824449,
+              "observed": 0.593681917211329,
+              "ece": 0.011036025128884071
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.009802095869930737,
+              "ci95_weekly": [
+                -0.0011737454977132993,
+                0.020909256706198413
+              ],
+              "weeks": 102
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.013905229675865133,
+              "ci95_weekly": [
+                -0.022853158626283097,
+                -0.005202456261042132
+              ],
+              "weeks": 102
+            }
+          },
+          "es.1": {
+            "n_matches": 1140,
+            "settled_weight": 1140.0,
+            "model": {
+              "log_loss": 0.6760303839022697,
+              "brier": 0.24143616377004254,
+              "mean_predicted": 0.4768434306732752,
+              "observed": 0.4824561403508772,
+              "ece": 0.026419657117213637
+            },
+            "market": {
+              "log_loss": 0.6654592037875691,
+              "brier": 0.23640383480624025,
+              "mean_predicted": 0.48356454273154253,
+              "observed": 0.4824561403508772,
+              "ece": 0.014544373130475581
+            },
+            "naive": {
+              "log_loss": 0.693506210133887,
+              "brier": 0.25017742222458067,
+              "mean_predicted": 0.46066662487008003,
+              "observed": 0.4824561403508772,
+              "ece": 0.021789515480797186
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.017475826231617256,
+              "ci95_weekly": [
+                -0.03334551969454183,
+                -0.0012125510255988437
+              ],
+              "weeks": 110
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.010571180114700571,
+              "ci95_weekly": [
+                -0.019623975439908604,
+                -0.001982313340483356
+              ],
+              "weeks": 110
+            }
+          },
+          "it.1": {
+            "n_matches": 1140,
+            "settled_weight": 1140.0,
+            "model": {
+              "log_loss": 0.6952509464380785,
+              "brier": 0.2507782714499473,
+              "mean_predicted": 0.4674420491753355,
+              "observed": 0.47719298245614034,
+              "ece": 0.0492253182807523
+            },
+            "market": {
+              "log_loss": 0.6863330805355866,
+              "brier": 0.2465452669960675,
+              "mean_predicted": 0.477643120837201,
+              "observed": 0.47719298245614034,
+              "ece": 0.0446933126381348
+            },
+            "naive": {
+              "log_loss": 0.6981481757380908,
+              "brier": 0.25249550095006384,
+              "mean_predicted": 0.5327818123750924,
+              "observed": 0.47719298245614034,
+              "ece": 0.05558882991895199
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.002897229300012376,
+              "ci95_weekly": [
+                -0.01820285108142987,
+                0.01194407599140072
+              ],
+              "weeks": 111
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.0089178659024919,
+              "ci95_weekly": [
+                -0.017303248930295962,
+                -0.0004171186899103318
+              ],
+              "weeks": 111
+            }
+          },
+          "fr.1": {
+            "n_matches": 917,
+            "settled_weight": 917.0,
+            "model": {
+              "log_loss": 0.6901945816558481,
+              "brier": 0.248192428970588,
+              "mean_predicted": 0.531210726310227,
+              "observed": 0.5365321701199564,
+              "ece": 0.03273606438662937
+            },
+            "market": {
+              "log_loss": 0.6762189367919682,
+              "brier": 0.24165657790684184,
+              "mean_predicted": 0.5374768013752722,
+              "observed": 0.5365321701199564,
+              "ece": 0.020133323885487872
+            },
+            "naive": {
+              "log_loss": 0.6913588608043377,
+              "brier": 0.2491060790902679,
+              "mean_predicted": 0.518025919220738,
+              "observed": 0.5365321701199564,
+              "ece": 0.0185062508992183
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.0011642791484896523,
+              "ci95_weekly": [
+                -0.015620943476946727,
+                0.013080710986187249
+              ],
+              "weeks": 101
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.013975644863879892,
+              "ci95_weekly": [
+                -0.025673107404143858,
+                -0.002630614105317718
+              ],
+              "weeks": 101
+            }
+          },
+          "nl.1": {
+            "n_matches": 918,
+            "settled_weight": 918.0,
+            "model": {
+              "log_loss": 0.668634453137283,
+              "brier": 0.2381059214438638,
+              "mean_predicted": 0.5942194292958667,
+              "observed": 0.6023965141612201,
+              "ece": 0.056863221072766645
+            },
+            "market": {
+              "log_loss": 0.6578667041542164,
+              "brier": 0.2329428938956187,
+              "mean_predicted": 0.5954582790224439,
+              "observed": 0.6023965141612201,
+              "ece": 0.02047263477762493
+            },
+            "naive": {
+              "log_loss": 0.6723409878049348,
+              "brier": 0.23966533230277803,
+              "mean_predicted": 0.5984793618182126,
+              "observed": 0.6023965141612201,
+              "ece": 0.030666235460696627
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.003706534667651696,
+              "ci95_weekly": [
+                -0.01442746620334575,
+                0.007242350856832532
+              ],
+              "weeks": 102
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.010767748983066495,
+              "ci95_weekly": [
+                -0.019043388248238802,
+                -0.0027280156018327185
+              ],
+              "weeks": 102
+            }
+          },
+          "pt.1": {
+            "n_matches": 918,
+            "settled_weight": 918.0,
+            "model": {
+              "log_loss": 0.680832706189124,
+              "brier": 0.24390153495822695,
+              "mean_predicted": 0.4959997015949377,
+              "observed": 0.5272331154684096,
+              "ece": 0.03694242735728599
+            },
+            "market": {
+              "log_loss": 0.6677690792329345,
+              "brier": 0.237537819659053,
+              "mean_predicted": 0.4965784850991229,
+              "observed": 0.5272331154684096,
+              "ece": 0.03386930902088671
+            },
+            "naive": {
+              "log_loss": 0.6963767110084504,
+              "brier": 0.25161331551376415,
+              "mean_predicted": 0.48042766300468365,
+              "observed": 0.5272331154684096,
+              "ece": 0.04680545246372592
+            },
+            "model_vs_naive": {
+              "log_loss_diff": -0.015544004819326385,
+              "ci95_weekly": [
+                -0.03194273145024568,
+                0.0007170326331821382
+              ],
+              "weeks": 107
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.013063626956189591,
+              "ci95_weekly": [
+                -0.02295294434038808,
+                -0.0028102415592378876
+              ],
+              "weeks": 107
+            }
+          }
+        },
+        "flagged_prices": {
+          "note": "descriptive; the product never places bets",
+          "validation": [
+            {
+              "threshold": 0.03,
+              "flags": 5283,
+              "mean_return": -0.0735983342797653,
+              "mean_return_ci95_weekly": [
+                -0.09993100040055977,
+                -0.046928530757176484
+              ]
+            },
+            {
+              "threshold": 0.05,
+              "flags": 4129,
+              "mean_return": -0.07976507628965852,
+              "mean_return_ci95_weekly": [
+                -0.11189625294379764,
+                -0.04684219103093182
+              ]
+            },
+            {
+              "threshold": 0.1,
+              "flags": 1344,
+              "mean_return": -0.05867559523809525,
+              "mean_return_ci95_weekly": [
+                -0.10627639261230262,
+                -0.00947687548365247
+              ]
+            }
+          ],
+          "follow_up": [
+            {
+              "threshold": 0.03,
+              "flags": 5127,
+              "mean_return": -0.08243417203042715,
+              "mean_return_ci95_weekly": [
+                -0.1089972087405895,
+                -0.055605920444325496
+              ]
+            },
+            {
+              "threshold": 0.05,
+              "flags": 3985,
+              "mean_return": -0.08292597239648683,
+              "mean_return_ci95_weekly": [
+                -0.11324506264235999,
+                -0.05378974768831263
+              ]
+            },
+            {
+              "threshold": 0.1,
+              "flags": 1292,
+              "mean_return": -0.05570433436532508,
+              "mean_return_ci95_weekly": [
+                -0.10776378937628456,
+                -0.001959591737277682
+              ]
+            }
+          ]
+        },
+        "mean_total_goals_follow_up": {
+          "predicted": 2.821367348731436,
+          "observed": 2.8192072855220944
+        }
+      }
+    },
+    "asian_handicap": {
+      "n_matches": 22635,
+      "validation": {
+        "n_matches": 9870,
+        "settled_weight": 8503.0,
+        "model": {
+          "log_loss": 0.7060750271637127,
+          "brier": 0.25614610367523366,
+          "mean_predicted": 0.4907092948316188,
+          "observed": 0.4948253557567917,
+          "ece": 0.06191981121877431
+        },
+        "market": {
+          "log_loss": 0.691188747770521,
+          "brier": 0.24902322545394454,
+          "mean_predicted": 0.49967855437793113,
+          "observed": 0.4948253557567917,
+          "ece": 0.008106391233993926
+        },
+        "naive": {
+          "log_loss": 0.6931471805599453,
+          "brier": 0.25,
+          "mean_predicted": 0.5,
+          "observed": 0.4948253557567917,
+          "ece": 0.00517464424320828
+        },
+        "model_vs_naive": {
+          "log_loss_diff": 0.012927846603767461,
+          "ci95_weekly": [
+            0.009243882885779627,
+            0.016552257828667157
+          ],
+          "weeks": 123
+        },
+        "market_vs_model": {
+          "log_loss_diff": -0.014886279393191855,
+          "ci95_weekly": [
+            -0.018709941532417965,
+            -0.011069222894288935
+          ],
+          "weeks": 123
+        }
+      },
+      "follow_up": {
+        "n_matches": 9655,
+        "settled_weight": 8305.5,
+        "model": {
+          "log_loss": 0.7086668969774897,
+          "brier": 0.2574166318626417,
+          "mean_predicted": 0.4861114912693022,
+          "observed": 0.49045813015471673,
+          "ece": 0.0666588931885795
+        },
+        "market": {
+          "log_loss": 0.692170792465403,
+          "brier": 0.249516087654925,
+          "mean_predicted": 0.49913149244020893,
+          "observed": 0.49045813015471673,
+          "ece": 0.008746415271228589
+        },
+        "naive": {
+          "log_loss": 0.6931471805599453,
+          "brier": 0.25,
+          "mean_predicted": 0.5,
+          "observed": 0.49045813015471673,
+          "ece": 0.009541869845283246
+        },
+        "model_vs_naive": {
+          "log_loss_diff": 0.015519716417544354,
+          "ci95_weekly": [
+            0.011752784958478028,
+            0.019242675569377882
+          ],
+          "weeks": 121
+        },
+        "market_vs_model": {
+          "log_loss_diff": -0.016496104512086513,
+          "ci95_weekly": [
+            -0.020011403675339316,
+            -0.01297802724238819
+          ],
+          "weeks": 121
+        }
+      },
+      "decision": {
+        "d1_informative": {
+          "validation_gain_vs_naive": -0.012927846603767446,
+          "follow_up_gain_vs_naive": -0.015519716417544354,
+          "follow_up_ci95_weekly": [
+            0.011752784958478028,
+            0.019242675569377882
+          ],
+          "passed": false
+        },
+        "d2_calibrated": {
+          "mean_gap": 0.004346638885414533,
+          "ece": 0.0666588931885795,
+          "passed": false
+        },
+        "eligible_for_display": false
+      },
+      "descriptive": {
+        "per_league_follow_up": {
+          "en.1": {
+            "n_matches": 1139,
+            "settled_weight": 987.0,
+            "model": {
+              "log_loss": 0.7066187460511925,
+              "brier": 0.25637713981967103,
+              "mean_predicted": 0.48044631132838045,
+              "observed": 0.48429584599797365,
+              "ece": 0.05560393723381776
+            },
+            "market": {
+              "log_loss": 0.6930186227919777,
+              "brier": 0.24993570506501572,
+              "mean_predicted": 0.5005279253474639,
+              "observed": 0.48429584599797365,
+              "ece": 0.016232079349490332
+            },
+            "naive": {
+              "log_loss": 0.6931471805599454,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.48429584599797365,
+              "ece": 0.015704154002026342
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.013471565491247152,
+              "ci95_weekly": [
+                0.0030586247711256774,
+                0.02411279223333025
+              ],
+              "weeks": 109
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.013600123259214773,
+              "ci95_weekly": [
+                -0.023691257371859523,
+                -0.0037478044965544174
+              ],
+              "weeks": 109
+            }
+          },
+          "en.2": {
+            "n_matches": 1653,
+            "settled_weight": 1428.5,
+            "model": {
+              "log_loss": 0.7104258689605315,
+              "brier": 0.25816194822837457,
+              "mean_predicted": 0.4942804405341446,
+              "observed": 0.504375218760938,
+              "ece": 0.07160198293196363
+            },
+            "market": {
+              "log_loss": 0.6915623424293641,
+              "brier": 0.2492088290693306,
+              "mean_predicted": 0.49907433197535167,
+              "observed": 0.504375218760938,
+              "ece": 0.005300886785586352
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.504375218760938,
+              "ece": 0.004375218760938047
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.017278688400586245,
+              "ci95_weekly": [
+                0.0070600064021091235,
+                0.027942337365893532
+              ],
+              "weeks": 106
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.01886352653116738,
+              "ci95_weekly": [
+                -0.028945802529433375,
+                -0.009080819497847005
+              ],
+              "weeks": 106
+            }
+          },
+          "de.1": {
+            "n_matches": 917,
+            "settled_weight": 799.0,
+            "model": {
+              "log_loss": 0.7175370782953157,
+              "brier": 0.2617376604298146,
+              "mean_predicted": 0.4837660208776841,
+              "observed": 0.4780976220275344,
+              "ece": 0.0963626174809037
+            },
+            "market": {
+              "log_loss": 0.6912027327908795,
+              "brier": 0.24905752154370034,
+              "mean_predicted": 0.49938828952949776,
+              "observed": 0.4780976220275344,
+              "ece": 0.021290667501963362
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.4780976220275344,
+              "ece": 0.02190237797246558
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.024389897735370338,
+              "ci95_weekly": [
+                0.012756788118542256,
+                0.03589146807599561
+              ],
+              "weeks": 100
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.026334345504436106,
+              "ci95_weekly": [
+                -0.03812884031724851,
+                -0.014863130665013302
+              ],
+              "weeks": 100
+            }
+          },
+          "de.2": {
+            "n_matches": 918,
+            "settled_weight": 796.0,
+            "model": {
+              "log_loss": 0.7042237138056613,
+              "brier": 0.25527226807684716,
+              "mean_predicted": 0.49123716864942885,
+              "observed": 0.5100502512562815,
+              "ece": 0.07173415336182742
+            },
+            "market": {
+              "log_loss": 0.6940890509270453,
+              "brier": 0.25046960484014813,
+              "mean_predicted": 0.498593188723757,
+              "observed": 0.5100502512562815,
+              "ece": 0.011457062532524397
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.5100502512562815,
+              "ece": 0.010050251256281407
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.011076533245715977,
+              "ci95_weekly": [
+                -0.0010456767537268966,
+                0.02367863682583596
+              ],
+              "weeks": 102
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.01013466287861599,
+              "ci95_weekly": [
+                -0.022237622863214616,
+                0.00170733449997458
+              ],
+              "weeks": 102
+            }
+          },
+          "es.1": {
+            "n_matches": 1136,
+            "settled_weight": 966.5,
+            "model": {
+              "log_loss": 0.7085942637014152,
+              "brier": 0.257489108558454,
+              "mean_predicted": 0.48025384509201025,
+              "observed": 0.496120020693223,
+              "ece": 0.055314616978186085
+            },
+            "market": {
+              "log_loss": 0.6924900502778842,
+              "brier": 0.2496787276206474,
+              "mean_predicted": 0.49816712833710236,
+              "observed": 0.496120020693223,
+              "ece": 0.00994072284899664
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.496120020693223,
+              "ece": 0.0038799793067770304
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.015447083141469958,
+              "ci95_weekly": [
+                0.005129477607967145,
+                0.025824843352164187
+              ],
+              "weeks": 110
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.016104213423530984,
+              "ci95_weekly": [
+                -0.026124246653081842,
+                -0.0063408860259270465
+              ],
+              "weeks": 110
+            }
+          },
+          "it.1": {
+            "n_matches": 1140,
+            "settled_weight": 962.0,
+            "model": {
+              "log_loss": 0.7100146620093155,
+              "brier": 0.2580091364238624,
+              "mean_predicted": 0.4788305791684061,
+              "observed": 0.46153846153846156,
+              "ece": 0.0649804308527993
+            },
+            "market": {
+              "log_loss": 0.6914757919124929,
+              "brier": 0.2491654859033737,
+              "mean_predicted": 0.4987224837511593,
+              "observed": 0.46153846153846156,
+              "ece": 0.03718402221269776
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.46153846153846156,
+              "ece": 0.038461538461538464
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.016867481449370142,
+              "ci95_weekly": [
+                0.0073655341438746596,
+                0.026614367719751394
+              ],
+              "weeks": 111
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.018538870096822556,
+              "ci95_weekly": [
+                -0.027836725246925768,
+                -0.00926408223365124
+              ],
+              "weeks": 111
+            }
+          },
+          "fr.1": {
+            "n_matches": 917,
+            "settled_weight": 803.5,
+            "model": {
+              "log_loss": 0.7138397343724011,
+              "brier": 0.25997513505863,
+              "mean_predicted": 0.48747444633268816,
+              "observed": 0.4884878655880523,
+              "ece": 0.07449942119578863
+            },
+            "market": {
+              "log_loss": 0.6936484997676615,
+              "brier": 0.25025120651617894,
+              "mean_predicted": 0.5007664846329104,
+              "observed": 0.4884878655880523,
+              "ece": 0.017179319492429
+            },
+            "naive": {
+              "log_loss": 0.6931471805599454,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.4884878655880523,
+              "ece": 0.011512134411947728
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.020692553812455702,
+              "ci95_weekly": [
+                0.009982027584581107,
+                0.03164559625023403
+              ],
+              "weeks": 101
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.02019123460473948,
+              "ci95_weekly": [
+                -0.03084741823821298,
+                -0.009598412369104959
+              ],
+              "weeks": 101
+            }
+          },
+          "nl.1": {
+            "n_matches": 917,
+            "settled_weight": 790.0,
+            "model": {
+              "log_loss": 0.7037796962030589,
+              "brier": 0.25506432061500695,
+              "mean_predicted": 0.48309900084574825,
+              "observed": 0.4879746835443038,
+              "ece": 0.055839470727034504
+            },
+            "market": {
+              "log_loss": 0.6924220011352179,
+              "brier": 0.2496386895117452,
+              "mean_predicted": 0.49792283090738976,
+              "observed": 0.4879746835443038,
+              "ece": 0.009948147363085998
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.4879746835443038,
+              "ece": 0.012025316455696202
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.010632515643113453,
+              "ci95_weekly": [
+                -0.0007814865020302236,
+                0.02249216489622709
+              ],
+              "weeks": 102
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.01135769506784088,
+              "ci95_weekly": [
+                -0.023442791748065617,
+                1.5520700341879196e-05
+              ],
+              "weeks": 102
+            }
+          },
+          "pt.1": {
+            "n_matches": 918,
+            "settled_weight": 773.0,
+            "model": {
+              "log_loss": 0.7014696088584873,
+              "brier": 0.2540249584079736,
+              "mean_predicted": 0.4934421067127382,
+              "observed": 0.4987063389391979,
+              "ece": 0.06064804660713474
+            },
+            "market": {
+              "log_loss": 0.6899109522044047,
+              "brier": 0.24838376557912806,
+              "mean_predicted": 0.4989935027599393,
+              "observed": 0.4987063389391979,
+              "ece": 0.021762692377556323
+            },
+            "naive": {
+              "log_loss": 0.6931471805599453,
+              "brier": 0.25,
+              "mean_predicted": 0.5,
+              "observed": 0.4987063389391979,
+              "ece": 0.00129366106080207
+            },
+            "model_vs_naive": {
+              "log_loss_diff": 0.008322428298541868,
+              "ci95_weekly": [
+                -0.002599730373248832,
+                0.01945645578165177
+              ],
+              "weeks": 107
+            },
+            "market_vs_model": {
+              "log_loss_diff": -0.01155865665408241,
+              "ci95_weekly": [
+                -0.022295944753418742,
+                -0.0013210144200900909
+              ],
+              "weeks": 107
+            }
+          }
+        },
+        "flagged_prices": {
+          "note": "descriptive; the product never places bets",
+          "validation": [
+            {
+              "threshold": 0.03,
+              "flags": 6570,
+              "mean_return": -0.037605022831050244,
+              "mean_return_ci95_weekly": [
+                -0.06081416026433697,
+                -0.012585569543435607
+              ]
+            },
+            {
+              "threshold": 0.05,
+              "flags": 5069,
+              "mean_return": -0.03217498520418229,
+              "mean_return_ci95_weekly": [
+                -0.05825510044049707,
+                -0.005600520920387152
+              ]
+            },
+            {
+              "threshold": 0.1,
+              "flags": 2040,
+              "mean_return": -0.0473872549019608,
+              "mean_return_ci95_weekly": [
+                -0.08791601881099972,
+                -0.006680505583126535
+              ]
+            }
+          ],
+          "follow_up": [
+            {
+              "threshold": 0.03,
+              "flags": 6219,
+              "mean_return": -0.04821353915420488,
+              "mean_return_ci95_weekly": [
+                -0.06917861135319674,
+                -0.027338205500341484
+              ]
+            },
+            {
+              "threshold": 0.05,
+              "flags": 4852,
+              "mean_return": -0.05397052761747733,
+              "mean_return_ci95_weekly": [
+                -0.07868039575667914,
+                -0.030715290806754232
+              ]
+            },
+            {
+              "threshold": 0.1,
+              "flags": 1887,
+              "mean_return": -0.056012188659247494,
+              "mean_return_ci95_weekly": [
+                -0.09540344901370512,
+                -0.013668908703887995
+              ]
+            }
+          ]
+        },
+        "half_lines_follow_up": {
+          "n_matches": 2252,
+          "settled_weight": 2252.0,
+          "model": {
+            "log_loss": 0.7046918526466538,
+            "brier": 0.2555249463904666,
+            "mean_predicted": 0.48388828883352203,
+            "observed": 0.4857904085257549,
+            "ece": 0.0606742472859936
+          },
+          "market": {
+            "log_loss": 0.6919997998263901,
+            "brier": 0.2494403979453986,
+            "mean_predicted": 0.49817249240599737,
+            "observed": 0.4857904085257549,
+            "ece": 0.012651507314094127
+          },
+          "naive": {
+            "log_loss": 0.6931471805599454,
+            "brier": 0.25,
+            "mean_predicted": 0.5,
+            "observed": 0.4857904085257549,
+            "ece": 0.014209591474245116
+          },
+          "model_vs_naive": {
+            "log_loss_diff": 0.011544672086708533,
+            "ci95_weekly": [
+              0.005867165061104406,
+              0.016999882918763507
+            ],
+            "weeks": 118
+          },
+          "market_vs_model": {
+            "log_loss_diff": -0.01269205282026364,
+            "ci95_weekly": [
+              -0.01812942105834137,
+              -0.007127297869367272
+            ],
+            "weeks": 118
+          }
+        },
+        "lines_follow_up": {
+          "-3.25": 2,
+          "-3.00": 11,
+          "-2.75": 32,
+          "-2.50": 50,
+          "-2.25": 84,
+          "-2.00": 146,
+          "-1.75": 200,
+          "-1.50": 337,
+          "-1.25": 457,
+          "-1.00": 562,
+          "-0.75": 965,
+          "-0.50": 1199,
+          "-0.25": 1788,
+          "+0.00": 1255,
+          "+0.25": 981,
+          "+0.50": 544,
+          "+0.75": 389,
+          "+1.00": 266,
+          "+1.25": 162,
+          "+1.50": 116,
+          "+1.75": 64,
+          "+2.00": 31,
+          "+2.25": 7,
+          "+2.50": 6,
+          "+2.75": 1
+        }
+      }
+    }
+  }
+}
