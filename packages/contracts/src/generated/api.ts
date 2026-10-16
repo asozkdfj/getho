@@ -459,6 +459,7 @@ export interface components {
             leagues?: components["schemas"]["LeagueEvaluationOut"][];
             /** License */
             license: string | null;
+            market_baseline?: components["schemas"]["MarketBaselineOut"] | null;
             /** N Matches */
             n_matches: number;
             /** Production Version */
@@ -853,6 +854,51 @@ export interface components {
             log_loss: number;
             /** Log Loss Ci */
             log_loss_ci: number[];
+        };
+        /**
+         * MarketBaselineOut
+         * @description Production model vs the de-margined bookmaker market on past seasons.
+         */
+        MarketBaselineOut: {
+            /** Dataset */
+            dataset: string;
+            /** Leagues */
+            leagues?: components["schemas"]["MarketLeagueOut"][];
+            /**
+             * Log Loss Diff
+             * @description market - production (negative: market better)
+             */
+            log_loss_diff: number;
+            /** Log Loss Diff Ci */
+            log_loss_diff_ci: number[];
+            market: components["schemas"]["LeagueModelMetricOut"];
+            /** N Matches */
+            n_matches: number;
+            /** Period */
+            period: string;
+            production: components["schemas"]["LeagueModelMetricOut"];
+            /**
+             * Value Flags
+             * @description Outcomes the service flags as a large gap, and what they returned (descriptive; the service never bets)
+             */
+            value_flags?: components["schemas"]["ValueFlagOut"][];
+        };
+        /** MarketLeagueOut */
+        MarketLeagueOut: {
+            /** Code */
+            code: string;
+            /** Market Accuracy */
+            market_accuracy: number;
+            /** Market Log Loss */
+            market_log_loss: number;
+            /** N Matches */
+            n_matches: number;
+            /** Name */
+            name: string;
+            /** Production Accuracy */
+            production_accuracy: number;
+            /** Production Log Loss */
+            production_log_loss: number;
         };
         /** MissingRegularOut */
         MissingRegularOut: {
@@ -1422,6 +1468,22 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ValueFlagOut */
+        ValueFlagOut: {
+            /** Flags */
+            flags: number;
+            /** Hit Rate */
+            hit_rate: number | null;
+            /**
+             * Mean Return
+             * @description Average return per 1 unit at the market odds
+             */
+            mean_return: number | null;
+            /** Mean Return Ci */
+            mean_return_ci: (number | null)[];
+            /** Threshold */
+            threshold: number;
         };
     };
     responses: never;

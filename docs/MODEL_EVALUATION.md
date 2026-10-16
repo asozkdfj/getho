@@ -3,8 +3,10 @@
 이 문서는 `ml/reports/backtest-openfootball.json`(전체 결과)에서 생성했습니다. 다시 만들려면:
 
 ```bash
+python -m edge_ingestion.cli backtest-market --out ml/reports/backtest-market.json
 python -m edge_ingestion.cli backtest --tune \
   --leagues en.1,en.2,de.1,de.2,es.1,it.1,fr.1,nl.1,pt.1,at.1 \
+  --market-report ml/reports/backtest-market.json \
   --out ml/reports/backtest-openfootball.json
 ```
 
@@ -160,6 +162,21 @@ EPL(첫 번째 리그)은 튜닝·보정·승격 판단까지 자세히 평가�
 - EPL(주 판단): 검증 최선 변형(`congestion`) 개선 −0.00004(악화), 후속 2023-25 −0.00123(악화), CI 0 포함,
   Brier 악화 → **미채택**. Championship 재현도 같은 결론. 적중률 변화 ±0.8%p 이내.
 - 팀 수준 일정 지표입니다. 선수별 출전 시간 기반 피로는 데이터 확보 후 따로 실험합니다.
+
+## 시장(배당)과 비교 (`edge backtest-market`)
+
+데이터: football-data.co.uk 결과·Bet365 1X2 배당(GitHub MIT 사본), 9개 리그, 같은 운영 모델을 이 데이터로 학습.
+`edge backtest --market-report ml/reports/backtest-market.json`으로 요약을 본 보고서에 붙여 성과 페이지에 보여 줍니다.
+
+| 후속 2023-26 (9,663경기) | log loss ↓ | Brier ↓ | 최다 확률 적중 |
+| --- | --- | --- | --- |
+| 분석(운영 모델) | 0.9976 | 0.5956 | 51.2% |
+| 시장(Bet365, 수수료 제거) | 0.9769 | 0.5821 | 52.7% |
+
+- 시장이 log loss 0.0207 더 좋음(주 단위 95% CI [−0.0235, −0.0179]), 9개 리그 모두 같은 방향.
+- 결합 후보(0.25 분석 + 0.75 시장)는 사전 기준을 통과했지만 시장 단독보다 나빠 채택하지 않았습니다.
+- '차이 큼' 표시 결과의 평균 수익률: 후속 −17.0% [−20.9, −13.1], 검증 −9.3% (서술 분석).
+- 배당 수집 시각이 공개되지 않아 서비스의 오전 9시보다 늦은 배당일 수 있습니다.
 
 ## 순위·동기 대리 지표, 무승부 비율 보정 실험 (미채택)
 

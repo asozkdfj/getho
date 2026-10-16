@@ -9,7 +9,7 @@ import { ProbabilityBar } from "@/components/ProbabilityBar";
 import { SimulationPanel } from "@/components/SimulationPanel";
 import { TeamNewsSection } from "@/components/TeamNewsSection";
 import { ApiError, fetchFixture, fetchPrediction } from "@/lib/api";
-import { plainSummary } from "@/lib/explain";
+import { MARKET_ACCURACY_NOTE, plainSummary } from "@/lib/explain";
 import { leagueLabel, leagueNote } from "@/lib/leagues";
 import { DEFAULT_TZ } from "@/lib/config";
 import { OUTCOME_LABEL, odds, pct, signedPct, signedPoints, statusLabel, tone } from "@/lib/format";
@@ -170,6 +170,9 @@ export default async function FixturePage({ params }: { params: Params }) {
             차이 = 분석 확률 − 시장 예상, 기대값 = 분석 확률 × 배당 − 1. &lsquo;{TERM.flag}&rsquo;
             표시는 차이와 기대값이 모두 {pct(prediction.value_threshold, 0)} 이상일 때만 붙는 참고
             표시이며 추천이 아닙니다.
+          </p>
+          <p className="small caution-note">
+            ⚠ {MARKET_ACCURACY_NOTE} <Link href="/performance#market">측정 결과 보기</Link>
           </p>
         </>
       ) : (

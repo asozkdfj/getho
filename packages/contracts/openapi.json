@@ -597,6 +597,16 @@
             ],
             "title": "License"
           },
+          "market_baseline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketBaselineOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "n_matches": {
             "title": "N Matches",
             "type": "integer"
@@ -1665,6 +1675,110 @@
           "brier"
         ],
         "title": "LiveSideOut",
+        "type": "object"
+      },
+      "MarketBaselineOut": {
+        "description": "Production model vs the de-margined bookmaker market on past seasons.",
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/MarketLeagueOut"
+            },
+            "title": "Leagues",
+            "type": "array"
+          },
+          "log_loss_diff": {
+            "description": "market - production (negative: market better)",
+            "title": "Log Loss Diff",
+            "type": "number"
+          },
+          "log_loss_diff_ci": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Log Loss Diff Ci",
+            "type": "array"
+          },
+          "market": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "n_matches": {
+            "title": "N Matches",
+            "type": "integer"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "production": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "value_flags": {
+            "description": "Outcomes the service flags as a large gap, and what they returned (descriptive; the service never bets)",
+            "items": {
+              "$ref": "#/components/schemas/ValueFlagOut"
+            },
+            "title": "Value Flags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset",
+          "period",
+          "n_matches",
+          "production",
+          "market",
+          "log_loss_diff",
+          "log_loss_diff_ci"
+        ],
+        "title": "MarketBaselineOut",
+        "type": "object"
+      },
+      "MarketLeagueOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "market_accuracy": {
+            "title": "Market Accuracy",
+            "type": "number"
+          },
+          "market_log_loss": {
+            "title": "Market Log Loss",
+            "type": "number"
+          },
+          "n_matches": {
+            "title": "N Matches",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "production_accuracy": {
+            "title": "Production Accuracy",
+            "type": "number"
+          },
+          "production_log_loss": {
+            "title": "Production Log Loss",
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "n_matches",
+          "production_log_loss",
+          "market_log_loss",
+          "production_accuracy",
+          "market_accuracy"
+        ],
+        "title": "MarketLeagueOut",
         "type": "object"
       },
       "MissingRegularOut": {
@@ -3275,6 +3389,64 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValueFlagOut": {
+        "properties": {
+          "flags": {
+            "title": "Flags",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate"
+          },
+          "mean_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Average return per 1 unit at the market odds",
+            "title": "Mean Return"
+          },
+          "mean_return_ci": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Mean Return Ci",
+            "type": "array"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "threshold",
+          "flags",
+          "hit_rate",
+          "mean_return",
+          "mean_return_ci"
+        ],
+        "title": "ValueFlagOut",
         "type": "object"
       }
     }

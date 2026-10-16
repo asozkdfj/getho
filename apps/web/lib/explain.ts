@@ -21,6 +21,10 @@ export const promotedCaution = (team: string) =>
   `${team}: 승격팀이라 이번 시즌 데이터가 적어 분석이 부정확할 수 있어요`;
 export const UNVERIFIED_LEAGUE_CAUTION =
   "이 리그는 과거 기록으로 분석의 정확도를 아직 검증하지 않았어요";
+/** Measured on past seasons (see the performance page, #market): keep next to gaps and EV. */
+export const MARKET_ACCURACY_NOTE =
+  "과거 실제 경기로 비교하면 시장(배당)이 분석보다 정확했고, '차이 큼'이 붙은 결과는 실제로 손해였어요. 차이는 분석이 틀렸을 가능성도 크다는 뜻이에요.";
+
 export const LARGE_GAP_CAUTION =
   "차이가 매우 커요. 시장은 부상·이적 같은 최신 소식을 이미 반영했을 수 있어요";
 

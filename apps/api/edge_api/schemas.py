@@ -575,6 +575,42 @@ class LeagueEvaluationOut(ApiModel):
     data_warnings: list[str] = Field(default_factory=list)
 
 
+class MarketLeagueOut(ApiModel):
+    code: str
+    name: str
+    n_matches: int
+    production_log_loss: float
+    market_log_loss: float
+    production_accuracy: float
+    market_accuracy: float
+
+
+class ValueFlagOut(ApiModel):
+    threshold: float
+    flags: int
+    hit_rate: float | None
+    mean_return: float | None = Field(description="Average return per 1 unit at the market odds")
+    mean_return_ci: list[float | None]
+
+
+class MarketBaselineOut(ApiModel):
+    """Production model vs the de-margined bookmaker market on past seasons."""
+
+    dataset: str
+    period: str
+    n_matches: int
+    production: LeagueModelMetricOut
+    market: LeagueModelMetricOut
+    log_loss_diff: float = Field(description="market - production (negative: market better)")
+    log_loss_diff_ci: list[float]
+    leagues: list[MarketLeagueOut] = Field(default_factory=list)
+    value_flags: list[ValueFlagOut] = Field(
+        default_factory=list,
+        description="Outcomes the service flags as a large gap, and what they returned"
+        " (descriptive; the service never bets)",
+    )
+
+
 class EvaluationOut(ApiModel):
     id: int
     created_at: datetime
@@ -597,6 +633,7 @@ class EvaluationOut(ApiModel):
         " later kickoffs only). Timing only: not a replay of live odds or quality checks.",
     )
     leagues: list[LeagueEvaluationOut] = Field(default_factory=list)
+    market_baseline: MarketBaselineOut | None = None
     promotion_decisions: dict[str, list[str]]
 
 

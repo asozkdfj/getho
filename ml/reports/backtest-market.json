@@ -1,0 +1,634 @@
+{
+  "generated_at": "2026-10-16T05:01:00.037057+00:00",
+  "experiment": "market_baseline_and_blend_v1",
+  "production_model": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "protocol": "`edge backtest-market` - model vs market, and does blending with the market help?\n\nPre-registered protocol (committed before the first run; do not edit after results):\n\nData     Club Football Match Data (football-data.co.uk results + Bet365 1X2\n         pre-match odds, MIT copy on GitHub), 2018-19..2025-26; file SHA-256\n         in the report. 9 leagues pooled: en.1 en.2 de.1 de.2 es.1 it.1 fr.1\n         nl.1 pt.1 (at.1 is not in this file's verified set and has a split\n         format). The production model is trained on these results.\nTiming   Production model refitted weekly, results enter training 3 h after\n         kickoff, refit grid restarts at the warm-up, validation and\n         follow-up starts (same engine as the other experiments).\nMarket   Bet365 odds with the margin removed proportionally (as the service\n         does). The capture time of these odds is not documented: they are\n         pre-match but may be later than the service's 09:00 KST decision.\nPart A   Measurement only, no decision: production vs market on validation\n         (2020-21..2022-23) and follow-up (2023-24..2025-26): log loss, Brier,\n         accuracy, weekly paired 95% CI.\nPart B   Candidate: linear pool  p = w * production + (1 - w) * market,\n         w in {0.25, 0.50, 0.75}; choose w on validation (lowest pooled log\n         loss). Market alone (w = 0) is reported but is NOT a candidate: the\n         service's analysis must stay an estimate of its own that can be\n         compared with the market.\nGate     validation gain >= 0.001 AND follow-up gain >= 0.002 AND weekly\n         paired 95% CI upper bound < 0 AND Brier not worse (pooled), against\n         production. Passing is a research result only: no automatic\n         deployment (a blend would also change what the \"gap vs market\"\n         numbers in the product mean - a product decision).\n",
+  "source": {
+    "url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/Matches.csv",
+    "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221",
+    "attribution": "football-data.co.uk via xgabora/Club-Football-Match-Data (MIT)"
+  },
+  "leagues": [
+    "en.1",
+    "en.2",
+    "de.1",
+    "de.2",
+    "es.1",
+    "it.1",
+    "fr.1",
+    "nl.1",
+    "pt.1"
+  ],
+  "matches_per_season": {
+    "en.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "en.2": {
+      "2018-19": 552,
+      "2019-20": 552,
+      "2020-21": 552,
+      "2021-22": 552,
+      "2022-23": 552,
+      "2023-24": 552,
+      "2024-25": 550,
+      "2025-26": 552
+    },
+    "de.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "de.2": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "es.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "it.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "fr.1": {
+      "2018-19": 380,
+      "2019-20": 279,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 306,
+      "2024-25": 305,
+      "2025-26": 306
+    },
+    "nl.1": {
+      "2018-19": 306,
+      "2019-20": 232,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "pt.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    }
+  },
+  "n_predicted": 22672,
+  "n_with_odds": 22671,
+  "part_a_model_vs_market": {
+    "validation": {
+      "n_matches": 9887,
+      "production": {
+        "log_loss": 1.002747423694829,
+        "brier": 0.5984885919352839,
+        "accuracy": 0.5100637200364114,
+        "ece": 0.01439435375751096
+      },
+      "market": {
+        "log_loss": 0.9846600180937576,
+        "brier": 0.586520015038345,
+        "accuracy": 0.524021442297967,
+        "ece": 0.009345550919619658
+      },
+      "market_vs_production": {
+        "log_loss_diff": -0.018087405601071534,
+        "log_loss_diff_ci95_weekly": [
+          -0.021182317966578847,
+          -0.014971970061238814
+        ],
+        "brier_diff": -0.011968576896938947,
+        "accuracy_diff": 0.013957722261555578,
+        "weeks": 123
+      }
+    },
+    "follow_up": {
+      "n_matches": 9663,
+      "production": {
+        "log_loss": 0.9975764649213771,
+        "brier": 0.5955908882140436,
+        "accuracy": 0.5118493221566801,
+        "ece": 0.017548809302709547
+      },
+      "market": {
+        "log_loss": 0.9769128353466942,
+        "brier": 0.5820777725984484,
+        "accuracy": 0.5273724516195798,
+        "ece": 0.015178306640688519
+      },
+      "market_vs_production": {
+        "log_loss_diff": -0.020663629574683078,
+        "log_loss_diff_ci95_weekly": [
+          -0.023509634040504733,
+          -0.017871111726364033
+        ],
+        "brier_diff": -0.01351311561559523,
+        "accuracy_diff": 0.01552312946289972,
+        "weeks": 121
+      }
+    },
+    "per_league_follow_up": {
+      "en.1": {
+        "n_matches": 1140,
+        "production": {
+          "log_loss": 0.9831942590741808,
+          "brier": 0.5856968087816355,
+          "accuracy": 0.5219298245614035,
+          "ece": 0.027434536185957616
+        },
+        "market": {
+          "log_loss": 0.9661166070357989,
+          "brier": 0.5745096109072725,
+          "accuracy": 0.5403508771929825,
+          "ece": 0.02135586447849418
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.01707765203838167,
+          "log_loss_diff_ci95_weekly": [
+            -0.026202524140233514,
+            -0.008510740037484754
+          ],
+          "brier_diff": -0.011187197874363054,
+          "accuracy_diff": 0.018421052631578946,
+          "weeks": 109
+        }
+      },
+      "en.2": {
+        "n_matches": 1654,
+        "production": {
+          "log_loss": 1.0510906087289835,
+          "brier": 0.6334608343751289,
+          "accuracy": 0.4540507859733978,
+          "ece": 0.021690368328616184
+        },
+        "market": {
+          "log_loss": 1.0282801826647752,
+          "brier": 0.6181205669470377,
+          "accuracy": 0.4740024183796856,
+          "ece": 0.012073872765171087
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.022810426064208498,
+          "log_loss_diff_ci95_weekly": [
+            -0.031910278233623426,
+            -0.013901912903217085
+          ],
+          "brier_diff": -0.015340267428091428,
+          "accuracy_diff": 0.01995163240628779,
+          "weeks": 106
+        }
+      },
+      "de.1": {
+        "n_matches": 918,
+        "production": {
+          "log_loss": 0.9925218594100922,
+          "brier": 0.5904960663766002,
+          "accuracy": 0.528322440087146,
+          "ece": 0.038570243965147855
+        },
+        "market": {
+          "log_loss": 0.9623223680190288,
+          "brier": 0.5709614418546003,
+          "accuracy": 0.5370370370370371,
+          "ece": 0.030068094416672287
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.030199491391063427,
+          "log_loss_diff_ci95_weekly": [
+            -0.03885634833128019,
+            -0.02140805643017419
+          ],
+          "brier_diff": -0.019534624522000086,
+          "accuracy_diff": 0.008714596949891068,
+          "weeks": 100
+        }
+      },
+      "de.2": {
+        "n_matches": 918,
+        "production": {
+          "log_loss": 1.0488145758496865,
+          "brier": 0.6318456849710802,
+          "accuracy": 0.46949891067538124,
+          "ece": 0.022311792106269983
+        },
+        "market": {
+          "log_loss": 1.037525290228468,
+          "brier": 0.6236817509280577,
+          "accuracy": 0.4880174291938998,
+          "ece": 0.018263725510086305
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.011289285621218715,
+          "log_loss_diff_ci95_weekly": [
+            -0.023092410163540276,
+            0.0004222295482165733
+          ],
+          "brier_diff": -0.008163934043022602,
+          "accuracy_diff": 0.018518518518518517,
+          "weeks": 102
+        }
+      },
+      "es.1": {
+        "n_matches": 1140,
+        "production": {
+          "log_loss": 0.9781008375095369,
+          "brier": 0.5811745136836008,
+          "accuracy": 0.5307017543859649,
+          "ece": 0.03976102324689349
+        },
+        "market": {
+          "log_loss": 0.9553579610905724,
+          "brier": 0.5663798419701709,
+          "accuracy": 0.5517543859649123,
+          "ece": 0.029508387980805902
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.022742876418964553,
+          "log_loss_diff_ci95_weekly": [
+            -0.029997279856392625,
+            -0.015620697465919809
+          ],
+          "brier_diff": -0.014794671713429982,
+          "accuracy_diff": 0.021052631578947368,
+          "weeks": 110
+        }
+      },
+      "it.1": {
+        "n_matches": 1140,
+        "production": {
+          "log_loss": 0.9882396790955958,
+          "brier": 0.590187868340112,
+          "accuracy": 0.5263157894736842,
+          "ece": 0.03691884910784294
+        },
+        "market": {
+          "log_loss": 0.9673777454658,
+          "brier": 0.5761384613963044,
+          "accuracy": 0.537719298245614,
+          "ece": 0.037025264554345794
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.020861933629795854,
+          "log_loss_diff_ci95_weekly": [
+            -0.029100612858345257,
+            -0.012569053259316836
+          ],
+          "brier_diff": -0.014049406943807538,
+          "accuracy_diff": 0.011403508771929825,
+          "weeks": 111
+        }
+      },
+      "fr.1": {
+        "n_matches": 917,
+        "production": {
+          "log_loss": 1.0033956778500677,
+          "brier": 0.6000605075165145,
+          "accuracy": 0.5288985823336968,
+          "ece": 0.018988374993548576
+        },
+        "market": {
+          "log_loss": 0.9820464651717681,
+          "brier": 0.5856305392636838,
+          "accuracy": 0.5288985823336968,
+          "ece": 0.015470838782341378
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.021349212678299482,
+          "log_loss_diff_ci95_weekly": [
+            -0.03079535629717574,
+            -0.01200084693684233
+          ],
+          "brier_diff": -0.014429968252830553,
+          "accuracy_diff": 0.0,
+          "weeks": 101
+        }
+      },
+      "nl.1": {
+        "n_matches": 918,
+        "production": {
+          "log_loss": 0.9621379024263418,
+          "brier": 0.5702866771816734,
+          "accuracy": 0.5381263616557734,
+          "ece": 0.03347379758720249
+        },
+        "market": {
+          "log_loss": 0.9433710489651613,
+          "brier": 0.5592129830379968,
+          "accuracy": 0.5522875816993464,
+          "ece": 0.030854383921360175
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.01876685346118046,
+          "log_loss_diff_ci95_weekly": [
+            -0.028606895609792397,
+            -0.009423478716965942
+          ],
+          "brier_diff": -0.011073694143676465,
+          "accuracy_diff": 0.014161220043572984,
+          "weeks": 102
+        }
+      },
+      "pt.1": {
+        "n_matches": 918,
+        "production": {
+          "log_loss": 0.9382402950313078,
+          "brier": 0.5539375516940657,
+          "accuracy": 0.5446623093681917,
+          "ece": 0.038571553368720604
+        },
+        "market": {
+          "log_loss": 0.9187693753254467,
+          "brier": 0.5422343166755718,
+          "accuracy": 0.5675381263616558,
+          "ece": 0.04354183646187103
+        },
+        "market_vs_production": {
+          "log_loss_diff": -0.01947091970586108,
+          "log_loss_diff_ci95_weekly": [
+            -0.027770503318280525,
+            -0.010891672695405885
+          ],
+          "brier_diff": -0.011703235018493893,
+          "accuracy_diff": 0.02287581699346405,
+          "weeks": 107
+        }
+      }
+    }
+  },
+  "validation": {
+    "seasons": [
+      "2020-21",
+      "2021-22",
+      "2022-23"
+    ],
+    "n_matches": 9887,
+    "production": {
+      "log_loss": 1.002747423694829,
+      "brier": 0.5984885919352839,
+      "accuracy": 0.5100637200364114,
+      "ece": 0.01439435375751096
+    },
+    "blend_w0.25": {
+      "log_loss": 0.9869025715077171,
+      "brier": 0.5879233806845329,
+      "accuracy": 0.5241225852129059,
+      "ece": 0.01203994725544999,
+      "vs_production": {
+        "log_loss_diff": -0.015844852187111836,
+        "log_loss_diff_ci95_weekly": [
+          -0.01820624426293613,
+          -0.013479637122086665
+        ],
+        "brier_diff": -0.010565211250751137,
+        "accuracy_diff": 0.014058865176494387,
+        "weeks": 123
+      }
+    },
+    "blend_w0.50": {
+      "log_loss": 0.9906896088340084,
+      "brier": 0.5903859320494185,
+      "accuracy": 0.5211894406796804,
+      "ece": 0.014134459850164982,
+      "vs_production": {
+        "log_loss_diff": -0.012057814860820507,
+        "log_loss_diff_ci95_weekly": [
+          -0.013696198739201833,
+          -0.01047860163907609
+        ],
+        "brier_diff": -0.008102659885865376,
+        "accuracy_diff": 0.011125720643268939,
+        "weeks": 123
+      }
+    },
+    "blend_w0.75": {
+      "log_loss": 0.9959663587648497,
+      "brier": 0.5939076691330023,
+      "accuracy": 0.5147162941235967,
+      "ece": 0.01415858107463962,
+      "vs_production": {
+        "log_loss_diff": -0.006781064929979055,
+        "log_loss_diff_ci95_weekly": [
+          -0.007617140825426631,
+          -0.005973766588427164
+        ],
+        "brier_diff": -0.004580922802281664,
+        "accuracy_diff": 0.004652574087185193,
+        "weeks": 123
+      }
+    },
+    "market_only": {
+      "log_loss": 0.9846600180937576,
+      "brier": 0.586520015038345,
+      "accuracy": 0.524021442297967,
+      "ece": 0.009345550919619658,
+      "vs_production": {
+        "log_loss_diff": -0.018087405601071534,
+        "log_loss_diff_ci95_weekly": [
+          -0.021182317966578847,
+          -0.014971970061238814
+        ],
+        "brier_diff": -0.011968576896938947,
+        "accuracy_diff": 0.013957722261555578,
+        "weeks": 123
+      }
+    }
+  },
+  "follow_up": {
+    "seasons": [
+      "2023-24",
+      "2024-25",
+      "2025-26"
+    ],
+    "n_matches": 9663,
+    "production": {
+      "log_loss": 0.9975764649213771,
+      "brier": 0.5955908882140436,
+      "accuracy": 0.5118493221566801,
+      "ece": 0.017548809302709547
+    },
+    "blend_w0.25": {
+      "log_loss": 0.9799533161874002,
+      "brier": 0.5839152711971818,
+      "accuracy": 0.5260271137327952,
+      "ece": 0.017660473579376258,
+      "vs_production": {
+        "log_loss_diff": -0.017623148733976864,
+        "log_loss_diff_ci95_weekly": [
+          -0.019754990108792298,
+          -0.015514752953309686
+        ],
+        "brier_diff": -0.01167561701686182,
+        "accuracy_diff": 0.014177791576115078,
+        "weeks": 121
+      }
+    },
+    "blend_w0.50": {
+      "log_loss": 0.9844157222948664,
+      "brier": 0.5867799566660254,
+      "accuracy": 0.522094587602194,
+      "ece": 0.018843182915735186,
+      "vs_production": {
+        "log_loss_diff": -0.013160742626510784,
+        "log_loss_diff_ci95_weekly": [
+          -0.01461336081440201,
+          -0.011721937522882437
+        ],
+        "brier_diff": -0.008810931548018144,
+        "accuracy_diff": 0.010245265445513815,
+        "weeks": 121
+      }
+    },
+    "blend_w0.75": {
+      "log_loss": 0.9902779747189773,
+      "brier": 0.5906718290049795,
+      "accuracy": 0.518369036531098,
+      "ece": 0.017742382358746735,
+      "vs_production": {
+        "log_loss_diff": -0.007298490202399977,
+        "log_loss_diff_ci95_weekly": [
+          -0.008030314576428619,
+          -0.006569356647828214
+        ],
+        "brier_diff": -0.004919059209064204,
+        "accuracy_diff": 0.006519714374417882,
+        "weeks": 121
+      }
+    },
+    "market_only": {
+      "log_loss": 0.9769128353466942,
+      "brier": 0.5820777725984484,
+      "accuracy": 0.5273724516195798,
+      "ece": 0.015178306640688519,
+      "vs_production": {
+        "log_loss_diff": -0.020663629574683078,
+        "log_loss_diff_ci95_weekly": [
+          -0.023509634040504733,
+          -0.017871111726364033
+        ],
+        "brier_diff": -0.01351311561559523,
+        "accuracy_diff": 0.01552312946289972,
+        "weeks": 121
+      }
+    }
+  },
+  "gate": {
+    "selected_on_validation": "blend_w0.25",
+    "validation_gain": 0.015844852187111957,
+    "follow_up_gain": 0.017623148733976864,
+    "checks": {
+      "validation_gain>=0.001": true,
+      "follow_up_gain>=0.002": true,
+      "weekly_ci_upper<0": true,
+      "brier_not_worse": true
+    },
+    "passes": true,
+    "deployed": false
+  },
+  "descriptive_value_flags": {
+    "note": "added after the first run; descriptive, not part of the gate",
+    "validation": [
+      {
+        "threshold": 0.03,
+        "flags": 7162,
+        "hit_rate": 0.27185143814576934,
+        "mean_return": -0.09349343758726612,
+        "mean_return_ci95_weekly": [
+          -0.13161810896980136,
+          -0.053630736661403895
+        ]
+      },
+      {
+        "threshold": 0.05,
+        "flags": 4552,
+        "hit_rate": 0.28690685413005274,
+        "mean_return": -0.08128514938488576,
+        "mean_return_ci95_weekly": [
+          -0.12523201103847967,
+          -0.034376265869734246
+        ]
+      },
+      {
+        "threshold": 0.1,
+        "flags": 1063,
+        "hit_rate": 0.277516462841016,
+        "mean_return": -0.15496707431796802,
+        "mean_return_ci95_weekly": [
+          -0.25016831867450096,
+          -0.05712626185930811
+        ]
+      }
+    ],
+    "follow_up": [
+      {
+        "threshold": 0.03,
+        "flags": 6795,
+        "hit_rate": 0.2543046357615894,
+        "mean_return": -0.1695746872700515,
+        "mean_return_ci95_weekly": [
+          -0.2088092224063651,
+          -0.1312053980357426
+        ]
+      },
+      {
+        "threshold": 0.05,
+        "flags": 4235,
+        "hit_rate": 0.2668240850059032,
+        "mean_return": -0.17069893742621015,
+        "mean_return_ci95_weekly": [
+          -0.2154442175036146,
+          -0.1238214506266255
+        ]
+      },
+      {
+        "threshold": 0.1,
+        "flags": 979,
+        "hit_rate": 0.2839632277834525,
+        "mean_return": -0.1664862104187947,
+        "mean_return_ci95_weekly": [
+          -0.25353439764283026,
+          -0.07826978598643684
+        ]
+      }
+    ]
+  }
+}

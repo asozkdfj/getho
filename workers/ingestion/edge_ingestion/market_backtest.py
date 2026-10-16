@@ -51,6 +51,7 @@ from edge_ingestion.feature_experiment import (
 )
 from edge_ingestion.history import club_match_data
 from edge_ml.market import devig
+from edge_ml.metrics import cluster_bootstrap_ci
 from edge_ml.model import FEATURE_SET, MODEL_VERSION, ModelParams
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,42 @@ def add_arguments(p: argparse.ArgumentParser) -> None:
 
 def market_probs(rows: list[Row]) -> np.ndarray:
     return np.asarray([devig(r.match.odds) for r in rows], dtype=float).reshape(-1, 3)
+
+
+VALUE_FLAG_THRESHOLDS = (0.03, 0.05, 0.10)
+
+
+def value_flags(
+    rows: list[Row], prod: np.ndarray, market: np.ndarray, seasons: list[str]
+) -> list[dict[str, Any]]:
+    """DESCRIPTIVE, added after the first run (not part of the gate): what the
+    outcomes the service marks "large gap" (model - market >= t AND expected
+    value >= t, value_threshold) returned at these odds, 1 unit each. The
+    product never places bets; this only checks whether the flag carries value."""
+    out = []
+    in_scope = [r.match.result.season in seasons for r in rows]
+    for t in VALUE_FLAG_THRESHOLDS:
+        returns, weeks = [], []
+        for i, r in enumerate(rows):
+            if not in_scope[i]:
+                continue
+            odds = r.match.odds
+            for k in range(3):
+                if prod[i, k] - market[i, k] >= t and prod[i, k] * odds[k] - 1 >= t:
+                    returns.append((odds[k] if r.match.outcome_index == k else 0.0) - 1.0)
+                    weeks.append(r.match.result.kickoff_at.isocalendar()[:2])
+        values = np.asarray(returns)
+        lo, hi = cluster_bootstrap_ci(values, weeks) if len(values) else (None, None)
+        out.append(
+            {
+                "threshold": t,
+                "flags": len(values),
+                "hit_rate": float((values > -1).mean()) if len(values) else None,
+                "mean_return": float(values.mean()) if len(values) else None,
+                "mean_return_ci95_weekly": [lo, hi],
+            }
+        )
+    return out
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -136,6 +173,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "validation": validation,
         "follow_up": follow_up,
         "gate": gate(validation, follow_up, [f"blend_w{w:.2f}" for w in WEIGHTS]),
+        "descriptive_value_flags": {
+            "note": "added after the first run; descriptive, not part of the gate",
+            "validation": value_flags(rows, prod, market, VALIDATION),
+            "follow_up": value_flags(rows, prod, market, FOLLOW_UP),
+        },
     }
     if args.out:
         args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

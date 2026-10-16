@@ -285,6 +285,14 @@ def test_performance_endpoint_serves_imported_backtest(client, session_factory):
     names = {m["name"] for m in ev["test"]}
     assert {"base_rate", "production"} <= names
     assert ev["calibration"] and ev["daily_picks"]
+    # past-season comparison with the de-margined market (committed report)
+    mb = ev["market_baseline"]
+    assert mb["n_matches"] > 9000 and len(mb["leagues"]) == 9
+    assert mb["log_loss_diff"] == pytest.approx(
+        mb["market"]["log_loss"] - mb["production"]["log_loss"], abs=1e-9
+    )
+    assert mb["log_loss_diff_ci"][0] <= mb["log_loss_diff"] <= mb["log_loss_diff_ci"][1]
+    assert [v["threshold"] for v in mb["value_flags"]] == [0.03, 0.05, 0.1]
     assert body["live"]["is_demo"] is True
 
 
