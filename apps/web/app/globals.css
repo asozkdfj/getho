@@ -1313,3 +1313,63 @@ table.glossary th[scope="row"] {
   height: 100%;
   background: var(--accent);
 }
+
+/* Confidence tiers: a quiet tint, not a highlight (lib/confidence.ts). Blue, so it
+   is not read as the green gap colour or the green edge of highlight cards. */
+.fixture-card.conf-high {
+  border-left: 4px solid var(--accent);
+}
+.fixture-card.conf-medium {
+  border-left: 4px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.status.conf-tag-high {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.status.conf-tag-medium {
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.mini-cell.conf-top .mini-model {
+  font-weight: 800;
+}
+.conf-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+}
+.conf-swatch {
+  display: inline-block;
+  width: 4px;
+  height: 1em;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.conf-swatch.medium {
+  background: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+/* Auto combination */
+.auto-combo h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.auto-combo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0 6px;
+}
+.auto-combo-row select {
+  margin-left: 6px;
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
