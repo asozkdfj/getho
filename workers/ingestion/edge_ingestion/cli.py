@@ -30,6 +30,7 @@ from edge_ingestion import (
     draw_backtest,
     fatigue_backtest,
     lineup_backtest,
+    market_backtest,
     standings_backtest,
 )
 from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
@@ -112,6 +113,9 @@ def main(argv: list[str] | None = None) -> int:
     draw_backtest.add_arguments(
         sub.add_parser("backtest-draws", help="does a rolling draw-rate recalibration help?")
     )
+    market_backtest.add_arguments(
+        sub.add_parser("backtest-market", help="model vs market, and blending with the market")
+    )
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
@@ -143,6 +147,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backtest-draws":
         configure_logging(get_settings().log_level)
         report = draw_backtest.run(args)
+        print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "backtest-market":
+        configure_logging(get_settings().log_level)
+        report = market_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
         return 0
 
