@@ -209,6 +209,8 @@ def test_published_pick_cites_the_backtest_of_the_current_model(session_factory,
         pick = publish_daily_pick(s, settings(pick_min_probability=0.55), pick_now)
         bt = pick.evidence["backtest"]
         assert bt is not None and bt["threshold"] <= 0.55 and bt["days_with_pick"] > 0
+        # the replay with the service's timing is cited, not the whole-day count
+        assert bt["decision_hour"] == 9
 
 
 def test_pick_scope_limits_candidate_leagues(session_factory, seeded, now):

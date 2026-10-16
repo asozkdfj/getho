@@ -18,12 +18,23 @@ export function Highlights({
   title = "이번 주 주목할 경기",
   showLeague = true,
 }: {
-  data: HighlightList;
+  /** null = the request failed (the rest of the page still renders) */
+  data: HighlightList | null;
   tz: string;
   title?: string;
   /** Off on a league page, where every card is the same league. */
   showLeague?: boolean;
 }) {
+  if (data === null) {
+    return (
+      <section className="highlights" aria-labelledby="highlights-title">
+        <h2 id="highlights-title">{title}</h2>
+        <p className="card small error">
+          주목할 경기를 불러오지 못했어요. 잠시 후 새로고침해 주세요.
+        </p>
+      </section>
+    );
+  }
   const shared = sharedCaveats(data.items);
   return (
     <section className="highlights" aria-labelledby="highlights-title">
@@ -40,7 +51,8 @@ export function Highlights({
       )}
       {data.items.length === 0 ? (
         <p className="card small">
-          이번 주에는 분석과 시장의 생각이 크게 다른 경기가 없어요. 둘의 시각이 비슷하다는 뜻이에요.
+          지금 보여 드릴 주목할 경기가 없어요. 분석이 있는 예정 경기가 없거나, 분석과 시장의 차이가
+          표시 기준에 못 미친 경우예요.
         </p>
       ) : (
         <div className="grid-2">

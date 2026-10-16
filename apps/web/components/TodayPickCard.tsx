@@ -9,6 +9,7 @@ import {
   pickOutcomeText,
   pickReasons,
   backtestScope,
+  backtestTimingText,
   periodText,
   pickStatusInfo,
   rateWithCi,
@@ -112,8 +113,10 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
           {pick.backtest && (
             <p className="small pick-backtest">
               같은 규칙의 과거 적중률{" "}
-              <strong>{rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}</strong> —
-              과거 성과가 앞으로를 보장하지 않아요.
+              <strong>{rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}</strong> ·
+              픽이 나온 날{" "}
+              {pct(pick.backtest.days_with_pick / Math.max(pick.backtest.match_days, 1), 0)} — 과거
+              성과가 앞으로를 보장하지 않아요.
             </p>
           )}
 
@@ -135,6 +138,7 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
                 적용하면 {pick.backtest.match_days}일 중 {pick.backtest.days_with_pick}일에 픽이
                 나왔고, 적중률 {rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}, 평균
                 분석 확률 {pct(pick.backtest.mean_pick_probability, 0)}였어요.{" "}
+                {backtestTimingText(pick.backtest.decision_hour)}{" "}
                 <Link href="/performance#daily">규칙 백테스트 자세히</Link>
               </p>
             )}

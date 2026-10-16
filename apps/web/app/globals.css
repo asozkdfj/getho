@@ -720,12 +720,6 @@ td.leg-cell {
   .stat .value {
     font-size: 1.15rem;
   }
-  .pick-prob-value {
-    font-size: 1.6rem;
-  }
-  .pick-outcome {
-    font-size: 1.15rem;
-  }
 }
 
 /* guide */
@@ -879,6 +873,8 @@ table.glossary th[scope="row"] {
 .pick-outcome {
   font-size: 1.35rem;
   font-weight: 800;
+  word-break: keep-all; /* do not split "승리" in two */
+  overflow-wrap: anywhere;
 }
 .pick-prob {
   text-align: right;
@@ -889,6 +885,15 @@ table.glossary th[scope="row"] {
   font-variant-numeric: tabular-nums;
   color: var(--brand);
   line-height: 1.1;
+}
+/* after the base rules: a media query does not raise specificity (QA-08) */
+@media (max-width: 520px) {
+  .pick-prob-value {
+    font-size: 1.6rem;
+  }
+  .pick-outcome {
+    font-size: 1.15rem;
+  }
 }
 .pick-result {
   font-weight: 700;

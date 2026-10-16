@@ -274,3 +274,11 @@ export function backtestScope(leagues: string[] | null | undefined): string {
   if (leagues.length === 1) return `실제 ${leagues[0]} 경기`;
   return `검증된 ${leagues.length}개 리그의 실제 경기`;
 }
+
+/** How the pick rule was replayed: the service's timing or the older whole-day count. */
+export function backtestTimingText(decisionHour: number | null | undefined): string {
+  if (decisionHour === null || decisionHour === undefined) {
+    return "그날 모든 경기를 후보로 본 계산이라, 실제 서비스보다 픽이 나오는 날이 많게 나와요.";
+  }
+  return `서비스처럼 오전 ${decisionHour}시에 그 뒤 경기만 후보로 보고 다시 계산했어요(배당·수집 상태 점검은 재현하지 않음).`;
+}

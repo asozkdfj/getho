@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15T22:40:52.921663+00:00",
+  "generated_at": "2026-10-16T03:03:12.403712+00:00",
   "data": {
     "name": "openfootball/football.json",
     "license": "public domain (CC0)",
@@ -4710,6 +4710,7 @@
     }
   ],
   "daily_pick_backtest": {
+    "evaluation_scope": "whole_day_not_live_replay",
     "model": "production",
     "tz": "Asia/Seoul",
     "leagues": [
@@ -4727,6 +4728,9 @@
     "rows": [
       {
         "min_probability": 0.0,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 1.0,
         "match_days": 654,
         "days_with_pick": 654,
         "hits": 462,
@@ -4739,6 +4743,9 @@
       },
       {
         "min_probability": 0.45,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.9495412844036697,
         "match_days": 654,
         "days_with_pick": 621,
         "hits": 450,
@@ -4751,6 +4758,9 @@
       },
       {
         "min_probability": 0.5,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.9159021406727829,
         "match_days": 654,
         "days_with_pick": 599,
         "hits": 442,
@@ -4763,6 +4773,9 @@
       },
       {
         "min_probability": 0.55,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.8409785932721713,
         "match_days": 654,
         "days_with_pick": 550,
         "hits": 414,
@@ -4775,6 +4788,9 @@
       },
       {
         "min_probability": 0.6,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.7339449541284404,
         "match_days": 654,
         "days_with_pick": 480,
         "hits": 369,
@@ -4787,6 +4803,9 @@
       },
       {
         "min_probability": 0.65,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.6345565749235474,
         "match_days": 654,
         "days_with_pick": 415,
         "hits": 323,
@@ -4799,6 +4818,9 @@
       },
       {
         "min_probability": 0.7,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.47706422018348627,
         "match_days": 654,
         "days_with_pick": 312,
         "hits": 251,
@@ -4811,6 +4833,9 @@
       },
       {
         "min_probability": 0.75,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.3058103975535168,
         "match_days": 654,
         "days_with_pick": 200,
         "hits": 166,
@@ -4823,6 +4848,9 @@
       },
       {
         "min_probability": 0.8,
+        "decision_hour": null,
+        "eligible_matches": 9912,
+        "coverage": 0.13608562691131498,
         "match_days": 654,
         "days_with_pick": 89,
         "hits": 72,
@@ -4832,6 +4860,162 @@
           0.8771814466723377
         ],
         "mean_pick_probability": 0.8307181625750719
+      }
+    ]
+  },
+  "daily_pick_timing_proxy": {
+    "evaluation_scope": "timing_only_not_live_quality_replay",
+    "selection_bias": "league scope selected on the same test results",
+    "model": "production",
+    "tz": "Asia/Seoul",
+    "decision_hour": 9,
+    "leagues": [
+      "en.1",
+      "en.2",
+      "de.1",
+      "de.2",
+      "es.1",
+      "it.1",
+      "fr.1",
+      "nl.1",
+      "pt.1",
+      "at.1"
+    ],
+    "rows": [
+      {
+        "min_probability": 0.0,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.3853211009174312,
+        "match_days": 654,
+        "days_with_pick": 252,
+        "hits": 176,
+        "hit_rate": 0.6984126984126984,
+        "hit_rate_ci": [
+          0.6391161491067668,
+          0.751750699755967
+        ],
+        "mean_pick_probability": 0.6810286192404452
+      },
+      {
+        "min_probability": 0.45,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.37155963302752293,
+        "match_days": 654,
+        "days_with_pick": 243,
+        "hits": 174,
+        "hit_rate": 0.7160493827160493,
+        "hit_rate_ci": [
+          0.6563343657852573,
+          0.7690396392446889
+        ],
+        "mean_pick_probability": 0.6912577528618671
+      },
+      {
+        "min_probability": 0.5,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.36850152905198774,
+        "match_days": 654,
+        "days_with_pick": 241,
+        "hits": 173,
+        "hit_rate": 0.7178423236514523,
+        "hit_rate_ci": [
+          0.6579474619176029,
+          0.77090123046147
+        ],
+        "mean_pick_probability": 0.6930081568571449
+      },
+      {
+        "min_probability": 0.55,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.36085626911314983,
+        "match_days": 654,
+        "days_with_pick": 236,
+        "hits": 172,
+        "hit_rate": 0.7288135593220338,
+        "hit_rate_ci": [
+          0.6687646586583046,
+          0.781532537491154
+        ],
+        "mean_pick_probability": 0.6965260781697503
+      },
+      {
+        "min_probability": 0.6,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.3103975535168196,
+        "match_days": 654,
+        "days_with_pick": 203,
+        "hits": 154,
+        "hit_rate": 0.7586206896551724,
+        "hit_rate_ci": [
+          0.6953023600367221,
+          0.8123324677735442
+        ],
+        "mean_pick_probability": 0.7159997307955579
+      },
+      {
+        "min_probability": 0.65,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.26452599388379205,
+        "match_days": 654,
+        "days_with_pick": 173,
+        "hits": 135,
+        "hit_rate": 0.7803468208092486,
+        "hit_rate_ci": [
+          0.7129329880375037,
+          0.8355804839057495
+        ],
+        "mean_pick_probability": 0.7306141832384071
+      },
+      {
+        "min_probability": 0.7,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.17584097859327216,
+        "match_days": 654,
+        "days_with_pick": 115,
+        "hits": 89,
+        "hit_rate": 0.7739130434782608,
+        "hit_rate_ci": [
+          0.689332717144397,
+          0.840784682823291
+        ],
+        "mean_pick_probability": 0.7585293344166176
+      },
+      {
+        "min_probability": 0.75,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.07951070336391437,
+        "match_days": 654,
+        "days_with_pick": 52,
+        "hits": 42,
+        "hit_rate": 0.8076923076923077,
+        "hit_rate_ci": [
+          0.6810087893080524,
+          0.8920406935147892
+        ],
+        "mean_pick_probability": 0.7983917228691291
+      },
+      {
+        "min_probability": 0.8,
+        "decision_hour": 9,
+        "eligible_matches": 3624,
+        "coverage": 0.0290519877675841,
+        "match_days": 654,
+        "days_with_pick": 19,
+        "hits": 14,
+        "hit_rate": 0.7368421052631579,
+        "hit_rate_ci": [
+          0.5120803155892935,
+          0.8819376166045982
+        ],
+        "mean_pick_probability": 0.8388543165326422
       }
     ]
   },

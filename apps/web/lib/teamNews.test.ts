@@ -44,6 +44,24 @@ describe("team news wording", () => {
     );
   });
 
+  it("never calls an unknown or doubtful regular a non-regular (QA-07)", () => {
+    const doubtful = {
+      player_id: "1",
+      name: "Player",
+      status: "doubtful" as const,
+      reason: "Knock",
+      regular: false,
+    };
+    // too little history to know who the regulars are
+    expect(sideSummary(side({ absences: [doubtful], regulars_known: false }))).toBe(
+      "결장·출전 불투명 1명 (주전인지 판단할 출전 기록이 아직 부족해요)",
+    );
+    // a known regular who may still play is not in missing_regulars (confirmed only)
+    expect(sideSummary(side({ absences: [{ ...doubtful, regular: true }] }))).toBe(
+      "주전 1명 출전 불투명: Player(Knock)",
+    );
+  });
+
   it("translates positions and common reasons", () => {
     expect(positionLabel("G")).toBe("골키퍼");
     expect(positionLabel(null)).toBe("");

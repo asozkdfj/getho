@@ -153,7 +153,7 @@ curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: applicatio
 - 기준 확률(`PICK_MIN_PROBABILITY`, 기본 0.55)은 실데이터 백테스트에서 정했습니다
   ([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). 못 넘으면 그날은 "픽 없음"입니다.
 - 후보는 **정확도가 검증된 리그**의 경기뿐입니다(`PICK_LEAGUES=verified`, `all`이나 리그 id 목록도 가능).
-  같은 규칙을 검증된 10개 리그에 적용한 백테스트: 0.55에서 654일 중 550일에 픽, 적중률 75.3% [71.5, 78.7].
+  같은 규칙을 검증된 10개 리그에 서비스와 같은 시점(오전 9시 선정, 이후 경기만)으로 적용한 백테스트: 0.55에서 654일 중 236일에 픽, 적중률 72.9% [66.9, 78.2] (하루 전체를 후보로 본 이전 계산은 550일·75.3%로 픽 빈도를 부풀렸습니다).
 - 데이터 점검: 경기 시작 전, 최근 수집 성공(`INGEST_MAX_AGE_HOURS`), 현재 모델 버전, 확률 정상, 배당
   최신(`ODDS_MAX_AGE_HOURS`), 두 팀 경기 기록(`MIN_TEAM_MATCHES`).
 - 경기가 취소·연기되면 "무효"로 남기고 적중률에서 뺍니다. 교체 픽은 `PICK_REPLACE_ON_VOID=true`일 때만.

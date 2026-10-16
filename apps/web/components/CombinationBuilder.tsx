@@ -28,6 +28,10 @@ import { LocalTime } from "./LocalTime";
 
 const ODDS_KEY = { HOME: "odds_home", DRAW: "odds_draw", AWAY: "odds_away" } as const;
 const PROB_KEY = { HOME: "home", DRAW: "draw", AWAY: "away" } as const;
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
 /** With many leagues, only the first few groups start open. */
 const OPEN_GROUPS = 4;
 
@@ -66,12 +70,23 @@ export function CombinationBuilder({
   useEffect(() => {
     const target = result ? resultRef.current : error ? errorRef.current : null;
     if (!target) return;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    target.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     target.focus({ preventScroll: true });
   }, [result, error]);
 
+  // Each analysis request gets a ticket; changing the selection voids the ticket
+  // (and aborts the request) so a late answer for an old combination is dropped.
+  const request = useRef<{ id: number; abort: AbortController | null }>({ id: 0, abort: null });
+
+  function cancelRequest() {
+    request.current.id += 1;
+    request.current.abort?.abort();
+    request.current.abort = null;
+    setLoading(false);
+  }
+
   function update(next: Selections) {
+    cancelRequest();
     setSelections(next);
     setResult(null);
     setError(null);
@@ -105,6 +120,11 @@ export function CombinationBuilder({
   }
 
   async function analyze() {
+    cancelRequest();
+    const id = request.current.id;
+    const abort = new AbortController();
+    request.current.abort = abort;
+    const current = () => request.current.id === id;
     setLoading(true);
     setError(null);
     try {
@@ -112,8 +132,10 @@ export function CombinationBuilder({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toRequest(selections)),
+        signal: abort.signal,
       });
       const body = await res.json();
+      if (!current()) return;
       if (!res.ok) {
         setError(typeof body?.detail === "string" ? body.detail : "분석 요청이 거부되었습니다.");
         setResult(null);
@@ -121,9 +143,12 @@ export function CombinationBuilder({
         setResult(body as Combination);
       }
     } catch {
-      setError("API에 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
+      if (current()) setError("API에 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
     } finally {
-      setLoading(false);
+      if (current()) {
+        request.current.abort = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -274,7 +299,9 @@ export function CombinationBuilder({
             <button
               type="button"
               className="sticky-summary"
-              onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() =>
+                resultRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" })
+              }
             >
               <span className="hide-narrow">모두 맞을 확률 </span>
               <strong>분석 {pct(result.model_probability, 1)}</strong>

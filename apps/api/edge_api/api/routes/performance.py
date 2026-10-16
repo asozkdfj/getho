@@ -93,6 +93,10 @@ def performance(db: DbSession, settings: AppSettings) -> PerformanceOut:
             daily_picks_leagues=[
                 names.get(c, c) for c in (r.get("daily_pick_backtest") or {}).get("leagues", [])
             ],
+            daily_picks_timing=[
+                DailyPickBacktestRowOut(**row)
+                for row in (r.get("daily_pick_timing_proxy") or {}).get("rows", [])
+            ],
             leagues=[_league(lg) for lg in r.get("leagues") or []],
             promotion_decisions={
                 k: r[k]["reasons"] for k in ("promotion", "promotion_calibrated") if k in r

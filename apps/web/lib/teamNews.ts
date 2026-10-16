@@ -39,8 +39,14 @@ export function sideSummary(side: TeamNewsSide): string {
     return `평소 주전 11명 중 ${11 - missing.length}명이 선발이에요. 빠진 주전: ${named(missing)}`;
   }
   if (absences.length === 0) return "아직 알려진 결장 선수가 없어요.";
-  if (side.regulars_known && missing.length > 0) {
-    return `주전 ${missing.length}명 결장 예정: ${named(missing)}`;
+  if (!side.regulars_known) {
+    return `결장·출전 불투명 ${absences.length}명 (주전인지 판단할 출전 기록이 아직 부족해요)`;
   }
+  // missing_regulars holds confirmed absences only; a doubtful regular is not "missing" yet
+  const doubtful = absences.filter((a) => a.regular && a.status !== "out");
+  const parts: string[] = [];
+  if (missing.length > 0) parts.push(`주전 ${missing.length}명 결장 예정: ${named(missing)}`);
+  if (doubtful.length > 0) parts.push(`주전 ${doubtful.length}명 출전 불투명: ${named(doubtful)}`);
+  if (parts.length > 0) return parts.join(" · ");
   return `결장·출전 불투명 ${absences.length}명 (평소 주전은 아님)`;
 }

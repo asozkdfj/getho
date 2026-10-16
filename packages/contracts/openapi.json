@@ -313,9 +313,44 @@
       },
       "DailyPickBacktestRowOut": {
         "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of match days with a pick",
+            "title": "Coverage"
+          },
           "days_with_pick": {
             "title": "Days With Pick",
             "type": "integer"
+          },
+          "decision_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local hour of the decision; null = every match of the day",
+            "title": "Decision Hour"
+          },
+          "eligible_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Matches"
           },
           "hit_rate": {
             "anyOf": [
@@ -522,6 +557,14 @@
               "type": "string"
             },
             "title": "Daily Picks Leagues",
+            "type": "array"
+          },
+          "daily_picks_timing": {
+            "description": "Same rule replayed with the service's timing (decided at the publish hour, later kickoffs only). Timing only: not a replay of live odds or quality checks.",
+            "items": {
+              "$ref": "#/components/schemas/DailyPickBacktestRowOut"
+            },
+            "title": "Daily Picks Timing",
             "type": "array"
           },
           "dataset": {
@@ -1868,6 +1911,18 @@
           "days_with_pick": {
             "title": "Days With Pick",
             "type": "integer"
+          },
+          "decision_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replay decided at this local hour like the service; null = whole-day replay",
+            "title": "Decision Hour"
           },
           "hit_rate": {
             "title": "Hit Rate",

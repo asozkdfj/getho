@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   backtestScope,
+  backtestTimingText,
   closestCandidate,
   excludedReasonText,
   historySummaryText,
@@ -129,6 +130,11 @@ describe("status and labels", () => {
     expect(backtestScope(["Premier League"])).toBe("실제 Premier League 경기");
     expect(backtestScope(["A", "B", "C"])).toBe("검증된 3개 리그의 실제 경기");
     expect(backtestScope([])).toBe("실제 경기");
+  });
+
+  it("says how the rule was replayed", () => {
+    expect(backtestTimingText(9)).toMatch(/오전 9시에 그 뒤 경기만/);
+    expect(backtestTimingText(null)).toMatch(/실제 서비스보다 픽이 나오는 날이 많게/);
   });
 
   it("describes report periods in words", () => {

@@ -93,7 +93,9 @@ def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | N
     ).first()
     if ev is None:
         return None
-    block = ev.report.get("daily_pick_backtest") or {}
+    # Prefer the replay with the service's timing (decided at the publish hour, later
+    # kickoffs only); the whole-day replay overstates how often a pick is published.
+    block = ev.report.get("daily_pick_timing_proxy") or ev.report.get("daily_pick_backtest") or {}
     rows = [r for r in block.get("rows", []) if r.get("days_with_pick")]
     eligible = [r for r in rows if r["min_probability"] <= threshold + 1e-9]
     if not eligible:
@@ -111,6 +113,7 @@ def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | N
         "hit_rate_ci": row["hit_rate_ci"],
         "mean_pick_probability": row["mean_pick_probability"],
         "leagues": [names.get(c, c) for c in block.get("leagues") or []],
+        "decision_hour": block.get("decision_hour"),
     }
 
 

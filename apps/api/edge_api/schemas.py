@@ -396,6 +396,10 @@ class PickBacktestOut(ApiModel):
     hit_rate_ci: list[float]
     mean_pick_probability: float
     leagues: list[str] = Field(default_factory=list, description="Leagues pooled in the replay")
+    decision_hour: int | None = Field(
+        default=None,
+        description="Replay decided at this local hour like the service; null = whole-day replay",
+    )
 
 
 class PickCandidateOut(ApiModel):
@@ -526,6 +530,11 @@ class CalibrationBinOut(ApiModel):
 
 class DailyPickBacktestRowOut(ApiModel):
     min_probability: float
+    decision_hour: int | None = Field(
+        default=None, description="Local hour of the decision; null = every match of the day"
+    )
+    eligible_matches: int | None = None
+    coverage: float | None = Field(default=None, description="Share of match days with a pick")
     match_days: int
     days_with_pick: int
     hits: int
@@ -572,6 +581,11 @@ class EvaluationOut(ApiModel):
     calibration: list[CalibrationBinOut]
     daily_picks: list[DailyPickBacktestRowOut]
     daily_picks_leagues: list[str] = Field(default_factory=list)
+    daily_picks_timing: list[DailyPickBacktestRowOut] = Field(
+        default_factory=list,
+        description="Same rule replayed with the service's timing (decided at the publish hour,"
+        " later kickoffs only). Timing only: not a replay of live odds or quality checks.",
+    )
     leagues: list[LeagueEvaluationOut] = Field(default_factory=list)
     promotion_decisions: dict[str, list[str]]
 

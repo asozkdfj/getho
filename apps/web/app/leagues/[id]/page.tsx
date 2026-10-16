@@ -7,7 +7,7 @@ import { FixtureCard } from "@/components/FixtureCard";
 import { Highlights } from "@/components/Highlights";
 import { LeagueBadge } from "@/components/LeagueBadge";
 import { LeagueMark } from "@/components/LeagueMark";
-import { fetchFixtures, fetchHighlights, fetchLeague } from "@/lib/api";
+import { fetchFixtures, fetchHighlights, fetchLeague, orNull } from "@/lib/api";
 import { DEFAULT_TZ } from "@/lib/config";
 import { leagueNote } from "@/lib/leagues";
 import { formatInTz, localDateKey } from "@/lib/time";
@@ -34,7 +34,7 @@ export default async function LeaguePage({ params }: { params: Params }) {
   const tz = DEFAULT_TZ;
   const [data, highlights] = await Promise.all([
     fetchFixtures({ days: 14, tz, leagueId: league.id }),
-    league.predicted ? fetchHighlights({ days: 14, limit: 3, leagueId: league.id }) : null,
+    league.predicted ? orNull(fetchHighlights({ days: 14, limit: 3, leagueId: league.id })) : null,
   ]);
   const days = new Map<string, typeof data.fixtures>();
   for (const f of data.fixtures) {

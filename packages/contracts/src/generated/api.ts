@@ -369,8 +369,20 @@ export interface components {
         };
         /** DailyPickBacktestRowOut */
         DailyPickBacktestRowOut: {
+            /**
+             * Coverage
+             * @description Share of match days with a pick
+             */
+            coverage?: number | null;
             /** Days With Pick */
             days_with_pick: number;
+            /**
+             * Decision Hour
+             * @description Local hour of the decision; null = every match of the day
+             */
+            decision_hour?: number | null;
+            /** Eligible Matches */
+            eligible_matches?: number | null;
             /** Hit Rate */
             hit_rate: number | null;
             /** Hit Rate Ci */
@@ -430,6 +442,11 @@ export interface components {
             daily_picks: components["schemas"]["DailyPickBacktestRowOut"][];
             /** Daily Picks Leagues */
             daily_picks_leagues?: string[];
+            /**
+             * Daily Picks Timing
+             * @description Same rule replayed with the service's timing (decided at the publish hour, later kickoffs only). Timing only: not a replay of live odds or quality checks.
+             */
+            daily_picks_timing?: components["schemas"]["DailyPickBacktestRowOut"][];
             /** Dataset */
             dataset: string;
             /** Has Odds */
@@ -952,6 +969,11 @@ export interface components {
             dataset: string;
             /** Days With Pick */
             days_with_pick: number;
+            /**
+             * Decision Hour
+             * @description Replay decided at this local hour like the service; null = whole-day replay
+             */
+            decision_hour?: number | null;
             /** Hit Rate */
             hit_rate: number;
             /** Hit Rate Ci */

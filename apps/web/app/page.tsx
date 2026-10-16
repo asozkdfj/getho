@@ -47,7 +47,7 @@ export default async function FixturesPage({
   const tz = DEFAULT_TZ;
   const [data, highlights, pick, status, leagues] = await Promise.all([
     fetchFixtures({ days: range === "week" ? 7 : 1, tz, featured: scope === "featured" }),
-    fetchHighlights({ days: 7, limit: 3 }),
+    orNull(fetchHighlights({ days: 7, limit: 3 })),
     orNull(fetchTodayPick()),
     orNull(fetchDataStatus()),
     orNull(fetchLeagues({ days: 7 })),

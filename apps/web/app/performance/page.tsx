@@ -1,11 +1,11 @@
-import type { ModelMetric } from "@edge/contracts";
+import type { DailyPickBacktestRow, ModelMetric } from "@edge/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CalibrationChart } from "@/components/CalibrationChart";
 import { fetchPerformance } from "@/lib/api";
 import { pct } from "@/lib/format";
-import { modelName, periodText, rateWithCi } from "@/lib/picks";
+import { backtestTimingText, modelName, periodText, rateWithCi } from "@/lib/picks";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "모델 성과" };
@@ -54,11 +54,46 @@ function MetricTable({ rows, production }: { rows: ModelMetric[]; production: st
   );
 }
 
+function PickRuleTable({ rows }: { rows: DailyPickBacktestRow[] }) {
+  return (
+    <div className="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">기준 확률</th>
+            <th scope="col">픽 나온 날 / 경기 있는 날</th>
+            <th scope="col">적중</th>
+            <th scope="col">적중률 (95% 범위)</th>
+            <th scope="col">평균 분석 확률</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.min_probability}>
+              <td>{r.min_probability === 0 ? "기준 없음" : pct(r.min_probability, 0)}</td>
+              <td>
+                {r.days_with_pick} / {r.match_days}{" "}
+                <span className="muted small">
+                  ({pct(r.days_with_pick / Math.max(r.match_days, 1), 0)})
+                </span>
+              </td>
+              <td>{r.hits}</td>
+              <td>{rateWithCi(r.hit_rate, r.hit_rate_ci)}</td>
+              <td>{pct(r.mean_pick_probability, 1)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function PerformancePage() {
   const perf = await fetchPerformance();
   const ev = perf.evaluation;
   const evLeagues = ev?.leagues ?? [];
   const pickLeagues = ev?.daily_picks_leagues ?? [];
+  const timing = ev?.daily_picks_timing ?? [];
   const live = perf.live;
 
   return (
@@ -210,32 +245,16 @@ export default async function PerformancePage() {
             {pickLeagues.length > 0 &&
               ` 서비스처럼 검증된 ${pickLeagues.length}개 리그의 경기를 모두 모아 계산했어요.`}
           </p>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">기준 확률</th>
-                  <th scope="col">픽 나온 날 / 경기 있는 날</th>
-                  <th scope="col">적중</th>
-                  <th scope="col">적중률 (95% 범위)</th>
-                  <th scope="col">평균 분석 확률</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ev.daily_picks.map((r) => (
-                  <tr key={r.min_probability}>
-                    <td>{r.min_probability === 0 ? "기준 없음" : pct(r.min_probability, 0)}</td>
-                    <td>
-                      {r.days_with_pick} / {r.match_days}
-                    </td>
-                    <td>{r.hits}</td>
-                    <td>{rateWithCi(r.hit_rate, r.hit_rate_ci)}</td>
-                    <td>{pct(r.mean_pick_probability, 1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {timing.length > 0 && (
+            <>
+              <h3>서비스 방식: 오전 9시에 선정</h3>
+              <p className="small muted">{backtestTimingText(9)}</p>
+              <PickRuleTable rows={timing} />
+            </>
+          )}
+          <h3>{timing.length > 0 ? "참고: 하루 전체 경기를 후보로 본 계산" : "규칙 백테스트"}</h3>
+          <p className="small muted">{backtestTimingText(null)}</p>
+          <PickRuleTable rows={ev.daily_picks} />
 
           <h2>EPL 검증 구간 ({periodText(ev.split.validation)})</h2>
           <MetricTable rows={ev.validation} production={ev.production_version} />
