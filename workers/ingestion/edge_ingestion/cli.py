@@ -25,7 +25,13 @@ from edge_api.logging_setup import configure_logging
 from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
-from edge_ingestion import backtest_cli, fatigue_backtest, lineup_backtest, standings_backtest
+from edge_ingestion import (
+    backtest_cli,
+    draw_backtest,
+    fatigue_backtest,
+    lineup_backtest,
+    standings_backtest,
+)
 from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
 from edge_ingestion.providers.http import ProviderError
@@ -103,6 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     standings_backtest.add_arguments(
         sub.add_parser("backtest-standings", help="do league-table stakes help?")
     )
+    draw_backtest.add_arguments(
+        sub.add_parser("backtest-draws", help="does a rolling draw-rate recalibration help?")
+    )
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
@@ -128,6 +137,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backtest-standings":
         configure_logging(get_settings().log_level)
         report = standings_backtest.run(args)
+        print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "backtest-draws":
+        configure_logging(get_settings().log_level)
+        report = draw_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
         return 0
 
