@@ -28,3 +28,4 @@ next-env.d.ts
 
 # downloaded historical datasets (backtests)
 .cache/
+.qa-deps/

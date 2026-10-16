@@ -78,6 +78,25 @@ def test_walk_forward_never_sees_the_future():
     assert all(m.result.kickoff_at >= EVAL_START for m in preds.matches)
 
 
+def test_result_delay_withholds_recent_results_and_records_fit_time():
+    class Recorder(SpyForecaster):
+        def fit(self, history, as_of):
+            assert all(m.kickoff_at + timedelta(days=3) < as_of for m in history)
+            return super().fit(history, as_of)
+
+    preds = walk_forward(MATCHES, [Recorder()], config(result_delay=timedelta(days=3)))
+    assert len(preds.fitted_at) == len(preds.matches) > 0
+    assert all(
+        t <= m.result.kickoff_at for t, m in zip(preds.fitted_at, preds.matches, strict=True)
+    )
+
+
+def test_empty_history_and_invalid_refit_window():
+    assert not walk_forward([], [BaseRateForecaster()], config()).matches
+    with pytest.raises(ValueError, match="positive"):
+        config(refit_every=timedelta(0))
+
+
 def test_forecasters_are_scored_on_a_common_sample():
     no_odds = [BacktestMatch(m.result, None) if i % 5 == 0 else m for i, m in enumerate(MATCHES)]
     preds = walk_forward(no_odds, [BaseRateForecaster(), MarketForecaster()], config())

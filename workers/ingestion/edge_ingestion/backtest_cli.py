@@ -226,7 +226,13 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
     codes = _codes(args) if args.source == "openfootball" else ["football-data"]
     production = ModelParams()
     leagues: list[dict[str, Any]] = []
-    pooled: dict[str, Any] = {"keys": [], "kickoffs": [], "probs": [], "outcomes": []}
+    pooled: dict[str, Any] = {
+        "keys": [],
+        "kickoffs": [],
+        "probs": [],
+        "outcomes": [],
+        "prediction_times": [],
+    }
     for idx, code in enumerate(codes):
         warnings: list[str] = []
         if idx == 0:
@@ -267,6 +273,7 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
                 pooled["kickoffs"].append(r.kickoff_at)
                 pooled["probs"].append(preds.probs["production"][k])
                 pooled["outcomes"].append(preds.outcomes[k])
+                pooled["prediction_times"].append(preds.fitted_at[k])
     report["leagues"] = leagues
     # Today's Pick rule replayed on the frozen test predictions (production model),
     # pooled over the verified leagues because the service picks across them.
@@ -283,10 +290,27 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
         else []
     )
     report["daily_pick_backtest"] = {
+        "evaluation_scope": "legacy_whole_day_not_live_replay",
         "model": "production",
         "tz": "Asia/Seoul",
         "leagues": verified_codes,
         "rows": rows,
+    }
+    report["daily_pick_timing_proxy"] = {
+        "evaluation_scope": "timing_only_not_live_quality_replay",
+        "selection_bias": "league scope selected on the same test results",
+        "tz": "Asia/Seoul",
+        "decision_hour": 9,
+        "leagues": verified_codes,
+        "rows": backtest_daily_picks(
+            pooled["keys"],
+            pooled["kickoffs"],
+            np.asarray(pooled["probs"]).reshape(-1, 3),
+            np.asarray(pooled["outcomes"]),
+            PICK_THRESHOLDS,
+            decision_hour=9,
+            prediction_times=pooled["prediction_times"],
+        ),
     }
 
 

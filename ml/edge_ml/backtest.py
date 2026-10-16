@@ -42,6 +42,13 @@ class BacktestConfig:
     min_history: int = 380  # need at least ~one season before forecasting
     reference: str | None = None  # forecaster used for paired comparisons
     bootstrap_resamples: int = 2000
+    result_delay: timedelta = timedelta(0)
+
+    def __post_init__(self) -> None:
+        if self.refit_every <= timedelta(0):
+            raise ValueError("refit_every must be positive")
+        if self.result_delay < timedelta(0):
+            raise ValueError("result_delay must be nonnegative")
 
 
 @dataclass(slots=True)
@@ -51,6 +58,7 @@ class Predictions:
     matches: list[BacktestMatch] = field(default_factory=list)
     probs: dict[str, np.ndarray] = field(default_factory=dict)
     skipped: dict[str, int] = field(default_factory=dict)
+    fitted_at: list[datetime] = field(default_factory=list)
 
     @property
     def outcomes(self) -> np.ndarray:
@@ -63,17 +71,20 @@ def walk_forward(
     config: BacktestConfig,
 ) -> Predictions:
     ordered = sorted(matches, key=lambda m: (m.result.kickoff_at, m.result.home, m.result.away))
+    if not ordered:
+        return Predictions(probs={f.name: np.empty((0, 3)) for f in forecasters})
     results = [m.result for m in ordered]
     end = config.eval_end or (ordered[-1].result.kickoff_at + timedelta(seconds=1))
     raw: dict[str, list[tuple[float, float, float] | None]] = {f.name: [] for f in forecasters}
     evaluated: list[BacktestMatch] = []
+    fitted_at: list[datetime] = []
 
     as_of = config.eval_start
     while as_of < end:
         window_end = min(as_of + config.refit_every, end)
         window = [m for m in ordered if as_of <= m.result.kickoff_at < window_end]
         if window:
-            history = [r for r in results if r.kickoff_at < as_of]
+            history = [r for r in results if r.kickoff_at + config.result_delay < as_of]
             if len(history) >= config.min_history:
                 # hard leakage guard
                 assert all(r.kickoff_at < as_of for r in history)
@@ -81,6 +92,7 @@ def walk_forward(
                     f.fit(history, as_of)
                 for m in window:
                     evaluated.append(m)
+                    fitted_at.append(as_of)
                     for f in forecasters:
                         p = f.predict(m)
                         raw[f.name].append(None if p is None else p.as_tuple())
@@ -89,7 +101,7 @@ def walk_forward(
     keep = [
         i for i in range(len(evaluated)) if all(raw[f.name][i] is not None for f in forecasters)
     ]
-    out = Predictions(matches=[evaluated[i] for i in keep])
+    out = Predictions(matches=[evaluated[i] for i in keep], fitted_at=[fitted_at[i] for i in keep])
     for f in forecasters:
         out.skipped[f.name] = sum(1 for p in raw[f.name] if p is None)
         out.probs[f.name] = np.array([raw[f.name][i] for i in keep], dtype=float).reshape(-1, 3)

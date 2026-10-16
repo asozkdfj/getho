@@ -56,3 +56,37 @@ def test_wilson_interval():
     lo, hi = wilson_interval(71, 100)
     assert lo < 0.71 < hi and 0.61 < lo < 0.63
     assert wilson_interval(0, 0) == (0.0, 1.0)
+
+
+def test_timing_proxy_excludes_started_and_unavailable_predictions():
+    # KST 02:00, 09:00, 20:00, 21:00. The last prediction arrives at 10:00.
+    midnight = datetime(2026, 10, 17, 0, tzinfo=UTC)
+    kick = [midnight + timedelta(hours=h) for h in (-7, 0, 11, 12)]
+    p = np.array([[0.9, 0.05, 0.05], [0.8, 0.1, 0.1], [0.6, 0.2, 0.2], [0.7, 0.2, 0.1]])
+    times = [midnight - timedelta(hours=1)] * 3 + [midnight + timedelta(hours=1)]
+    row = backtest_daily_picks(
+        ["a", "b", "c", "d"],
+        kick,
+        p,
+        np.array([2, 2, 0, 2]),
+        [0.55],
+        decision_hour=9,
+        prediction_times=times,
+    )[0]
+    assert row["eligible_matches"] == 1
+    assert row["hits"] == 1
+    assert row["mean_pick_probability"] == pytest.approx(0.6)
+
+
+def test_timing_proxy_keeps_days_without_eligible_matches_in_coverage():
+    kick = [datetime(2026, 10, 17, 0, tzinfo=UTC)]
+    row = backtest_daily_picks(
+        ["a"], kick, np.array([[0.9, 0.05, 0.05]]), np.array([0]), [0.55], decision_hour=9
+    )[0]
+    assert row["match_days"] == 1 and row["coverage"] == 0
+    assert row["hit_rate"] is None
+
+
+def test_daily_backtest_rejects_duplicate_keys():
+    with pytest.raises(ValueError, match="unique"):
+        backtest_daily_picks(["a", "a"], [T, T], np.ones((2, 3)), np.array([0, 0]), [0.55])
