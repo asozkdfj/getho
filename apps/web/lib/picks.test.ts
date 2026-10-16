@@ -116,6 +116,7 @@ describe("status and labels", () => {
     expect(excludedReasonText("unknown_reason")).toBe("unknown_reason");
     expect(qualityCheckLabel("odds_fresh")).toBe("배당 정보 최신");
     expect(voidReasonText("fixture postponed")).toBe("경기 연기");
+    expect(voidReasonText("fixture rescheduled")).toBe("경기 일정 변경");
     expect(voidReasonText(null)).toBe("");
   });
 
@@ -183,6 +184,7 @@ describe("history summary", () => {
       hit_rate: settled ? hits / settled : null,
       hit_rate_ci: settled ? [0.2, 0.9] : null,
       mean_probability: settled ? 0.64 : null,
+      late_recorded: 0,
     },
   });
 
@@ -193,6 +195,14 @@ describe("history summary", () => {
   it("flags small samples", () => {
     expect(historySummaryText(history(10, 7))).toMatch(/10개 중 7개 적중.*표본이 작아/);
     expect(historySummaryText(history(40, 26))).not.toMatch(/표본이 작아/);
+  });
+
+  it("says when picks recorded after kickoff were left out", () => {
+    const h = history(40, 26);
+    expect(historySummaryText(h)).not.toMatch(/경기 시작 후/);
+    h.summary.late_recorded = 2;
+    expect(historySummaryText(h)).toMatch(/경기 시작 후에 기록된 픽 2개는 성과에서 뺐어요/);
+    expect(historySummaryText(history(0, 0))).not.toMatch(/경기 시작 후/);
   });
 });
 

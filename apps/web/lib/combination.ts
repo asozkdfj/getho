@@ -1,4 +1,11 @@
-import { MAX_COMBINATION_LEGS, type FixtureSummary, type Outcome } from "@edge/contracts";
+import {
+  MAX_COMBINATION_LEGS,
+  type Combination,
+  type FixtureSummary,
+  type Outcome,
+} from "@edge/contracts";
+
+import type { Ticket } from "./latestRequest";
 
 export type Selections = Record<number, Outcome>;
 
@@ -116,4 +123,36 @@ export function selectedPerLeague(
     counts.set(fixture.league.id, (counts.get(fixture.league.id) ?? 0) + 1);
   }
   return counts;
+}
+
+export type AnalysisOutcome =
+  | { kind: "result"; combination: Combination }
+  | { kind: "error"; message: string }
+  | { kind: "stale" }; // answer for a request the user has since replaced or cancelled
+
+/** POST the selection; a stale answer (ticket no longer current) is never applied. */
+export async function requestAnalysis(
+  selections: Selections,
+  ticket: Ticket,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AnalysisOutcome> {
+  try {
+    const res = await fetchImpl("/api/combinations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(toRequest(selections)),
+      signal: ticket.signal,
+    });
+    const body = await res.json();
+    if (!ticket.isCurrent()) return { kind: "stale" };
+    if (!res.ok) {
+      const message =
+        typeof body?.detail === "string" ? body.detail : "분석 요청이 거부되었습니다.";
+      return { kind: "error", message };
+    }
+    return { kind: "result", combination: body as Combination };
+  } catch {
+    if (!ticket.isCurrent()) return { kind: "stale" };
+    return { kind: "error", message: "API에 연결할 수 없습니다. 잠시 후 다시 시도하세요." };
+  }
 }

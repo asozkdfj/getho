@@ -2200,6 +2200,18 @@
             ],
             "title": "Reason"
           },
+          "recorded_before_kickoff": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "False: written after the match started, not counted in the summary",
+            "title": "Recorded Before Kickoff"
+          },
           "revision": {
             "title": "Revision",
             "type": "integer"
@@ -2296,6 +2308,12 @@
           },
           "hits": {
             "title": "Hits",
+            "type": "integer"
+          },
+          "late_recorded": {
+            "default": 0,
+            "description": "Picks written after their match started, left out of every count above",
+            "title": "Late Recorded",
             "type": "integer"
           },
           "mean_probability": {

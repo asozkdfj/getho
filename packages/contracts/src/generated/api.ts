@@ -1050,6 +1050,11 @@ export interface components {
             published_at: string;
             /** Reason */
             reason: string | null;
+            /**
+             * Recorded Before Kickoff
+             * @description False: written after the match started, not counted in the summary
+             */
+            recorded_before_kickoff?: boolean | null;
             /** Revision */
             revision: number;
             /**
@@ -1079,6 +1084,12 @@ export interface components {
             hit_rate_ci: number[] | null;
             /** Hits */
             hits: number;
+            /**
+             * Late Recorded
+             * @description Picks written after their match started, left out of every count above
+             * @default 0
+             */
+            late_recorded: number;
             /** Mean Probability */
             mean_probability: number | null;
             /** Pending */

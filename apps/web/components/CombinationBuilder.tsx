@@ -15,13 +15,14 @@ import {
   matchesTeam,
   oddsUpdatedSincePrediction,
   pricedOdds,
+  requestAnalysis,
   selectedLegs,
   selectedPerLeague,
   toggleSelection,
-  toRequest,
   type Selections,
 } from "@/lib/combination";
 import { OUTCOME_SHORT, odds, pct, signedPct, signedPoints, tone } from "@/lib/format";
+import { LatestRequest } from "@/lib/latestRequest";
 import { groupByLeague, leagueLabel } from "@/lib/leagues";
 
 import { AutoCombo } from "./AutoCombo";
@@ -80,14 +81,12 @@ export function CombinationBuilder({
     target.focus({ preventScroll: true });
   }, [result, error]);
 
-  // Each analysis request gets a ticket; changing the selection voids the ticket
-  // (and aborts the request) so a late answer for an old combination is dropped.
-  const request = useRef<{ id: number; abort: AbortController | null }>({ id: 0, abort: null });
+  // Changing the selection voids (and aborts) a running analysis so a late
+  // answer for an old combination is never shown (QA-01).
+  const [request] = useState(() => new LatestRequest());
 
   function cancelRequest() {
-    request.current.id += 1;
-    request.current.abort?.abort();
-    request.current.abort = null;
+    request.cancel();
     setLoading(false);
   }
 
@@ -126,35 +125,17 @@ export function CombinationBuilder({
   }
 
   async function analyze(chosen: Selections = selections) {
-    cancelRequest();
-    const id = request.current.id;
-    const abort = new AbortController();
-    request.current.abort = abort;
-    const current = () => request.current.id === id;
+    const ticket = request.start();
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/combinations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toRequest(chosen)),
-        signal: abort.signal,
-      });
-      const body = await res.json();
-      if (!current()) return;
-      if (!res.ok) {
-        setError(typeof body?.detail === "string" ? body.detail : "분석 요청이 거부되었습니다.");
-        setResult(null);
-      } else {
-        setResult(body as Combination);
-      }
-    } catch {
-      if (current()) setError("API에 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
-    } finally {
-      if (current()) {
-        request.current.abort = null;
-        setLoading(false);
-      }
+    const outcome = await requestAnalysis(chosen, ticket);
+    if (outcome.kind === "stale") return;
+    setLoading(false);
+    if (outcome.kind === "error") {
+      setError(outcome.message);
+      setResult(null);
+    } else {
+      setResult(outcome.combination);
     }
   }
 
