@@ -426,11 +426,19 @@ class ApiFootballProvider(FootballDataProvider):
         ids = list(dict.fromkeys(fixture_provider_ids))
         for i in range(0, len(ids), IDS_PER_REQUEST):
             if not self.budget_ok():
-                logger.warning("api_football daily budget nearly used up; team news postponed")
+                logger.warning(
+                    "api_football daily budget nearly used up; fixture details postponed"
+                )
                 break
             chunk = ids[i : i + IDS_PER_REQUEST]
             out.extend(self._get("/fixtures", {"ids": "-".join(chunk)})["response"])
         return out
+
+    def get_fixtures_by_ids(self, fixture_provider_ids: list[str]) -> list[FixtureData]:
+        """/fixtures?ids= (20 per request) returns full fixture objects."""
+        return [
+            f for f in map(self._parse_fixture, self._fixture_details(fixture_provider_ids)) if f
+        ]
 
     def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
         out: list[LineupData] = []
