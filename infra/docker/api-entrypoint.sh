@@ -9,9 +9,16 @@ if [ "${RUN_MIGRATIONS_ON_STARTUP:-false}" = "true" ]; then
 fi
 
 if [ "${SEED_ON_STARTUP:-false}" = "true" ]; then
-  echo "[entrypoint] seeding data from DATA_PROVIDER=${DATA_PROVIDER:-mock} (idempotent)"
-  # Non-fatal: an upstream outage or exhausted API quota must not keep the API down.
-  python -m edge_ingestion.cli seed || echo "[entrypoint] seed failed - continuing; run 'make seed' later"
+  echo "[entrypoint] seeding data from DATA_PROVIDER=${DATA_PROVIDER:-mock} in the background (idempotent)"
+  # In the background: with every league the first run (history backfill, odds
+  # pages) can take minutes, and the API must come up (and pass its health check)
+  # meanwhile. Non-fatal: an upstream outage or exhausted quota must not keep the
+  # API down. Concurrent pipeline runs are serialised by an advisory lock.
+  (
+    python -m edge_ingestion.cli seed \
+      && echo "[entrypoint] seed finished" \
+      || echo "[entrypoint] seed failed - continuing; run 'make seed' later"
+  ) &
 fi
 
 exec "$@"

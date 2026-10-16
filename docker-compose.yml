@@ -53,6 +53,7 @@ services:
       retries: 20
 
   api:
+    init: true # reaps the background seed process once it finishes
     build:
       context: .
       dockerfile: infra/docker/python.Dockerfile

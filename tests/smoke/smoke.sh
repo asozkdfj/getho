@@ -19,6 +19,16 @@ echo "waiting for API and web..."
 wait_for "$API_URL/health"
 wait_for "$WEB_URL/"
 
+# The first seed runs in the background after the API starts: wait until it has
+# recorded a successful pipeline run.
+echo "waiting for the first data collection..."
+deadline=$((SECONDS + TIMEOUT))
+until curl -fsS "$API_URL/status/data" | python3 -c \
+  "import json,sys; sys.exit(0 if json.load(sys.stdin).get('last_success_at') else 1)" 2>/dev/null; do
+  if ((SECONDS > deadline)); then echo "timeout waiting for the first seed" >&2; exit 1; fi
+  sleep 3
+done
+
 python3 - "$API_URL" <<'PY'
 import json, sys, urllib.request
 

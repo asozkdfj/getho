@@ -34,8 +34,9 @@ docker compose up -d --build     # 또는: make up
 | API (FastAPI, OpenAPI 문서) | http://localhost:8000/docs |
 | Postgres / Redis | localhost:5432 / localhost:6379 |
 
-API 컨테이너는 시작할 때 `alembic upgrade head`를 실행하고, 로컬 compose에서는 seed도 자동으로
-실행합니다. 둘 다 idempotent합니다. 샘플 데이터를 다시 만들거나 갱신하려면 아래 명령을 씁니다.
+API 컨테이너는 시작할 때 `alembic upgrade head`를 실행하고, 로컬 compose에서는 seed(첫 수집)를
+**백그라운드로** 실행합니다. API는 바로 켜지고, 전체 리그 첫 수집은 몇 분 걸릴 수 있습니다(`make logs`에서
+`[entrypoint] seed finished` 확인). 둘 다 idempotent합니다. 샘플 데이터를 다시 만들거나 갱신하려면 아래 명령을 씁니다.
 
 ```bash
 make seed        # = docker compose exec api python -m edge_ingestion.cli seed
