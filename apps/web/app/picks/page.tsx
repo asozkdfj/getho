@@ -91,6 +91,7 @@ export default async function PickHistoryPage() {
                   <span>
                     {item.date}
                     {item.revision > 1 && " · 교체 픽"}
+                    {item.recorded_before_kickoff === false && " · 경기 시작 후 기록(성과 제외)"}
                   </span>
                   <ResultTag item={item} label={info.label} />
                 </div>

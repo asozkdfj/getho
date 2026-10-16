@@ -23,7 +23,12 @@ from edge_api.schemas import (
 )
 from edge_api.services import queries
 from edge_api.services.leagues import verified_league_ids
-from edge_api.services.picks import effective_status, get_today_pick, pick_history
+from edge_api.services.picks import (
+    effective_status,
+    get_today_pick,
+    pick_history,
+    recorded_before_kickoff,
+)
 
 router = APIRouter(prefix="/picks", tags=["picks"])
 
@@ -131,6 +136,7 @@ def history(
                 hit=result.hit if result else None,
                 reason=result.reason if result else None,
                 published_at=p.published_at,
+                recorded_before_kickoff=recorded_before_kickoff(p),
             )
         )
     return PickHistoryOut(
