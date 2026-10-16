@@ -1,0 +1,10 @@
+# Local Windows/WSL preview. Requires Compose 2.24.4+ for !override.
+services:
+  postgres:
+    ports: !override ["127.0.0.1:5432:5432"]
+  redis:
+    ports: !override ["127.0.0.1:6379:6379"]
+  api:
+    ports: !override ["127.0.0.1:18000:8000"]
+  web:
+    ports: !override ["127.0.0.1:3000:3000"]

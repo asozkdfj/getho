@@ -15,3 +15,11 @@
 - 다음 담당자: Claude가 계약/데이터 가용성을 확인하고 후보 구현 후 자기 기록·결과 커밋을 전달
 
 기존 QA 성과: 기준 모델 재현, ML 테스트 99개 통과, 확률 앙상블 미채택. 자세한 내용은 [기존 보고서](../qa/2026-10-16-model-validation-and-improvement.md).
+
+## 로컬 웹 실행 환경 추가
+
+- 사용자 요청으로 Docker 실행 환경을 설정했다. 이전 Docker 미사용 조건은 이번 로컬 실행 요청에서 변경됐다.
+- 기존 Ubuntu WSL에 Docker Engine/Compose/Buildx 설치, 5개 컨테이너 실행, 데모 seed 완료.
+- CRLF entrypoint 문제와 WSL 자동 종료를 처리했다. API 외부 포트는 18000, 웹은 3000이다.
+- 전체 스모크 테스트 통과 및 브라우저 홈 화면 확인. [실행·중지 안내](../LOCAL_WINDOWS_SETUP.md).
+- 변경: `.gitattributes`, `compose.local.yaml`, `scripts/local/stack.ps1`, 로컬 환경 문서. 운영 모델은 그대로다.
