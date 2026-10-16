@@ -39,3 +39,4 @@
 | 33 | 실데이터 파이프라인 실패 경로 실검증 | 일정 변경 경기 갱신, 팀 뉴스 오류 격리, 실패 실행 기록은 FakeApiFootball/Mock 테스트로만 확인했습니다([QA 기록](qa/2026-10-16-pipeline-reliability.md)). 실제 API 키로 `make check-provider`와 며칠간의 실행 기록(`fixtures_reconciled`, `overdue_unresolved`, `team_news.error`)을 확인해야 합니다. | API 키가 있는 환경에서 |
 | 34 | 수집 실패 알림 | 실패 실행은 `ingestion_runs`에 남고 `/status/data`에 보이지만, 연속 실패나 `overdue_unresolved` 증가를 알려주는 채널은 없습니다(#12와 같은 이유). | 배포 시 |
 | 35 | 지난 픽 성과를 정책·모델 버전별로 나누기 | 지금은 실데이터 픽이 없어 합계만 보여 줍니다. 픽마다 `policy.version`과 모델 버전이 남아 있어 나눌 수 있습니다. | 실데이터 픽이 쌓이고 정책·모델이 바뀔 때 |
+| 36 | 언더/오버·핸디캡 재측정 | 운영 모델로는 표시 조건 미달(ADR-020). 점수 분포 모델을 바꾸면 `edge backtest-goal-markets`로 같은 기준을 다시 적용합니다. | 점수 분포 모델 변경 시 |
