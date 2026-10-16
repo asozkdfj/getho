@@ -132,3 +132,29 @@ def test_backtest_is_reproducible():
     a = evaluate(walk_forward(MATCHES, [ModelForecaster("m")], cfg), cfg)
     b = evaluate(walk_forward(MATCHES, [ModelForecaster("m")], cfg), cfg)
     assert a == b
+
+
+def test_result_delay_keeps_recent_results_out_of_training():
+    delay = timedelta(days=3)
+
+    class DelayedSpy(SpyForecaster):
+        def fit(self, history, as_of):
+            self.violations += sum(1 for m in history if m.kickoff_at + delay >= as_of)
+            return super().fit(history, as_of)
+
+    spy = DelayedSpy()
+    preds = walk_forward(MATCHES, [spy], config(result_delay=delay))
+    assert spy.violations == 0
+    # every prediction records when its model was fitted, always before kickoff
+    assert len(preds.fitted_at) == len(preds.matches) > 0
+    assert all(
+        t <= m.result.kickoff_at for t, m in zip(preds.fitted_at, preds.matches, strict=True)
+    )
+
+
+def test_empty_input_and_invalid_windows():
+    assert walk_forward([], [SpyForecaster()], config()).matches == []
+    with pytest.raises(ValueError, match="positive"):
+        config(refit_every=timedelta(0))
+    with pytest.raises(ValueError, match="nonnegative"):
+        config(result_delay=timedelta(hours=-1))

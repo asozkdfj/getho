@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -65,8 +65,30 @@ def backtest_daily_picks(
     outcomes: np.ndarray,
     thresholds: Sequence[float],
     tz: str = "Asia/Seoul",
+    *,
+    decision_hour: int | None = None,
+    prediction_times: Sequence[datetime] | None = None,
 ) -> list[dict[str, Any]]:
-    """Apply the daily rule to walk-forward predictions, for several thresholds."""
+    """Apply the daily rule to walk-forward predictions, for several thresholds.
+
+    ``decision_hour=None`` keeps the historical whole-day replay (every match of
+    the local day is a candidate). With a decision hour, as in the service, only
+    matches kicking off after that hour, and (when ``prediction_times`` are
+    given) predictions available by then, are candidates. Either way this
+    replays timing only, not live odds, collection status or quality gates.
+    """
+    n = len(keys)
+    if len(set(keys)) != n:
+        raise ValueError("fixture keys must be unique")
+    if len(kickoffs) != n or probs.shape != (n, 3) or outcomes.shape != (n,):
+        raise ValueError("keys, kickoffs, probabilities and outcomes must align")
+    if decision_hour is not None and not 0 <= decision_hour <= 23:
+        raise ValueError("decision_hour must be in 0..23")
+    if prediction_times is not None and len(prediction_times) != n:
+        raise ValueError("prediction_times must align with keys")
+    for stamp in [*kickoffs, *(prediction_times or [])]:
+        if stamp.utcoffset() is None:
+            raise ValueError("timestamps must be timezone-aware")
     zone = ZoneInfo(tz)
     position = {k: i for i, k in enumerate(keys)}
     days: dict[Any, list[int]] = defaultdict(list)
@@ -74,8 +96,17 @@ def backtest_daily_picks(
         days[k.astimezone(zone).date()].append(i)
     rows = []
     for t in thresholds:
-        hits, picked, probs_sum = 0, 0, 0.0
-        for idx in days.values():
+        hits, picked, probs_sum, eligible = 0, 0, 0.0, 0
+        for day, idx in days.items():
+            if decision_hour is not None:
+                decision = datetime.combine(day, time(decision_hour), tzinfo=zone)
+                idx = [
+                    i
+                    for i in idx
+                    if kickoffs[i] > decision
+                    and (prediction_times is None or prediction_times[i] <= decision)
+                ]
+            eligible += len(idx)
             cands = [
                 PickCandidate(keys[i], kickoffs[i], Probabilities1X2.normalized(*probs[i]))
                 for i in idx
@@ -91,6 +122,9 @@ def backtest_daily_picks(
         rows.append(
             {
                 "min_probability": t,
+                "decision_hour": decision_hour,
+                "eligible_matches": eligible,
+                "coverage": picked / len(days) if days else None,
                 "match_days": len(days),
                 "days_with_pick": picked,
                 "hits": hits,

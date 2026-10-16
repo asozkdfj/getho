@@ -48,6 +48,7 @@ from edge_ml.model import FEATURE_SET, MODEL_VERSION, ModelParams
 from edge_ml.picks import backtest_daily_picks
 from edge_ml.promotion import decide
 
+PICK_DECISION_HOUR = 9  # matches the service default PICK_PUBLISH_HOUR
 PICK_THRESHOLDS = [0.0, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
 # A league is "verified" only with enough test matches and a clear win over base rate.
 MIN_VERIFIED_TEST_MATCHES = 300
@@ -226,7 +227,13 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
     codes = _codes(args) if args.source == "openfootball" else ["football-data"]
     production = ModelParams()
     leagues: list[dict[str, Any]] = []
-    pooled: dict[str, Any] = {"keys": [], "kickoffs": [], "probs": [], "outcomes": []}
+    pooled: dict[str, Any] = {
+        "keys": [],
+        "kickoffs": [],
+        "probs": [],
+        "outcomes": [],
+        "prediction_times": [],
+    }
     for idx, code in enumerate(codes):
         warnings: list[str] = []
         if idx == 0:
@@ -267,26 +274,43 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
                 pooled["kickoffs"].append(r.kickoff_at)
                 pooled["probs"].append(preds.probs["production"][k])
                 pooled["outcomes"].append(preds.outcomes[k])
+                pooled["prediction_times"].append(preds.fitted_at[k])
     report["leagues"] = leagues
     # Today's Pick rule replayed on the frozen test predictions (production model),
     # pooled over the verified leagues because the service picks across them.
     verified_codes = [lg["code"] for lg in leagues if lg["verified"]]
-    rows = (
-        backtest_daily_picks(
+
+    def replay(decision_hour: int | None) -> list[dict[str, Any]]:
+        if not pooled["keys"]:
+            return []
+        return backtest_daily_picks(
             pooled["keys"],
             pooled["kickoffs"],
-            np.asarray(pooled["probs"]),
+            np.asarray(pooled["probs"]).reshape(-1, 3),
             np.asarray(pooled["outcomes"]),
             PICK_THRESHOLDS,
+            decision_hour=decision_hour,
+            prediction_times=pooled["prediction_times"] if decision_hour is not None else None,
         )
-        if pooled["keys"]
-        else []
-    )
+
     report["daily_pick_backtest"] = {
+        # every match of the local day is a candidate: overstates how often the
+        # service (which decides at the publish hour) can publish a pick
+        "evaluation_scope": "whole_day_not_live_replay",
         "model": "production",
         "tz": "Asia/Seoul",
         "leagues": verified_codes,
-        "rows": rows,
+        "rows": replay(None),
+    }
+    report["daily_pick_timing_proxy"] = {
+        # the service's timing: decided at PICK_PUBLISH_HOUR, only later kickoffs
+        "evaluation_scope": "timing_only_not_live_quality_replay",
+        "selection_bias": "league scope selected on the same test results",
+        "model": "production",
+        "tz": "Asia/Seoul",
+        "decision_hour": PICK_DECISION_HOUR,
+        "leagues": verified_codes,
+        "rows": replay(PICK_DECISION_HOUR),
     }
 
 

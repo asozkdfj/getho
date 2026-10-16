@@ -56,3 +56,46 @@ def test_wilson_interval():
     lo, hi = wilson_interval(71, 100)
     assert lo < 0.71 < hi and 0.61 < lo < 0.63
     assert wilson_interval(0, 0) == (0.0, 1.0)
+
+
+def test_decision_hour_drops_started_matches_and_late_predictions():
+    # KST kickoffs 02:00, 09:00, 20:00 and 21:00 on the 17th; the 21:00 prediction
+    # only becomes available at 10:00 KST, after the 09:00 decision.
+    kst_midnight = datetime(2026, 10, 16, 15, tzinfo=UTC)
+    kickoffs = [kst_midnight + timedelta(hours=h) for h in (2, 9, 20, 21)]
+    probs = np.array([[0.9, 0.05, 0.05], [0.8, 0.1, 0.1], [0.6, 0.2, 0.2], [0.7, 0.2, 0.1]])
+    ready = [kst_midnight] * 3 + [kst_midnight + timedelta(hours=10)]
+    whole_day, at_nine = (
+        backtest_daily_picks(
+            ["a", "b", "c", "d"],
+            kickoffs,
+            probs,
+            np.array([0, 0, 1, 0]),
+            [0.55],
+            decision_hour=hour,
+            prediction_times=ready if hour is not None else None,
+        )[0]
+        for hour in (None, 9)
+    )
+    assert whole_day["eligible_matches"] == 4 and whole_day["hits"] == 1  # picks "a" (90%)
+    assert at_nine["eligible_matches"] == 1 and at_nine["hits"] == 0  # only "c" is left
+    assert at_nine["mean_pick_probability"] == pytest.approx(0.6)
+    assert at_nine["coverage"] == 1.0
+
+
+def test_days_without_candidates_count_against_coverage():
+    kickoff = [datetime(2026, 10, 16, 16, tzinfo=UTC)]  # 01:00 KST, before 09:00
+    row = backtest_daily_picks(
+        ["a"], kickoff, np.array([[0.9, 0.05, 0.05]]), np.array([0]), [0.55], decision_hour=9
+    )[0]
+    assert row["match_days"] == 1 and row["coverage"] == 0 and row["hit_rate"] is None
+
+
+def test_misaligned_or_ambiguous_inputs_are_rejected():
+    with pytest.raises(ValueError, match="unique"):
+        backtest_daily_picks(["a", "a"], [T, T], np.ones((2, 3)), np.array([0, 0]), [0.55])
+    with pytest.raises(ValueError, match="align"):
+        backtest_daily_picks(["a"], [T, T], np.ones((2, 3)), np.array([0, 0]), [0.55])
+    with pytest.raises(ValueError, match="timezone"):
+        naive = datetime(2026, 10, 17, 11)  # noqa: DTZ001 - deliberately naive
+        backtest_daily_picks(["a"], [naive], np.ones((1, 3)), np.array([0]), [0.55])
