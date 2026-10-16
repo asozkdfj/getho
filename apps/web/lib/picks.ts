@@ -211,13 +211,15 @@ export function rateWithCi(rate: number | null | undefined, ci: number[] | null 
 
 export function historySummaryText(h: PickHistory): string {
   const s = h.summary;
+  const late = s.late_recorded;
+  const lateNote = late > 0 ? ` 경기 시작 후에 기록된 픽 ${late}개는 성과에서 뺐어요.` : "";
   if (s.settled === 0) {
-    return "아직 결과가 나온 픽이 없어요. 기록이 쌓이면 적중률을 보여 드릴게요.";
+    return `아직 결과가 나온 픽이 없어요. 기록이 쌓이면 적중률을 보여 드릴게요.${lateNote}`;
   }
   const base =
     `결과가 나온 ${s.settled}개 중 ${s.hits}개 적중(${rateWithCi(s.hit_rate, s.hit_rate_ci)}), ` +
     `선정 당시 평균 분석 확률 ${pct(s.mean_probability, 0)}.`;
-  return s.settled < 30 ? `${base} 아직 표본이 작아 우연의 영향이 커요.` : base;
+  return (s.settled < 30 ? `${base} 아직 표본이 작아 우연의 영향이 커요.` : base) + lateNote;
 }
 
 export interface ReliabilityPoint {

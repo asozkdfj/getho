@@ -67,10 +67,15 @@ def odds_history(session: Session, fixture_id: int, bookmaker: str) -> Sequence[
 
 
 def latest_predictions_by_fixture(
-    session: Session, fixture_ids: Sequence[int]
+    session: Session, fixture_ids: Sequence[int], as_of: datetime | None = None
 ) -> dict[int, Prediction]:
+    """Newest prediction per fixture. With ``as_of``, only predictions whose
+    inputs were all known by then (a decision must not see later data)."""
     if not fixture_ids:
         return {}
+    where = [Prediction.fixture_id.in_(fixture_ids)]
+    if as_of is not None:
+        where.append(Prediction.input_data_as_of <= as_of)
     ranked = (
         select(
             Prediction.id,
@@ -81,7 +86,7 @@ def latest_predictions_by_fixture(
             )
             .label("rn"),
         )
-        .where(Prediction.fixture_id.in_(fixture_ids))
+        .where(*where)
         .subquery()
     )
     stmt = select(Prediction).join(ranked, ranked.c.id == Prediction.id).where(ranked.c.rn == 1)
