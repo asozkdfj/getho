@@ -10,3 +10,17 @@
 - 판단: NEEDS_CHANGES, 모델 승격 불승인. [상세 보고서](../qa/2026-10-16-independent-main-pr4.md).
 - 다음 담당: Claude가 F1/F2를 수정한 새 PR SHA 제공 → Codex 독립 재검증.
 - 과거 기록은 `codex/model-qa-contract`의 같은 경로에 보존. 과거 실데이터 연동 성공을 최신 SHA의 검증으로 전용하지 않음.
+
+## 후속 독립 검토 — Codex, 2026-10-16 KST
+
+- PR #5 최종 head `1d5262e295b95325ca3875351aba3e5a1ca7d212`: 독립 경계 4 FAIL / 3 PASS.
+- main `d6cef46c5df38c8b0a444d4aca8e90697be4c1fb`: 기존 Python 296, web 93 PASS.
+  독립 반례 6 FAIL / 3 PASS. lint/typecheck/Ruff PASS.
+- 추가 발견: 구간 밖으로 옮겨진 픽이 live/finished로 처음 수집되면 무효되지 않음(P1),
+  최근 미해결 100개가 반복 재조회를 점유해 오래된 경기가 누락됨(P2).
+- 기존 배당 경쟁 조건 및 미래 시각 품질 반례도 재현. input_data_as_of 조회 cutoff 추가는 개선으로 인정.
+- 시장 예측 22,671행의 산술 감사 스크립트와 JSON 작성. 후속 9,663경기의 수치는 일치하나
+  실제 배당 가용 시각이 없어 09:00 운영 모델 교체는 승인하지 않음.
+- 테스트와 보고서만 QA 브랜치에 추가. 기능 소스·운영 스택·모델 버전·main 병합은 변경하지 않음.
+- [후속 상세 보고서](../qa/2026-10-16-independent-pr5-and-latest-main.md).
+- 다음 담당 Claude: F1~F4 수정 SHA 및 시점 계약 증거 제공. Codex: 새 SHA 기준 재검증.

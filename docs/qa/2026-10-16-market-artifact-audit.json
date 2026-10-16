@@ -1,0 +1,108 @@
+{
+  "artifact_sha256": "cb944ef9f0bf6ec38cfa5f27ee91e81b57853a5105444c8d38a0bd9456e321f9",
+  "rows": 22671,
+  "validation": {
+    "n": 9887,
+    "metrics": {
+      "production": {
+        "log_loss": 1.002747417626108,
+        "brier": 0.5984885881708245,
+        "accuracy": 0.5100637200364114
+      },
+      "market_only": {
+        "log_loss": 0.9846600181034646,
+        "brier": 0.5865200138958157,
+        "accuracy": 0.524021442297967
+      },
+      "blend_w0.25": {
+        "log_loss": 0.9869025813481804,
+        "brier": 0.5879233885391965,
+        "accuracy": 0.5241225852129059
+      },
+      "blend_w0.50": {
+        "log_loss": 0.9906896142439012,
+        "brier": 0.5903859356649744,
+        "accuracy": 0.5211894406796804
+      },
+      "blend_w0.75": {
+        "log_loss": 0.995966358742237,
+        "brier": 0.5939076673269267,
+        "accuracy": 0.5147162941235967
+      }
+    },
+    "tiers": [
+      {
+        "lower": 0.65,
+        "n": 1133,
+        "accuracy": 0.7555163283318623
+      },
+      {
+        "lower": 0.55,
+        "n": 1772,
+        "accuracy": 0.6145598194130926
+      }
+    ]
+  },
+  "follow_up": {
+    "n": 9663,
+    "metrics": {
+      "production": {
+        "log_loss": 0.9975764540288853,
+        "brier": 0.5955908877010758,
+        "accuracy": 0.5118493221566801
+      },
+      "market_only": {
+        "log_loss": 0.9769128324691162,
+        "brier": 0.5820777693187076,
+        "accuracy": 0.5273724516195798
+      },
+      "blend_w0.25": {
+        "log_loss": 0.9799533045543257,
+        "brier": 0.583915263189525,
+        "accuracy": 0.5260271137327952
+      },
+      "blend_w0.50": {
+        "log_loss": 0.9844157234280352,
+        "brier": 0.5867799566495238,
+        "accuracy": 0.522094587602194
+      },
+      "blend_w0.75": {
+        "log_loss": 0.9902779639278965,
+        "brier": 0.5906718276092696,
+        "accuracy": 0.518369036531098
+      }
+    },
+    "tiers": [
+      {
+        "lower": 0.65,
+        "n": 1145,
+        "accuracy": 0.7676855895196506
+      },
+      {
+        "lower": 0.55,
+        "n": 1808,
+        "accuracy": 0.6089601769911505
+      }
+    ]
+  },
+  "fitted_at_or_after_kickoff": 567,
+  "fitted_at_strictly_after_kickoff": 0,
+  "reported_gate": {
+    "selected_on_validation": "blend_w0.25",
+    "validation_gain": 0.015844852187111957,
+    "follow_up_gain": 0.017623148733976864,
+    "checks": {
+      "validation_gain>=0.001": true,
+      "follow_up_gain>=0.002": true,
+      "weekly_ci_upper<0": true,
+      "brier_not_worse": true
+    },
+    "passes": true,
+    "deployed": false
+  },
+  "limitations": [
+    "Exported predictions only; source data and model fitting not rerun",
+    "No observed market capture time, prediction availability or complete exclusion manifest",
+    "Research gate is not approval for 09:00 KST production promotion"
+  ]
+}
