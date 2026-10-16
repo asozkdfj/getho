@@ -7,10 +7,11 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import DBAPIError
 
 from edge_api.config import Settings
-from edge_api.db.models import DailyPick, DailyPickEvent, Fixture, IngestionRun
+from edge_api.db.models import DailyPick, DailyPickEvent, Fixture, IngestionRun, Prediction
 from edge_api.services import queries
 from edge_api.services.evaluations import import_report
 from edge_api.services.picks import (
+    POLICY_VERSION,
     get_today_pick,
     local_day,
     pick_history,
@@ -141,6 +142,87 @@ def test_stale_data_blocks_the_pick(session_factory, seeded, now):
         assert all("ingestion_recent" in c["excluded_reasons"] for c in pick.evidence["candidates"])
 
 
+def _future_prediction(session, fixture: Fixture, available_at: datetime) -> Prediction:
+    """A copy of the fixture's latest prediction whose inputs only exist from
+    ``available_at`` on, made overwhelmingly confident so the rule would pick it."""
+    base = queries.latest_prediction(session, fixture.id)
+    p = Prediction(
+        fixture_id=fixture.id,
+        model_version_id=base.model_version_id,
+        market_odds_snapshot_id=base.market_odds_snapshot_id,
+        input_data_as_of=available_at,
+        probability_home=0.97,
+        probability_draw=0.02,
+        probability_away=0.01,
+        expected_goals_home=base.expected_goals_home,
+        expected_goals_away=base.expected_goals_away,
+        features=base.features,
+    )
+    session.add(p)
+    session.flush()
+    return p
+
+
+def test_decision_only_sees_predictions_known_at_decision_time(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, f = _pick_time(s, now)
+        future = _future_prediction(s, f, available_at=pick_now + timedelta(hours=1))
+        pick = publish_daily_pick(s, settings(), pick_now)
+        assert pick.prediction_id != future.id
+        assert all(c.get("best_probability") != 0.97 for c in pick.evidence["candidates"])
+        # once its inputs exist, the same rule does use it (and picks it)
+        later = publish_daily_pick(s, settings(), pick_now + timedelta(minutes=90), revision=2)
+        assert later.prediction_id == future.id and later.probability == pytest.approx(0.97)
+
+
+def test_decision_time_and_policy_version_are_recorded(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        assert pick.policy["version"] == POLICY_VERSION == 2
+        assert pick.policy["window"] == "publish_hour_to_next_day_publish_hour"
+        assert pick.evidence["decided_at"] == pick_now.isoformat()
+        assert pick.evidence["last_collection_at"] is not None
+        assert pick.input_data_as_of <= pick_now
+
+
+def test_live_record_counts_only_picks_written_before_kickoff(session_factory, seeded, now):
+    real = settings(data_provider="api_football")
+    with session_factory() as s:
+        fixtures = s.scalars(
+            select(Fixture).where(Fixture.status == "scheduled").order_by(Fixture.id).limit(2)
+        ).all()
+        preds = queries.latest_predictions_by_fixture(s, [f.id for f in fixtures])
+        for i, (f, written) in enumerate(
+            [(fixtures[0], -timedelta(hours=3)), (fixtures[1], timedelta(hours=1))]
+        ):
+            f.status, f.home_score, f.away_score = "finished", 1, 0
+            s.add(
+                DailyPick(
+                    provider="api_football",
+                    pick_date=now.date() + timedelta(days=i),
+                    tz="Asia/Seoul",
+                    status="published",
+                    fixture_id=f.id,
+                    prediction_id=preds[f.id].id,
+                    outcome="HOME",
+                    probability=0.6,
+                    evidence={},
+                    policy={},
+                    published_at=f.kickoff_at + written,  # second one: after kickoff
+                )
+            )
+        s.flush()
+        assert settle_daily_picks(s, real, now + timedelta(days=5))["settled"] == 2
+        summary = pick_history(s, real, 10)["summary"]
+        assert (summary["published"], summary["settled"], summary["hits"]) == (1, 1, 1)
+        assert summary["late_recorded"] == 1
+        flags = sorted(
+            (p.published_at < p.fixture.kickoff_at) for p in pick_history(s, real, 10)["picks"]
+        )
+        assert flags == [False, True]  # both stay listed, only one counts
+
+
 def test_insufficient_team_history_blocks_the_pick(session_factory, seeded, now):
     with session_factory() as s:
         pick_now, _ = _pick_time(s, now)
@@ -169,6 +251,24 @@ def test_settlement_and_voiding_are_appended_once(session_factory, seeded, now):
         summary = pick_history(s, settings(), 10)["summary"]
         assert summary["settled"] == 1 and summary["hits"] == int(event.hit)
         assert summary["mean_probability"] == pytest.approx(pick.probability)
+
+
+def test_pick_on_a_rescheduled_match_is_voided(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(minutes=30)  # moved within the pick day: still counts
+        s.flush()
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 0
+        f.kickoff_at += timedelta(days=3)  # provider moved it to another day
+        s.flush()
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 1
+        event = s.scalars(select(DailyPickEvent)).one()
+        assert event.event == "voided" and event.reason == "fixture rescheduled"
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 0  # appended once
+        # the original pick row is kept as published
+        assert s.scalars(select(DailyPick)).one().fixture_id == f.id
 
 
 def test_replace_on_void_publishes_a_new_revision(session_factory, seeded, now):

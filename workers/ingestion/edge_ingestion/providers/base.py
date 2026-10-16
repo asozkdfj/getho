@@ -144,6 +144,11 @@ class FootballDataProvider(ABC):
     def get_odds(self, fixtures: Mapping[str, datetime]) -> list[OddsData]:
         """Odds captured so far for these fixtures (provider_id -> kickoff time)."""
 
+    def get_fixtures_by_ids(self, fixture_provider_ids: list[str]) -> list[FixtureData]:
+        """Current state of specific fixtures, e.g. ones the rolling date window no
+        longer returns because they were moved to another day (optional)."""
+        return []
+
     # ---- team news (optional: providers without it simply return nothing)
     def get_absences(self, fixtures: Mapping[str, datetime]) -> list[AbsenceData]:
         """Injured / suspended / doubtful players for these upcoming fixtures."""

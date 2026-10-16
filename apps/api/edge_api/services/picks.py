@@ -15,6 +15,10 @@ Flow
    so concurrent requests, restarts and job re-runs cannot publish twice.
 3. ``settle_daily_picks``: when the match is finished (or cancelled/postponed),
    append a ``settled``/``voided`` event. The published row is never changed.
+
+A decision only uses predictions whose inputs were all known at its decision
+time ``now``, and the live record only counts picks that were written before
+their match kicked off.
 """
 
 from __future__ import annotations
@@ -44,6 +48,12 @@ from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
 from edge_ml.picks import PickCandidate, best_outcome, select_pick
+
+# Version of the selection policy recorded with every pick.
+# 1: candidates from the publish hour to local midnight (picks before ADR-016,
+#    recognisable by the missing "window" and "version" keys)
+# 2: publish hour to the same hour the next day (ADR-016); decision-time predictions only
+POLICY_VERSION = 2
 
 # What the production model actually uses - explanations may only cite these.
 MODEL_FACTORS = ["team_strength_elo", "attack_defence_strength", "home_advantage"]
@@ -76,6 +86,7 @@ def local_day(now: datetime, settings: Settings) -> LocalDay:
 
 def _policy(settings: Settings) -> dict[str, Any]:
     return {
+        "version": POLICY_VERSION,
         "min_probability": settings.pick_min_probability,
         "tz": settings.pick_tz,
         "publish_hour": settings.pick_publish_hour,
@@ -166,7 +177,10 @@ def publish_daily_pick(
     all_fixtures = queries.fixtures_between(session, ld.start_utc, ld.end_utc, provider)
     scope = eligible_league_ids(session, settings)
     fixtures = [f for f in all_fixtures if scope is None or f.league.provider_id in scope]
-    preds = queries.latest_predictions_by_fixture(session, [f.id for f in fixtures])
+    # decision-time inputs only: no prediction built from data newer than ``now``.
+    # (The collection log is not filtered: a run records its finish with the wall
+    # clock, just after the ``now`` it collected for.)
+    preds = queries.latest_predictions_by_fixture(session, [f.id for f in fixtures], as_of=now)
     last_run = last_successful_run(session, provider)
 
     considered: list[dict[str, Any]] = []
@@ -200,6 +214,8 @@ def publish_daily_pick(
     choice = select_pick(candidates, settings.pick_min_probability)
     evidence: dict[str, Any] = {
         "is_demo": provider == "mock",
+        "decided_at": now.isoformat(),
+        "last_collection_at": last_run.finished_at.isoformat() if last_run else None,
         "threshold": settings.pick_min_probability,
         "window_utc": [ld.start_utc.isoformat(), ld.end_utc.isoformat()],
         "matches_today": len(all_fixtures),
@@ -320,6 +336,16 @@ def _outcome_of(f: Fixture) -> Outcome | None:
     return Outcome.DRAW if f.home_score == f.away_score else Outcome.AWAY
 
 
+def _moved_out_of_window(pick: DailyPick, fixture: Fixture) -> bool:
+    """True when the fixture now kicks off outside the window the pick was chosen
+    from (recorded in its evidence when it was published)."""
+    window = (pick.evidence or {}).get("window_utc")
+    if not window or len(window) != 2:
+        return False
+    start, end = (datetime.fromisoformat(w) for w in window)
+    return not (start <= fixture.kickoff_at < end)
+
+
 def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> dict[str, int]:
     """Append settled/voided events for published picks whose match has resolved."""
     counts = {"settled": 0, "voided": 0, "republished": 0}
@@ -335,6 +361,9 @@ def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> d
         f = pick.fixture
         if f.status in (FixtureStatus.CANCELLED.value, FixtureStatus.POSTPONED.value):
             values = {"event": "voided", "reason": f"fixture {f.status}"}
+        elif f.status == FixtureStatus.SCHEDULED.value and _moved_out_of_window(pick, f):
+            # rescheduled to a time outside the pick day: the pick's match did not happen
+            values = {"event": "voided", "reason": "fixture rescheduled"}
         elif f.status == FixtureStatus.FINISHED.value and (actual := _outcome_of(f)):
             values = {
                 "event": "settled",
@@ -362,6 +391,14 @@ def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> d
     return counts
 
 
+def recorded_before_kickoff(pick: DailyPick) -> bool | None:
+    """Was the pick written (database clock) before its match started? Only such
+    picks are live forecasts; None when there is no match to compare with."""
+    if pick.fixture is None:
+        return None
+    return pick.published_at < pick.fixture.kickoff_at
+
+
 def pick_history(session: Session, settings: Settings, limit: int) -> dict[str, Any]:
     picks = session.scalars(
         select(DailyPick)
@@ -375,9 +412,14 @@ def pick_history(session: Session, settings: Settings, limit: int) -> dict[str, 
             DailyPick.status == DailyPickStatus.PUBLISHED.value,
         )
     ).all()
+    # A pick written after kickoff (pinned clock, manual re-run) is not a forecast.
+    # Demo data runs on a pinned clock by design and is never a performance claim.
+    demo = settings.data_provider == "mock"
+    live = [p for p in all_published if demo or recorded_before_kickoff(p)]
+    late = len(all_published) - len(live)
     settled = [
         (p.probability, e.hit)
-        for p in all_published
+        for p in live
         for e in p.events
         if e.event == "settled" and p.probability is not None
     ]
@@ -385,10 +427,11 @@ def pick_history(session: Session, settings: Settings, limit: int) -> dict[str, 
     n = len(settled)
     lo, hi = wilson_interval(hits, n)
     summary = {
-        "published": len(all_published),
+        "published": len(live),
         "settled": n,
-        "voided": sum(1 for p in all_published if any(e.event == "voided" for e in p.events)),
-        "pending": sum(1 for p in all_published if not p.events),
+        "voided": sum(1 for p in live if any(e.event == "voided" for e in p.events)),
+        "pending": sum(1 for p in live if not p.events),
+        "late_recorded": late,
         "hits": hits,
         "hit_rate": hits / n if n else None,
         "hit_rate_ci": [lo, hi] if n else None,

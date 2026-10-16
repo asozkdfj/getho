@@ -487,6 +487,9 @@ class PickHistoryItemOut(ApiModel):
     hit: bool | None
     reason: str | None
     published_at: datetime
+    recorded_before_kickoff: bool | None = Field(
+        None, description="False: written after the match started, not counted in the summary"
+    )
 
 
 class PickHistorySummaryOut(ApiModel):
@@ -494,6 +497,9 @@ class PickHistorySummaryOut(ApiModel):
     settled: int
     voided: int
     pending: int
+    late_recorded: int = Field(
+        0, description="Picks written after their match started, left out of every count above"
+    )
     hits: int
     hit_rate: float | None
     hit_rate_ci: list[float] | None

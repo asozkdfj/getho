@@ -284,3 +284,39 @@ def test_requests_are_spaced_for_rate_limits():
 def test_https_is_required():
     with pytest.raises(ValueError):
         JsonHttpClient("http://insecure.test", {})
+
+
+def test_walkover_is_cancelled_without_a_score():
+    league = {"id": LEAGUE, "season": 2026, "round": "Regular Season - 9"}
+    item = {
+        "fixture": {"id": 5, "date": REF.replace(hour=14).isoformat(), "status": {"short": "WO"}},
+        "league": league,
+        "teams": {"home": {"id": 33, "name": "A"}, "away": {"id": 34, "name": "B"}},
+        "goals": {"home": 3, "away": 0},  # administrative result, not a played match
+    }
+    fake = FakeApiFootball()
+    fake.overrides["/fixtures"] = [json_response(envelope("fixtures", {}, [item]))]
+    p, _ = make(fake)
+    (f,) = p.get_fixtures(*DAY)
+    assert f.status == "cancelled" and (f.home_score, f.away_score) == (None, None)
+
+
+def test_fixtures_by_ids_are_batched_and_parsed():
+    p, fake = make()
+    window = (REF - timedelta(days=14), REF + timedelta(days=14))
+    known = sorted(f.provider_id for f in p.get_fixtures(*window))[:25]
+    assert len(known) == 25
+    fake.calls.clear()
+    found = p.get_fixtures_by_ids([*known, known[0], "999999999"])  # repeat + unknown id
+    calls = [c[1]["ids"].split("-") for c in fake.calls if c[0] == "/fixtures"]
+    assert [len(c) for c in calls] == [20, 6]  # 20 ids per request, duplicates dropped
+    assert sorted(f.provider_id for f in found) == known  # unknown id simply not returned
+    assert all(f.kickoff_at.utcoffset() == timedelta(0) for f in found)
+
+
+def test_fixtures_by_ids_stop_when_the_budget_is_low():
+    p, fake = make(FakeApiFootball(remaining=100))
+    known = sorted(f.provider_id for f in p.get_fixtures(REF, REF + timedelta(days=7)))
+    fake.calls.clear()
+    assert p.get_fixtures_by_ids(known) == []
+    assert fake.calls == []

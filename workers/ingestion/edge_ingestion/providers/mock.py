@@ -354,6 +354,9 @@ class MockProvider(FootballDataProvider):
     def get_league_history(self, league: LeagueData) -> list[FixtureData]:
         return list(self._fixtures.get(league.provider_id, []))
 
+    def get_fixtures_by_ids(self, fixture_provider_ids: list[str]) -> list[FixtureData]:
+        return [self._by_id[i] for i in dict.fromkeys(fixture_provider_ids) if i in self._by_id]
+
     # ------------------------------------------------------------------- odds
     def get_odds(self, fixtures: Mapping[str, datetime] | Sequence[str]) -> list[OddsData]:
         out: list[OddsData] = []
