@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('up', 'stop', 'status', 'logs')]
+    [ValidateSet('up', 'stop', 'status', 'logs', 'check-provider')]
     [string]$Action = 'status',
     [string]$Distribution = 'Ubuntu-24.04'
 )
@@ -38,6 +38,15 @@ switch ($Action) {
     'stop' { $composeArgs += @('stop') }
     'status' { $composeArgs += @('ps') }
     'logs' { $composeArgs += @('logs', '--tail', '80') }
+    'check-provider' {
+        # Explicit real-provider probe; no entrypoint migrations or startup seed.
+        # Reads API_FOOTBALL_KEY from the git-ignored .env through Compose.
+        $composeArgs += @(
+            'run', '--rm', '--no-deps', '--entrypoint', 'python',
+            '-e', 'DATA_PROVIDER=api_football', 'api',
+            '-m', 'edge_ingestion.cli', 'check-provider'
+        )
+    }
 }
 & wsl -d $Distribution -u root --cd $linuxRoot -- docker @composeArgs
 if ($LASTEXITCODE -ne 0) { throw "Docker compose $Action failed." }
