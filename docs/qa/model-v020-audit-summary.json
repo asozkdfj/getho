@@ -1,0 +1,338 @@
+{
+  "sources": [
+    {
+      "path": "ml/reports/backtest-openfootball.json",
+      "sha256": "a6931a614bc50f127323e0befb5040781e5b45cdcd62c7493c9d6df97aa9c018"
+    },
+    {
+      "path": "ml/reports/backtest-lineups-statsbomb.json",
+      "sha256": "cd0dbde207dea071d666fd19e7e9799648f9e59da1a9c894a1ab69732403d3f7"
+    }
+  ],
+  "report_generated_at": "2026-10-15T22:40:52.921663+00:00",
+  "model_version": "0.2.0",
+  "full_backtest_rerun": false,
+  "epl": {
+    "test_matches": 1140,
+    "first_kickoff": "2023-08-11T19:00:00+00:00",
+    "last_kickoff": "2026-05-24T15:00:00+00:00",
+    "production": {
+      "log_loss": {
+        "mean": 0.9831743008593544,
+        "ci_low": 0.957894882044128,
+        "ci_high": 1.0085959704629297
+      },
+      "brier": 0.5856826556070648,
+      "accuracy": 0.5219298245614035,
+      "ece": 0.027433027590187235
+    },
+    "relative_log_loss_reduction_vs_base": 0.0842711603875525,
+    "accuracy_gain_vs_base_percentage_points": 9.03508771929824,
+    "comparisons_other_minus_production": {
+      "base_rate": {
+        "mean_diff": 0.09047791836686445,
+        "ci_low": 0.07128648197622528,
+        "ci_high": 0.10947529895412772,
+        "better_than_reference": false,
+        "worse_than_reference": true
+      },
+      "elo_only": {
+        "mean_diff": 0.003307587520448851,
+        "ci_low": -0.0020744835293249517,
+        "ci_high": 0.008823773895201094,
+        "better_than_reference": false,
+        "worse_than_reference": false
+      },
+      "poisson_only": {
+        "mean_diff": 0.0002083269569287108,
+        "ci_low": -0.0024383464156283695,
+        "ci_high": 0.0028417573881040314,
+        "better_than_reference": false,
+        "worse_than_reference": false
+      },
+      "production_no_promoted_prior": {
+        "mean_diff": 0.0029943955913409818,
+        "ci_low": -0.0007583716388917022,
+        "ci_high": 0.006651660649677009,
+        "better_than_reference": false,
+        "worse_than_reference": false
+      }
+    },
+    "seasons": {
+      "2023-24": {
+        "n": 380,
+        "log_loss": 0.9378205321144322,
+        "brier": 0.5520882503303333,
+        "accuracy": 0.5763157894736842,
+        "base_log_loss": 1.0541075502451462,
+        "relative_log_loss_reduction_vs_base": 0.11031798235736955
+      },
+      "2024-25": {
+        "n": 380,
+        "log_loss": 0.9771801542356218,
+        "brier": 0.582733572734274,
+        "accuracy": 0.5184210526315789,
+        "base_log_loss": 1.0808606008950568,
+        "relative_log_loss_reduction_vs_base": 0.09592397629590493
+      },
+      "2025-26": {
+        "n": 380,
+        "log_loss": 1.0345222162280099,
+        "brier": 0.622226143756587,
+        "accuracy": 0.4710526315789474,
+        "base_log_loss": 1.085988506538454,
+        "relative_log_loss_reduction_vs_base": 0.047391192448703656
+      }
+    }
+  },
+  "league_test_total": 9912,
+  "weighted_league_accuracy": 0.5086763518966909,
+  "leagues": [
+    {
+      "code": "en.1",
+      "test_matches": 1140,
+      "log_loss": 0.9831743008593544,
+      "elo_log_loss": 0.9864818883798033,
+      "production_minus_elo": -0.003307587520448907,
+      "data_warnings": []
+    },
+    {
+      "code": "en.2",
+      "test_matches": 1671,
+      "log_loss": 1.0520821460250487,
+      "elo_log_loss": 1.0483902679365624,
+      "production_minus_elo": 0.0036918780884862556,
+      "data_warnings": [
+        "2021-22: repeated pairings (split format?)",
+        "2021-22: 557 finished matches, a double round robin of 24 teams has 552",
+        "2022-23: repeated pairings (split format?)",
+        "2022-23: 557 finished matches, a double round robin of 24 teams has 552",
+        "2023-24: repeated pairings (split format?)",
+        "2023-24: 557 finished matches, a double round robin of 24 teams has 552",
+        "2024-25: repeated pairings (split format?)",
+        "2024-25: 557 finished matches, a double round robin of 24 teams has 552",
+        "2025-26: repeated pairings (split format?)",
+        "2025-26: 557 finished matches, a double round robin of 24 teams has 552"
+      ]
+    },
+    {
+      "code": "de.1",
+      "test_matches": 918,
+      "log_loss": 0.9928326396277535,
+      "elo_log_loss": 1.0001817905092514,
+      "production_minus_elo": -0.007349150881497901,
+      "data_warnings": []
+    },
+    {
+      "code": "de.2",
+      "test_matches": 711,
+      "log_loss": 1.0449716258076425,
+      "elo_log_loss": 1.0462003252711891,
+      "production_minus_elo": -0.0012286994635466453,
+      "data_warnings": [
+        "2025-26: 99 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "es.1",
+      "test_matches": 1130,
+      "log_loss": 0.9799440475477542,
+      "elo_log_loss": 0.9848178355287932,
+      "production_minus_elo": -0.004873787981038991,
+      "data_warnings": [
+        "2024-25: 370 finished matches, a double round robin of 20 teams has 380"
+      ]
+    },
+    {
+      "code": "it.1",
+      "test_matches": 1130,
+      "log_loss": 0.9880113897652457,
+      "elo_log_loss": 0.9976151736735034,
+      "production_minus_elo": -0.009603783908257668,
+      "data_warnings": [
+        "2024-25: 370 finished matches, a double round robin of 20 teams has 380"
+      ]
+    },
+    {
+      "code": "fr.1",
+      "test_matches": 917,
+      "log_loss": 1.0064628529437496,
+      "elo_log_loss": 0.99994815720117,
+      "production_minus_elo": 0.006514695742579568,
+      "data_warnings": [
+        "2019-20: 279 finished matches, a double round robin of 20 teams has 380",
+        "2025-26: 305 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "nl.1",
+      "test_matches": 917,
+      "log_loss": 0.9754591183776045,
+      "elo_log_loss": 0.9850282448537492,
+      "production_minus_elo": -0.009569126476144718,
+      "data_warnings": [
+        "2019-20: 232 finished matches, a double round robin of 18 teams has 306",
+        "2025-26: 305 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "pt.1",
+      "test_matches": 918,
+      "log_loss": 0.954337763442057,
+      "elo_log_loss": 0.9624711877015572,
+      "production_minus_elo": -0.008133424259500144,
+      "data_warnings": []
+    },
+    {
+      "code": "at.1",
+      "test_matches": 460,
+      "log_loss": 1.0218243480717248,
+      "elo_log_loss": 1.0254370061125966,
+      "production_minus_elo": -0.0036126580408717412,
+      "data_warnings": [
+        "2018-19: repeated pairings (split format?)",
+        "2018-19: 195 finished matches, a double round robin of 12 teams has 132",
+        "2019-20: repeated pairings (split format?)",
+        "2019-20: 195 finished matches, a double round robin of 12 teams has 132",
+        "2020-21: repeated pairings (split format?)",
+        "2020-21: 195 finished matches, a double round robin of 12 teams has 132",
+        "2021-22: repeated pairings (split format?)",
+        "2021-22: 195 finished matches, a double round robin of 12 teams has 132",
+        "2022-23: repeated pairings (split format?)",
+        "2022-23: 195 finished matches, a double round robin of 12 teams has 132",
+        "2023-24: repeated pairings (split format?)",
+        "2023-24: 195 finished matches, a double round robin of 12 teams has 132",
+        "2024-25: repeated pairings (split format?)",
+        "2024-25: 194 finished matches, a double round robin of 12 teams has 132",
+        "2025-26: 71 finished matches, a double round robin of 12 teams has 132"
+      ]
+    }
+  ],
+  "daily_pick_threshold_055": {
+    "min_probability": 0.55,
+    "match_days": 654,
+    "days_with_pick": 550,
+    "hits": 414,
+    "hit_rate": 0.7527272727272727,
+    "hit_rate_ci": [
+      0.7150004735284597,
+      0.7869480980486844
+    ],
+    "mean_pick_probability": 0.712564585623463
+  },
+  "publication_probe": {
+    "kind": "synthetic counterexample, not a performance estimate",
+    "publication": "2026-10-16T09:00:00+09:00",
+    "historical_choice": "already-started-at-publication",
+    "historical_probability": 0.9,
+    "upcoming_only_choice": "upcoming-at-publication",
+    "upcoming_only_probability": 0.6,
+    "candidate_sets_equivalent": false,
+    "other_quality_gates_reproduced": false
+  },
+  "lineup": {
+    "fit": {
+      "beta": 0.2122791444703611,
+      "gamma": 0.1761211919282959,
+      "n_matches": 488,
+      "log_likelihood_gain": 0.0008225523346224419,
+      "mean_strength": 0.8536304504767147,
+      "share_below_90pct": 0.6506147540983607
+    },
+    "promotion": {
+      "promote": true,
+      "reasons": [
+        "all promotion checks passed"
+      ],
+      "checks": {
+        "n_matches": 613,
+        "log_loss_diff": -0.0024290130224669635,
+        "log_loss_diff_ci": [
+          -0.0053493589679983805,
+          0.0005735935549418365
+        ],
+        "brier_diff": -0.0016579418968533156,
+        "ece_candidate": 0.03547083692035555,
+        "ece_production": 0.03355951353449912
+      }
+    },
+    "per_league": {
+      "en.1": {
+        "name": "Premier League",
+        "test_matches": 152,
+        "log_loss": {
+          "base_rate": 1.07851375839788,
+          "production": 1.0051717508307658,
+          "production_lineup": 1.00764933337024
+        }
+      },
+      "es.1": {
+        "name": "La Liga",
+        "test_matches": 152,
+        "log_loss": {
+          "base_rate": 1.0578322214524853,
+          "production": 0.9702216231339564,
+          "production_lineup": 0.9652005704847554
+        }
+      },
+      "it.1": {
+        "name": "Serie A",
+        "test_matches": 158,
+        "log_loss": {
+          "base_rate": 1.0601214908404772,
+          "production": 0.9724996759928527,
+          "production_lineup": 0.9706718398413373
+        }
+      },
+      "fr.1": {
+        "name": "Ligue 1",
+        "test_matches": 151,
+        "log_loss": {
+          "base_rate": 1.0716634719503857,
+          "production": 1.0204529129853868,
+          "production_lineup": 1.0150649698452916
+        }
+      }
+    },
+    "sensitivity": [
+      {
+        "validation_end": 0.55,
+        "beta": 0.23113983346627753,
+        "gamma": 0.1468878424134343,
+        "test_matches": 684,
+        "log_loss_diff": -0.0021865435153119095,
+        "log_loss_diff_ci": [
+          -0.004889507355855077,
+          0.000665131496731941
+        ],
+        "promote": true
+      },
+      {
+        "validation_end": 0.6,
+        "beta": 0.2122791444703611,
+        "gamma": 0.1761211919282959,
+        "test_matches": 613,
+        "log_loss_diff": -0.0024290130224669635,
+        "log_loss_diff_ci": [
+          -0.0053493589679983805,
+          0.0005735935549418365
+        ],
+        "promote": true
+      },
+      {
+        "validation_end": 0.65,
+        "beta": 0.27898715058647133,
+        "gamma": 0.2141019475926331,
+        "test_matches": 532,
+        "log_loss_diff": -0.0024176519892018873,
+        "log_loss_diff_ci": [
+          -0.006503606115115606,
+          0.0017488945158347028
+        ],
+        "promote": true
+      }
+    ],
+    "report_adopt": true,
+    "statistical_significance_95pct": false
+  }
+}
