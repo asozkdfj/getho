@@ -268,7 +268,8 @@ def test_pick_history_and_status_endpoints(client):
     client.get("/picks/today")
     hist = client.get("/picks/history").json()
     assert hist["is_demo"] is True and len(hist["items"]) == 1
-    assert hist["summary"]["settled"] == 0
+    assert hist["summary"]["settled"] == 0 and hist["summary"]["late_recorded"] == 0
+    assert "recorded_before_kickoff" in hist["items"][0]
     status = client.get("/status/data").json()
     assert status["provider"] == "mock" and status["last_success_at"]
 

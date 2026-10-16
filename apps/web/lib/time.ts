@@ -46,3 +46,12 @@ export function dayLabel(iso: string, tz: string, now: Date = new Date()): strin
   if (key === tomorrow) return "내일";
   return formatInTz(iso, tz, "day");
 }
+
+/**
+ * Time zone a timestamp is shown in (QA-04). Normally the viewer's own zone;
+ * `fixed` keeps the zone the page grouped dates by, for a time printed under
+ * a date heading without its own date.
+ */
+export function displayTimeZone(fixed: boolean, viewerTz: string, groupingTz: string): string {
+  return fixed ? groupingTz : viewerTz;
+}

@@ -21,7 +21,7 @@ from typing import Any
 
 from sqlalchemy import Result, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from edge_api.catalog import featured_rank
 from edge_api.config import Settings
@@ -38,6 +38,7 @@ from edge_api.services.picks import local_day, publish_daily_pick, settle_daily_
 from edge_api.services.prediction_job import PredictionJobResult, run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion.providers.base import FixtureData, FootballDataProvider, LeagueData, TeamData
+from edge_ingestion.providers.http import ProviderError
 from edge_ingestion.team_news import ingest_team_news
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,12 @@ RECENT_LOOKBACK = timedelta(days=3)
 INGEST_LOOKAHEAD = timedelta(days=8)
 DEFAULT_BACKFILL_PER_RUN = 40
 DEFAULT_ODDS_LOOKAHEAD_DAYS = 14
+# A fixture still "scheduled"/"live" this long after kickoff should have a result;
+# if the rolling window no longer returns it, it was moved (or dropped) and is
+# looked up by id. Only recent ones, so unplayable history is not re-asked forever.
+OVERDUE_AFTER = timedelta(hours=4)
+OVERDUE_LOOKBACK = timedelta(days=30)
+RECONCILE_PER_RUN = 100
 CHUNK = 1000  # rows per INSERT statement
 
 
@@ -62,6 +69,8 @@ class IngestionResult:
     odds_rejected: int
     leagues_backfilled: int = 0
     leagues_pending_backfill: int = 0
+    fixtures_reconciled: int = 0  # overdue fixtures updated from a lookup by id
+    overdue_unresolved: int = 0  # overdue fixtures the provider did not return
     requests: int = 0
 
 
@@ -282,6 +291,43 @@ def backfill_history(
     return done, len(pending) - done, teams, fixtures
 
 
+def reconcile_overdue_fixtures(
+    session: Session,
+    provider: FootballDataProvider,
+    *,
+    now: datetime,
+    seen: set[str],
+    limit: int = RECONCILE_PER_RUN,
+) -> tuple[int, int]:
+    """Fixtures stuck "scheduled"/"live" well after kickoff that the refreshed
+    window did not return: a match moved to another date (postponed and
+    rescheduled) or dropped by the provider. Without this they would stay
+    "scheduled" with a past kickoff, and a pick on them would never settle.
+    Returns (fixtures_changed, still_unresolved)."""
+    overdue = session.scalars(
+        select(Fixture.provider_id)
+        .where(
+            Fixture.provider == provider.name,
+            Fixture.status.in_([FixtureStatus.SCHEDULED.value, FixtureStatus.LIVE.value]),
+            Fixture.kickoff_at < now - OVERDUE_AFTER,
+            Fixture.kickoff_at >= now - OVERDUE_LOOKBACK,
+        )
+        .order_by(Fixture.kickoff_at.desc())
+    ).all()
+    missing = [pid for pid in overdue if pid not in seen][: max(limit, 0)]
+    if not missing:
+        return 0, 0
+    if not provider.budget_ok():
+        logger.warning("request budget low: %d overdue fixtures checked next run", len(missing))
+        return 0, len(missing)
+    found = provider.get_fixtures_by_ids(missing)
+    _, changed = ingest_fixtures(session, provider.name, found)
+    unresolved = len(set(missing) - {f.provider_id for f in found})
+    if unresolved:
+        logger.warning("%d overdue fixtures not returned by the provider", unresolved)
+    return changed, unresolved
+
+
 # --------------------------------------------------------------------- odds
 def _valid_odds(*odds: float) -> bool:
     return all(math.isfinite(o) and o > 1.0 for o in odds)
@@ -348,6 +394,9 @@ def run_ingestion(
     leagues_changed, leagues = ingest_leagues(session, provider)
     recent = provider.get_fixtures(now - RECENT_LOOKBACK, now + INGEST_LOOKAHEAD)
     teams, fixtures = ingest_fixtures(session, provider.name, recent)
+    reconciled, unresolved = reconcile_overdue_fixtures(
+        session, provider, now=now, seen={f.provider_id for f in recent}
+    )
     mark_results_synced(session, provider.name, now)
     backfilled, pending, t2, f2 = backfill_history(
         session,
@@ -368,6 +417,8 @@ def run_ingestion(
         odds_rejected=rejected,
         leagues_backfilled=backfilled,
         leagues_pending_backfill=pending,
+        fixtures_reconciled=reconciled,
+        overdue_unresolved=unresolved,
         requests=provider.requests_made,
     )
     logger.info("ingestion finished provider=%s %s", provider.name, result)
@@ -387,9 +438,7 @@ def run_pipeline(
     started = utcnow()
     session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": PIPELINE_LOCK_KEY})
     ingestion = run_ingestion(session, provider, now=now, settings=settings)
-    team_news = (
-        asdict(ingest_team_news(session, provider, now=now, settings=settings)) if settings else {}
-    )
+    team_news = _team_news_isolated(session, provider, now=now, settings=settings)
     predictions = run_prediction_job(session, now=now, bookmaker=bookmaker, provider=provider.name)
     session.add(
         IngestionRun(
@@ -413,11 +462,36 @@ def run_pipeline(
     return PipelineResult(ingestion, predictions, picks, team_news)
 
 
-def record_failed_run(provider: str, started: datetime, error: BaseException) -> None:
+def _team_news_isolated(
+    session: Session,
+    provider: FootballDataProvider,
+    *,
+    now: datetime,
+    settings: Settings | None,
+) -> dict[str, Any]:
+    """Line-ups and absences are optional extras: a provider error there is
+    logged and recorded in the run, and fixtures, odds, predictions and the pick
+    still go ahead (the team-news writes alone are rolled back)."""
+    if settings is None:
+        return {}
+    try:
+        with session.begin_nested():
+            return asdict(ingest_team_news(session, provider, now=now, settings=settings))
+    except ProviderError as exc:
+        logger.warning("team news skipped this run: %s", exc)
+        return {"error": f"{type(exc).__name__}: {exc}"[:500]}
+
+
+def record_failed_run(
+    provider: str,
+    started: datetime,
+    error: BaseException,
+    factory: sessionmaker[Session] | None = None,
+) -> None:
     """Log a failed run in its own transaction (the pipeline's was rolled back)."""
     from edge_api.db.session import session_scope
 
-    with session_scope() as s:
+    with session_scope(factory) as s:
         s.add(
             IngestionRun(
                 provider=provider,
