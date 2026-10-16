@@ -5,7 +5,9 @@ a tidy copy of football-data.co.uk results and odds (attribute both). One CSV,
 ``data/Matches.csv``, cached on disk; the file's SHA-256 goes into every report.
 
 Columns used: Division, MatchDate, MatchTime (UK time), HomeTeam, AwayTeam,
-FTHome, FTAway, OddHome, OddDraw, OddAway (Bet365). The exact time the odds
+FTHome, FTAway, OddHome, OddDraw, OddAway (Bet365); for the goal markets also
+Over25, Under25 (Bet365 over/under 2.5 goals) and HandiSize, HandiHome,
+HandiAway (Bet365 Asian handicap: the home team's line and both prices). The exact time the odds
 were captured is not documented in the copy; football-data.co.uk collects its
 main odds columns some time before kickoff, so treat them as "pre-match market"
 rather than as odds seen at the service's 09:00 KST decision.
@@ -24,6 +26,7 @@ import logging
 import unicodedata
 import urllib.request
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -139,3 +142,72 @@ def load(
     for m in matches:
         counts[m.result.season or ""] += 1
     return matches, dict(sorted(counts.items()))
+
+
+# ------------------------------------------------------------------ goal markets
+@dataclass(frozen=True, slots=True)
+class GoalMarketOdds:
+    over25: float | None
+    under25: float | None
+    handicap: float | None  # home team's Asian handicap line, e.g. -0.75
+    handicap_home: float | None
+    handicap_away: float | None
+
+
+def restore_quarter_line(value: float) -> float | None:
+    """The copy rounds quarter lines to one decimal (-0.25 -> -0.3, -0.75 -> -0.8,
+    1.25 -> 1.3). Map them back; anything that is not a whole, half or quarter
+    line after that is unknown (None)."""
+    whole, frac = divmod(round(abs(value), 2), 1)
+    frac = round(frac, 2)
+    frac = {0.3: 0.25, 0.8: 0.75}.get(frac, frac)
+    if frac not in (0.0, 0.25, 0.5, 0.75):
+        return None
+    line = whole + frac
+    return -line if value < 0 else line
+
+
+def _price(row: dict[str, str], key: str) -> float | None:
+    try:
+        v = float(row[key])
+    except (KeyError, ValueError):
+        return None
+    return v if v > 1.0 else None
+
+
+def _goal_odds(row: dict[str, str]) -> GoalMarketOdds:
+    try:
+        line = restore_quarter_line(float(row["HandiSize"]))
+    except (KeyError, ValueError):
+        line = None
+    return GoalMarketOdds(
+        over25=_price(row, "Over25"),
+        under25=_price(row, "Under25"),
+        handicap=line,
+        handicap_home=_price(row, "HandiHome"),
+        handicap_away=_price(row, "HandiAway"),
+    )
+
+
+MatchKey = tuple[datetime, str, str]
+
+
+def match_key(result: MatchResult) -> MatchKey:
+    return (result.kickoff_at, result.home, result.away)
+
+
+def load_goal_odds(code: str, cache_dir: Path) -> dict[MatchKey, GoalMarketOdds]:
+    """Over/under 2.5 and Asian handicap prices per match, keyed like ``load``."""
+    text = fetch(cache_dir).read_text(encoding="utf-8")
+    out: dict[MatchKey, GoalMarketOdds] = {}
+    for r in csv.DictReader(io.StringIO(text)):
+        if r.get("Division") != DIVISIONS[code]:
+            continue
+        try:
+            day = date.fromisoformat(r["MatchDate"])
+        except (KeyError, ValueError):
+            continue
+        kickoff = time.fromisoformat(r["MatchTime"]) if r.get("MatchTime") else DEFAULT_KICKOFF
+        at = datetime.combine(day, kickoff, tzinfo=UK).astimezone(UTC)
+        out[(at, team_key(r["HomeTeam"]), team_key(r["AwayTeam"]))] = _goal_odds(r)
+    return out

@@ -55,3 +55,33 @@ def test_team_spellings_collapse():
     assert team_key("M'gladbach") == team_key("MGladbach")
     assert team_key("Preußen Münster") == team_key("Preussen Munster")
     assert team_key("Man United") != team_key("Man City")
+
+
+def test_quarter_lines_are_restored():
+    from edge_ingestion.history.club_match_data import restore_quarter_line
+
+    assert restore_quarter_line(-0.3) == -0.25 and restore_quarter_line(-0.8) == -0.75
+    assert restore_quarter_line(1.3) == 1.25 and restore_quarter_line(0.8) == 0.75
+    assert restore_quarter_line(-0.25) == -0.25 and restore_quarter_line(-1.5) == -1.5
+    assert restore_quarter_line(0.0) == 0.0 and restore_quarter_line(-2.0) == -2.0
+    assert restore_quarter_line(-0.4) is None  # not a handicap line
+
+
+def test_goal_market_odds_are_keyed_like_matches(tmp_path):
+    from edge_ingestion.history.club_match_data import CACHE_NAME, load_goal_odds, match_key
+
+    text = (
+        "Division,MatchDate,MatchTime,HomeTeam,AwayTeam,FTHome,FTAway,OddHome,OddDraw,OddAway,"
+        "Over25,Under25,HandiSize,HandiHome,HandiAway\n"
+        "E0,2020-09-12,12:30:00,Fulham,Arsenal,0.0,3.0,5.0,3.9,1.7,1.8,2.0,0.8,1.9,1.95\n"
+        "E0,2020-09-19,15:00:00,Leeds,Fulham,4.0,3.0,2.0,3.5,3.8,,,x,1.9,1.9\n"
+    )
+    (tmp_path / CACHE_NAME).write_text(text)
+    odds = load_goal_odds("en.1", tmp_path)
+    fulham = next(m for m in parse(text, "E0") if m.result.home == "fulham")
+    o = odds[match_key(fulham.result)]
+    assert (o.over25, o.under25) == (1.8, 2.0)
+    assert (o.handicap, o.handicap_home, o.handicap_away) == (0.75, 1.9, 1.95)
+    leeds = next(m for m in parse(text, "E0") if m.result.home == "leeds")
+    o = odds[match_key(leeds.result)]
+    assert o.over25 is None and o.handicap is None  # missing / malformed

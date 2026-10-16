@@ -29,6 +29,7 @@ from edge_ingestion import (
     backtest_cli,
     draw_backtest,
     fatigue_backtest,
+    goal_markets_backtest,
     lineup_backtest,
     market_backtest,
     standings_backtest,
@@ -116,6 +117,9 @@ def main(argv: list[str] | None = None) -> int:
     market_backtest.add_arguments(
         sub.add_parser("backtest-market", help="model vs market, and blending with the market")
     )
+    goal_markets_backtest.add_arguments(
+        sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
+    )
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
@@ -154,6 +158,12 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(get_settings().log_level)
         report = market_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "backtest-goal-markets":
+        configure_logging(get_settings().log_level)
+        report = goal_markets_backtest.run(args)
+        print(json.dumps({k: v["decision"] for k, v in report["markets"].items()}, indent=2))
         return 0
 
     if args.command == "backtest":
