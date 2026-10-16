@@ -1,0 +1,424 @@
+{
+  "fixture": {
+    "id": 59,
+    "league": {
+      "id": 3,
+      "name": "K League 1",
+      "country": "South Korea",
+      "country_ko": "대한민국",
+      "region": "asia",
+      "type": "league",
+      "logo_url": null,
+      "flag_url": null,
+      "featured": true,
+      "predicted": true,
+      "verified": false
+    },
+    "season": "2026",
+    "round": 12,
+    "kickoff_at": "2026-10-16T07:30:00Z",
+    "status": "scheduled",
+    "home_team": {
+      "id": 41,
+      "name": "Jeju SK",
+      "short_name": "JEJ",
+      "logo_url": null
+    },
+    "away_team": {
+      "id": 47,
+      "name": "Pohang Steelers",
+      "short_name": "POH",
+      "logo_url": null
+    },
+    "home_score": null,
+    "away_score": null,
+    "latest_odds": {
+      "id": 55,
+      "bookmaker": "mockbook",
+      "market": "1X2",
+      "odds_home": 2.81,
+      "odds_draw": 3.25,
+      "odds_away": 2.59,
+      "captured_at": "2026-10-16T01:30:00Z"
+    },
+    "fair_market_probabilities": {
+      "home": 0.33903390943253353,
+      "draw": 0.2931339340016675,
+      "away": 0.36783215656579893
+    },
+    "model_probabilities": {
+      "home": 0.3918408738007645,
+      "draw": 0.2484623601008433,
+      "away": 0.35969676609839224
+    },
+    "prediction_id": 1,
+    "prediction_odds": {
+      "id": 55,
+      "bookmaker": "mockbook",
+      "market": "1X2",
+      "odds_home": 2.81,
+      "odds_draw": 3.25,
+      "odds_away": 2.59,
+      "captured_at": "2026-10-16T01:30:00Z"
+    },
+    "lineups_announced": true,
+    "odds_history": [
+      {
+        "id": 53,
+        "bookmaker": "mockbook",
+        "market": "1X2",
+        "odds_home": 2.28,
+        "odds_draw": 3.53,
+        "odds_away": 3.05,
+        "captured_at": "2026-10-06T07:30:00Z"
+      },
+      {
+        "id": 54,
+        "bookmaker": "mockbook",
+        "market": "1X2",
+        "odds_home": 2.48,
+        "odds_draw": 3.42,
+        "odds_away": 2.82,
+        "captured_at": "2026-10-14T07:30:00Z"
+      },
+      {
+        "id": 55,
+        "bookmaker": "mockbook",
+        "market": "1X2",
+        "odds_home": 2.81,
+        "odds_draw": 3.25,
+        "odds_away": 2.59,
+        "captured_at": "2026-10-16T01:30:00Z"
+      }
+    ],
+    "team_news": {
+      "lineups_announced": true,
+      "home": {
+        "team_id": 41,
+        "team_name": "Jeju SK",
+        "formation": "4-3-3",
+        "starters": [
+          {
+            "player_id": "JEJ-P12",
+            "name": "JEJ Player 12",
+            "number": 12,
+            "position": "G",
+            "regular": false
+          },
+          {
+            "player_id": "JEJ-P02",
+            "name": "JEJ Player 2",
+            "number": 2,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P03",
+            "name": "JEJ Player 3",
+            "number": 3,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P04",
+            "name": "JEJ Player 4",
+            "number": 4,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P05",
+            "name": "JEJ Player 5",
+            "number": 5,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P06",
+            "name": "JEJ Player 6",
+            "number": 6,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P07",
+            "name": "JEJ Player 7",
+            "number": 7,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P08",
+            "name": "JEJ Player 8",
+            "number": 8,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P09",
+            "name": "JEJ Player 9",
+            "number": 9,
+            "position": "F",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P10",
+            "name": "JEJ Player 10",
+            "number": 10,
+            "position": "F",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P11",
+            "name": "JEJ Player 11",
+            "number": 11,
+            "position": "F",
+            "regular": true
+          }
+        ],
+        "lineup_captured_at": "2026-10-16T07:21:41.772349Z",
+        "absences": [
+          {
+            "player_id": "JEJ-P01",
+            "name": "JEJ Player 1",
+            "status": "doubtful",
+            "reason": "Injury",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P02",
+            "name": "JEJ Player 2",
+            "status": "doubtful",
+            "reason": "Injury",
+            "regular": true
+          },
+          {
+            "player_id": "JEJ-P10",
+            "name": "JEJ Player 10",
+            "status": "doubtful",
+            "reason": "Injury",
+            "regular": true
+          }
+        ],
+        "absences_captured_at": "2026-10-16T07:21:41.772349Z",
+        "missing_regulars": [
+          {
+            "player_id": "JEJ-P01",
+            "name": "JEJ Player 1",
+            "reason": "Injury"
+          }
+        ],
+        "regulars_known": true,
+        "recent_matches": 7
+      },
+      "away": {
+        "team_id": 47,
+        "team_name": "Pohang Steelers",
+        "formation": "4-3-3",
+        "starters": [
+          {
+            "player_id": "POH-P01",
+            "name": "POH Player 1",
+            "number": 1,
+            "position": "G",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P02",
+            "name": "POH Player 2",
+            "number": 2,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P03",
+            "name": "POH Player 3",
+            "number": 3,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P04",
+            "name": "POH Player 4",
+            "number": 4,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P05",
+            "name": "POH Player 5",
+            "number": 5,
+            "position": "D",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P06",
+            "name": "POH Player 6",
+            "number": 6,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P07",
+            "name": "POH Player 7",
+            "number": 7,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P08",
+            "name": "POH Player 8",
+            "number": 8,
+            "position": "M",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P09",
+            "name": "POH Player 9",
+            "number": 9,
+            "position": "F",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P10",
+            "name": "POH Player 10",
+            "number": 10,
+            "position": "F",
+            "regular": true
+          },
+          {
+            "player_id": "POH-P17",
+            "name": "POH Player 17",
+            "number": 17,
+            "position": "F",
+            "regular": false
+          }
+        ],
+        "lineup_captured_at": "2026-10-16T07:21:41.772349Z",
+        "absences": [
+          {
+            "player_id": "POH-P11",
+            "name": "POH Player 11",
+            "status": "out",
+            "reason": "Injury",
+            "regular": true
+          }
+        ],
+        "absences_captured_at": "2026-10-16T07:21:41.772349Z",
+        "missing_regulars": [
+          {
+            "player_id": "POH-P11",
+            "name": "POH Player 11",
+            "reason": "Injury"
+          }
+        ],
+        "regulars_known": true,
+        "recent_matches": 7
+      },
+      "used_by_model": false,
+      "note": "선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요."
+    }
+  },
+  "prediction": {
+    "prediction_id": 1,
+    "fixture_id": 59,
+    "created_at": "2026-10-16T07:21:41.914633Z",
+    "input_data_as_of": "2026-10-16T01:30:00Z",
+    "model": {
+      "id": 1,
+      "name": "poisson-elo-baseline",
+      "version": "0.2.0",
+      "git_sha": "local",
+      "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1",
+      "calibration": "identity"
+    },
+    "market_odds_snapshot": {
+      "id": 55,
+      "bookmaker": "mockbook",
+      "market": "1X2",
+      "odds_home": 2.81,
+      "odds_draw": 3.25,
+      "odds_away": 2.59,
+      "captured_at": "2026-10-16T01:30:00Z"
+    },
+    "probabilities": {
+      "home": 0.3918408738007645,
+      "draw": 0.2484623601008433,
+      "away": 0.35969676609839224
+    },
+    "fair_market_probabilities": {
+      "home": 0.33903390943253353,
+      "draw": 0.2931339340016675,
+      "away": 0.36783215656579893
+    },
+    "overround": 0.04966457991369033,
+    "devig_method": "proportional",
+    "expected_goals": {
+      "home": 1.4769204098360182,
+      "away": 1.4051180182675855
+    },
+    "outcomes": [
+      {
+        "outcome": "HOME",
+        "decimal_odds": 2.81,
+        "implied_probability": 0.35587188612099646,
+        "fair_probability": 0.33903390943253353,
+        "model_probability": 0.3918408738007645,
+        "edge": 0.05280696436823096,
+        "expected_value": 0.10107285538014832,
+        "exceeds_threshold": true
+      },
+      {
+        "outcome": "DRAW",
+        "decimal_odds": 3.25,
+        "implied_probability": 0.3076923076923077,
+        "fair_probability": 0.2931339340016675,
+        "model_probability": 0.2484623601008433,
+        "edge": -0.044671573900824185,
+        "expected_value": -0.1924973296722593,
+        "exceeds_threshold": false
+      },
+      {
+        "outcome": "AWAY",
+        "decimal_odds": 2.59,
+        "implied_probability": 0.3861003861003861,
+        "fair_probability": 0.36783215656579893,
+        "model_probability": 0.35969676609839224,
+        "edge": -0.008135390467406689,
+        "expected_value": -0.06838537580516413,
+        "exceeds_threshold": false
+      }
+    ],
+    "value_threshold": 0.03,
+    "features": {
+      "elo_away": 1488.32,
+      "elo_home": 1445.02,
+      "calibrator": "identity",
+      "prior_away": "data",
+      "prior_home": "data",
+      "attack_away": 1.1038,
+      "attack_home": 0.9236,
+      "defence_away": 1.1235,
+      "defence_home": 1.1732,
+      "matches_away": 33,
+      "matches_home": 33,
+      "supremacy_elo": 0.0596,
+      "training_matches": 202,
+      "elo_diff_incl_hfa": 16.7,
+      "supremacy_poisson": 0.0799,
+      "lambda_away_poisson": 1.4011,
+      "lambda_home_poisson": 1.481
+    },
+    "quality": {
+      "ok": false,
+      "checks": [
+        {
+          "name": "odds_fresh",
+          "passed": false,
+          "detail": "synthetic QA stale odds"
+        }
+      ]
+    },
+    "disclaimer": "모델 확률은 통계적 추정치이며 경기 결과를 보장하지 않습니다. EPL Edge Lab은 데이터 분석 서비스로, 베팅을 중개하거나 실행하지 않습니다."
+  }
+}
