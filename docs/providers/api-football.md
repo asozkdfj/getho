@@ -44,6 +44,7 @@ mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같�
 | `/odds?date=D&bet=1&page=N` | 날짜별 페이지 수 | 페이지당 10경기, 앞으로 3일(`ODDS_LOOKAHEAD_DAYS`). 필요한 경기를 다 찾으면 멈춤 |
 | `/injuries?date=D` | 약 2 | 앞으로 48시간 경기의 결장·불투명 선수(검증된 리그) |
 | `/fixtures?ids=a-b-…` | 20경기당 1 | 선발 명단(킥오프 90분 전부터, 10분마다) + 끝난 경기의 선수별 출전 시간(실행당 200경기) |
+| `/fixtures?ids=a-b-…` (밀린 경기) | 보통 0, 20경기당 1 | 킥오프 4시간이 지났는데 아직 예정/진행 중이고, 이번 날짜 조회에 다시 나오지 않은 경기(최근 30일, 실행당 최대 100경기). 다른 날로 옮겨진 경기를 찾습니다 |
 | `/fixtures?league=L&season=S` | 리그당 2 | 과거 결과(현재 + 직전 시즌). **리그마다 한 번만**, 실행당 최대 40개 리그 |
 
 - 날짜 단위로 받기 때문에 리그 수가 늘어도 일정 요청은 거의 늘지 않습니다. 배당은 경기 수에 비례합니다
@@ -82,6 +83,18 @@ mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같�
 - **오류 처리:** HTTP 429/5xx와 네트워크 오류는 지수 백오프(1s, 2s)로 최대 3회 시도합니다. 401/403과
   응답 본문의 `errors`(HTTP 200으로 옴)는 즉시 실패시키고, 원인 메시지만 출력합니다. API 키는 로그,
   repr, 에러 메시지 어디에도 나오지 않습니다.
+- **실패 범위:** 리그·경기·배당 수집이나 예측에서 오류가 나면 실행 전체를 되돌리고(부분 저장 없음)
+  `ingestion_runs`에 `failed`로 따로 기록합니다. 팀 뉴스(결장·선발 명단·출전 시간)는 부가 정보라서, 여기서 난
+  provider 오류는 팀 뉴스 저장만 되돌리고 나머지(경기·배당·예측·픽)는 그대로 진행합니다. 오류 내용은
+  `ingestion_runs.counts.team_news.error`에 남습니다.
+- **밀린 경기:** 일정이 다른 날로 바뀐 경기는 원래 날짜 조회에 더 이상 나오지 않아, 예전 킥오프 시각의
+  "예정" 상태로 남을 수 있습니다. 킥오프 4시간이 지나도 예정/진행 중이면 `/fixtures?ids=`로 현재 상태를 다시
+  받아 갱신합니다(`fixtures_reconciled`). provider가 돌려주지 않는 경기는 추측하지 않고 그대로 두며 개수만
+  기록합니다(`overdue_unresolved`). 그 경기에 걸린 오늘의 픽은 경기가 픽 시간대 밖으로 옮겨지면 "경기 일정
+  변경"으로 무효 처리합니다(원래 픽 행은 그대로 보존).
+- **입력 검증:** 배당이 1.0 이하이거나 NaN/무한대인 행, 모르는 경기의 배당은 버리고 `odds_rejected`로
+  셉니다. 상태가 잘못됐거나 모르는 리그, 같은 팀끼리인 경기는 건너뛰고, 같은 경기 id가 두 번 오면 마지막 것만
+  씁니다.
 - **전송:** stdlib `urllib`를 쓰고 HTTPS만 허용합니다. 테스트는 `edge_ingestion.testing.FakeApiFootball`로
   네트워크 없이 실행됩니다.
 
@@ -110,6 +123,8 @@ mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같�
 - [ ] 분당 한도 헤더 `x-ratelimit-limit`
 - [ ] `/injuries?date=`: `player.type`("Missing Fixture"/"Questionable"), `reason`, `fixture.id`
 - [ ] `/fixtures?ids=`: `lineups[].startXI`, `players[].players[].statistics[0].games.minutes`
+- [ ] `/fixtures?ids=`로 받은 경기 객체가 날짜 조회와 같은 형식인지(밀린 경기 갱신에 사용), 옮겨진 경기의
+      새 `fixture.date`와 `status.short`(TBD/NS/PST)
 
 `make check-provider` 결과의 `leagues`, `busiest_leagues`, `odds_snapshots_sampled`가 0이 아니면 확인된 것입니다.
 
