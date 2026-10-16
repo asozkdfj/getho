@@ -829,6 +829,7 @@ table.glossary th[scope="row"] {
 }
 .pick-title {
   margin: 0;
+  word-break: keep-all; /* keep "오전 9시" together */
 }
 .pick-status.positive {
   color: var(--positive);

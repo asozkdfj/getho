@@ -280,7 +280,7 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
     # pooled over the verified leagues because the service picks across them.
     verified_codes = [lg["code"] for lg in leagues if lg["verified"]]
 
-    def replay(decision_hour: int | None) -> list[dict[str, Any]]:
+    def replay(decision_hour: int | None, day_start_hour: int = 0) -> list[dict[str, Any]]:
         if not pooled["keys"]:
             return []
         return backtest_daily_picks(
@@ -291,6 +291,7 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
             PICK_THRESHOLDS,
             decision_hour=decision_hour,
             prediction_times=pooled["prediction_times"] if decision_hour is not None else None,
+            day_start_hour=day_start_hour,
         )
 
     report["daily_pick_backtest"] = {
@@ -303,12 +304,25 @@ def _add_leagues(report: dict[str, Any], args: argparse.Namespace, first_preds: 
         "rows": replay(None),
     }
     report["daily_pick_timing_proxy"] = {
-        # the service's timing: decided at PICK_PUBLISH_HOUR, only later kickoffs
+        # the service's rule: decided at PICK_PUBLISH_HOUR from the matches kicking
+        # off between then and the same hour the next day
         "evaluation_scope": "timing_only_not_live_quality_replay",
         "selection_bias": "league scope selected on the same test results",
         "model": "production",
         "tz": "Asia/Seoul",
         "decision_hour": PICK_DECISION_HOUR,
+        "window": "decision_hour_to_next_day_decision_hour",
+        "leagues": verified_codes,
+        "rows": replay(PICK_DECISION_HOUR, day_start_hour=PICK_DECISION_HOUR),
+    }
+    report["daily_pick_timing_proxy_until_midnight"] = {
+        # the earlier service rule (until 2026-10-16): same decision hour, but
+        # only matches before local midnight; kept for comparison
+        "evaluation_scope": "timing_only_not_live_quality_replay",
+        "model": "production",
+        "tz": "Asia/Seoul",
+        "decision_hour": PICK_DECISION_HOUR,
+        "window": "decision_hour_to_midnight",
         "leagues": verified_codes,
         "rows": replay(PICK_DECISION_HOUR),
     }

@@ -215,7 +215,9 @@ export interface paths {
         };
         /**
          * Today
-         * @description The day's single highest-probability outcome that passed the quality gate.
+         * @description The pick day's single highest-probability outcome that passed the quality gate.
+         *
+         *     A pick day runs from the publish hour to the same hour the next day (pick_tz).
          */
         get: operations["today_picks_today_get"];
         put?: never;
@@ -1342,7 +1344,7 @@ export interface components {
             date: string;
             /**
              * Disclaimer
-             * @default 오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.
+             * @default 오늘의 픽은 선정 시각부터 다음 날 같은 시각까지의 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.
              */
             disclaimer: string;
             expected_goals?: components["schemas"]["ExpectedGoalsOut"] | null;
@@ -1365,7 +1367,7 @@ export interface components {
             league_scope: string;
             /**
              * Matches In Scope
-             * @description Today's matches in leagues the pick may come from
+             * @description Matches of the pick window in leagues the pick may come from
              */
             matches_in_scope?: number | null;
             /** Matches Today */
@@ -1400,6 +1402,13 @@ export interface components {
             threshold: number;
             /** Tz */
             tz: string;
+            /** Window End */
+            window_end?: string | null;
+            /**
+             * Window Start
+             * @description Candidates kick off in [window_start, window_end)
+             */
+            window_start?: string | null;
         };
         /** ValidationError */
         ValidationError: {

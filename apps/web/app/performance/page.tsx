@@ -239,15 +239,15 @@ export default async function PerformancePage() {
 
           <h2 id="daily">오늘의 픽 규칙 백테스트</h2>
           <p className="small">
-            하루(한국 시간)에 경기 중 분석 확률이 가장 높은 결과 하나를 고르되, 기준 확률에 못
-            미치면 그날은 고르지 않는 규칙을 시험 구간에 적용한 결과예요. 기준이 높을수록 적중률은
-            오르지만 픽이 나오는 날은 줄어요.
+            하루에 한 번 경기 중 분석 확률이 가장 높은 결과 하나를 고르되, 기준 확률에 못 미치면
+            그날은 고르지 않는 규칙을 시험 구간에 적용한 결과예요. 기준이 높을수록 적중률은 오르지만
+            픽이 나오는 날은 줄어요.
             {pickLeagues.length > 0 &&
               ` 서비스처럼 검증된 ${pickLeagues.length}개 리그의 경기를 모두 모아 계산했어요.`}
           </p>
           {timing.length > 0 && (
             <>
-              <h3>서비스 방식: 오전 9시에 선정</h3>
+              <h3>서비스 방식: 오전 9시 선정, 다음 날 오전 9시까지의 경기</h3>
               <p className="small muted">{backtestTimingText(9)}</p>
               <PickRuleTable rows={timing} />
             </>

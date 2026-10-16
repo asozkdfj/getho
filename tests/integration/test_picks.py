@@ -36,19 +36,28 @@ def _pick_time(session, now) -> tuple[datetime, Fixture]:
     raise AssertionError("mock schedule should have a 12:30 UTC fixture in the next days")
 
 
-def test_local_day_uses_kst_boundaries():
+def test_pick_day_runs_from_the_publish_hour_to_the_next_morning():
     s = settings()
-    late = local_day(datetime(2026, 10, 15, 14, 59, tzinfo=UTC), s)  # 23:59 KST
-    nxt = local_day(datetime(2026, 10, 15, 15, 0, tzinfo=UTC), s)  # 00:00 KST next day
-    assert late.day.isoformat() == "2026-10-15" and nxt.day.isoformat() == "2026-10-16"
-    assert late.start_utc == datetime(2026, 10, 14, 15, tzinfo=UTC)
-    assert late.end_utc == datetime(2026, 10, 15, 15, tzinfo=UTC)
-    assert late.publish_at == datetime(2026, 10, 15, 0, tzinfo=UTC)  # 09:00 KST
+    publish = datetime(2026, 10, 15, 0, tzinfo=UTC)  # 09:00 KST on the 15th
+    for moment in (
+        publish,  # 09:00 KST
+        datetime(2026, 10, 15, 14, 59, tzinfo=UTC),  # 23:59 KST
+        datetime(2026, 10, 15, 17, 0, tzinfo=UTC),  # 02:00 KST on the 16th (European evening)
+        datetime(2026, 10, 15, 23, 59, tzinfo=UTC),  # 08:59 KST on the 16th
+    ):
+        ld = local_day(moment, s)
+        assert ld.day.isoformat() == "2026-10-15"
+        assert ld.start_utc == ld.publish_at == publish
+        assert ld.end_utc == datetime(2026, 10, 16, 0, tzinfo=UTC)  # 09:00 KST on the 16th
+    assert local_day(datetime(2026, 10, 16, 0, tzinfo=UTC), s).day.isoformat() == "2026-10-16"
 
 
-def test_nothing_is_published_before_the_publish_hour(session_factory, seeded):
+def test_before_the_publish_hour_the_previous_pick_is_current(session_factory, seeded):
     with session_factory() as s:
-        view = get_today_pick(s, settings(), datetime(2026, 10, 14, 23, 0, tzinfo=UTC))  # 08:00 KST
+        moment = datetime(2026, 10, 14, 23, 0, tzinfo=UTC)  # 08:00 KST on the 15th
+        view = get_today_pick(s, settings(), moment, publish_if_due=False)
+        assert view.day.day.isoformat() == "2026-10-14"  # published at 09:00 the day before
+        assert view.day.end_utc == datetime(2026, 10, 15, 0, tzinfo=UTC)
         assert view.status == "scheduled" and view.pick is None
         assert s.scalar(select(func.count()).select_from(DailyPick)) == 0
 
@@ -64,6 +73,10 @@ def test_publishes_highest_probability_eligible_outcome(session_factory, seeded,
         assert eligible and pick.probability == max(c["best_probability"] for c in eligible)
         assert ev["chosen"]["outcome"] == pick.outcome
         assert pick.fixture.kickoff_at > pick_now
+        ld = local_day(pick_now, settings())
+        assert ld.start_utc <= pick.fixture.kickoff_at < ld.end_utc
+        assert ev["window_utc"] == [ld.start_utc.isoformat(), ld.end_utc.isoformat()]
+        assert pick.policy["window"] == "publish_hour_to_next_day_publish_hour"
         assert pick.prediction.fixture_id == pick.fixture_id
         assert pick.input_data_as_of == pick.prediction.input_data_as_of
         assert ev["is_demo"] is True and ev["factors_used"]

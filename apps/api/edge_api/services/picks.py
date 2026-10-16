@@ -1,10 +1,14 @@
-"""Today's Pick: decide once per local day, freeze the decision, settle later.
+"""Today's Pick: decide once per pick day, freeze the decision, settle later.
+
+A pick day runs from the publish hour (pick_tz) to the same hour the next day,
+e.g. 09:00 KST -> 09:00 KST, so European evening matches (early morning in
+Korea) belong to the pick published the morning before. Between midnight and
+the publish hour the previous day's pick is still the current one.
 
 Flow
-1. ``get_today_pick``: before the publish hour -> "scheduled"; afterwards the
-   day's decision is published (idempotently) the first time anyone asks or
-   the pipeline runs.
-2. ``publish_daily_pick``: candidates = today's (pick_tz) upcoming fixtures of
+1. ``get_today_pick``: the current pick day's decision is published
+   (idempotently) the first time anyone asks or the pipeline runs.
+2. ``publish_daily_pick``: candidates = the pick day's upcoming fixtures of
    the active provider -> data-quality gate -> shared selection rule
    (``edge_ml.picks.select_pick``) with the backtested threshold. The row is
    written with INSERT ... ON CONFLICT DO NOTHING on (provider, day, revision),
@@ -55,16 +59,18 @@ class LocalDay:
 
 
 def local_day(now: datetime, settings: Settings) -> LocalDay:
+    """The pick day containing ``now``: [publish hour, publish hour next day)."""
     zone = ZoneInfo(settings.pick_tz)
-    day = now.astimezone(zone).date()
-    start = datetime.combine(day, time.min, tzinfo=zone)
-    publish = datetime.combine(day, time(settings.pick_publish_hour), tzinfo=zone)
+    shifted = now.astimezone(zone) - timedelta(hours=settings.pick_publish_hour)
+    day = shifted.date()
+    start = datetime.combine(day, time(settings.pick_publish_hour), tzinfo=zone)
+    end = datetime.combine(day + timedelta(days=1), time(settings.pick_publish_hour), tzinfo=zone)
     return LocalDay(
         day=day,
         tz=settings.pick_tz,
         start_utc=start.astimezone(ZoneInfo("UTC")),
-        end_utc=(start + timedelta(days=1)).astimezone(ZoneInfo("UTC")),
-        publish_at=publish.astimezone(ZoneInfo("UTC")),
+        end_utc=end.astimezone(ZoneInfo("UTC")),
+        publish_at=start.astimezone(ZoneInfo("UTC")),
     )
 
 
@@ -73,6 +79,8 @@ def _policy(settings: Settings) -> dict[str, Any]:
         "min_probability": settings.pick_min_probability,
         "tz": settings.pick_tz,
         "publish_hour": settings.pick_publish_hour,
+        # candidates kick off between the publish hour and the same hour next day
+        "window": "publish_hour_to_next_day_publish_hour",
         "replace_on_void": settings.pick_replace_on_void,
         "odds_max_age_hours": settings.odds_max_age,
         "ingest_max_age_hours": settings.ingest_max_age_hours,

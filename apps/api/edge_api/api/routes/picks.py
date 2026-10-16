@@ -47,7 +47,9 @@ def today(
     now: Now,
     tz: Annotated[str, Query(description="Only the configured pick timezone is supported")] = "",
 ) -> TodayPickOut:
-    """The day's single highest-probability outcome that passed the quality gate."""
+    """The pick day's single highest-probability outcome that passed the quality gate.
+
+    A pick day runs from the publish hour to the same hour the next day (pick_tz)."""
     if tz and tz != settings.pick_tz:
         raise HTTPException(422, f"picks are published for {settings.pick_tz} days only")
     view = get_today_pick(db, settings, now)
@@ -57,6 +59,8 @@ def today(
         "status": view.status,
         "is_demo": settings.data_provider == "mock",
         "publish_at": view.day.publish_at,
+        "window_start": view.day.start_utc,
+        "window_end": view.day.end_utc,
         "threshold": settings.pick_min_probability,
     }
     pick = view.pick

@@ -99,3 +99,36 @@ def test_misaligned_or_ambiguous_inputs_are_rejected():
     with pytest.raises(ValueError, match="timezone"):
         naive = datetime(2026, 10, 17, 11)  # noqa: DTZ001 - deliberately naive
         backtest_daily_picks(["a"], [naive], np.ones((1, 3)), np.array([0]), [0.55])
+
+
+def test_pick_day_from_nine_to_nine_keeps_european_evening_matches():
+    # Saturday 09:00 KST decision; a 04:00 KST Sunday kickoff (European Saturday
+    # evening) belongs to Saturday's pick day, a 10:00 KST Sunday kickoff does not.
+    sat_nine = datetime(2026, 10, 17, 0, tzinfo=UTC)  # 09:00 KST
+    kickoffs = [sat_nine + timedelta(hours=19), sat_nine + timedelta(hours=25)]
+    probs = np.array([[0.8, 0.1, 0.1], [0.9, 0.05, 0.05]])
+    ready = [sat_nine - timedelta(days=1)] * 2
+    nine_to_nine = backtest_daily_picks(
+        ["eu", "next"],
+        kickoffs,
+        probs,
+        np.array([0, 0]),
+        [0.55],
+        decision_hour=9,
+        prediction_times=ready,
+        day_start_hour=9,
+    )[0]
+    assert nine_to_nine["match_days"] == 2 and nine_to_nine["days_with_pick"] == 2
+    same_day = backtest_daily_picks(
+        ["eu", "next"],
+        kickoffs,
+        probs,
+        np.array([0, 0]),
+        [0.55],
+        decision_hour=9,
+        prediction_times=ready,
+    )[0]
+    # with calendar days the 04:00 match sits on Sunday, before Sunday's 09:00 decision
+    assert same_day["eligible_matches"] == 1 and same_day["day_start_hour"] == 0
+    with pytest.raises(ValueError, match="day_start_hour"):
+        backtest_daily_picks(["a"], [T], np.ones((1, 3)), np.array([0]), [0.5], day_start_hour=24)

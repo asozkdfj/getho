@@ -386,7 +386,8 @@ class DataStatusOut(ApiModel):
 
 # ---------------------------------------------------------------- Today's Pick
 PICK_DISCLAIMER = (
-    "오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. "
+    "오늘의 픽은 선정 시각부터 다음 날 같은 시각까지의 경기 중 통계 모델이 가장 높은 가능성을 "
+    "계산한 결과 하나를 설명합니다. "
     "확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다."
 )
 
@@ -438,6 +439,10 @@ class TodayPickOut(ApiModel):
     status: TodayPickStatus
     is_demo: bool
     publish_at: datetime
+    window_start: datetime | None = Field(
+        default=None, description="Candidates kick off in [window_start, window_end)"
+    )
+    window_end: datetime | None = None
     threshold: float
     pick_id: int | None = None
     revision: int | None = None
@@ -459,7 +464,7 @@ class TodayPickOut(ApiModel):
     )
     matches_today: int | None = None
     matches_in_scope: int | None = Field(
-        default=None, description="Today's matches in leagues the pick may come from"
+        default=None, description="Matches of the pick window in leagues the pick may come from"
     )
     backtest: PickBacktestOut | None = None
     result: PickResultOut | None = None

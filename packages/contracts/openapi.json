@@ -2989,7 +2989,7 @@
             "type": "string"
           },
           "disclaimer": {
-            "default": "오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.",
+            "default": "오늘의 픽은 선정 시각부터 다음 날 같은 시각까지의 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -3056,7 +3056,7 @@
                 "type": "null"
               }
             ],
-            "description": "Today's matches in leagues the pick may come from",
+            "description": "Matches of the pick window in leagues the pick may come from",
             "title": "Matches In Scope"
           },
           "matches_today": {
@@ -3199,6 +3199,31 @@
           "tz": {
             "title": "Tz",
             "type": "string"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window End"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Candidates kick off in [window_start, window_end)",
+            "title": "Window Start"
           }
         },
         "required": [
@@ -3940,7 +3965,7 @@
     },
     "/picks/today": {
       "get": {
-        "description": "The day's single highest-probability outcome that passed the quality gate.",
+        "description": "The pick day's single highest-probability outcome that passed the quality gate.\n\nA pick day runs from the publish hour to the same hour the next day (pick_tz).",
         "operationId": "today_picks_today_get",
         "parameters": [
           {

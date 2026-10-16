@@ -12,6 +12,7 @@ import {
   backtestTimingText,
   periodText,
   pickStatusInfo,
+  pickWindowText,
   rateWithCi,
   thresholdText,
   voidReasonText,
@@ -51,6 +52,11 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
         </h2>
         <span className={`status pick-status ${info.tone}`}>{info.label}</span>
       </div>
+      {pick.window_start && (
+        <p className="muted small" style={{ margin: "2px 0 6px" }}>
+          {pickWindowText(pick.window_start, pick.tz)} 중에서 골라요
+        </p>
+      )}
       {pick.is_demo && (
         <p className="demo-banner small">
           데모 데이터(합성 경기)로 만든 예시입니다. 실제 경기·실제 성과가 아니에요.
@@ -124,7 +130,8 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
             <summary>왜 이 경기인가요? 근거와 과거 기록 보기</summary>
             <ul className="pick-reasons">
               <li>
-                오늘 경기 중 데이터 점검을 통과한 결과 가운데 분석 확률이 가장 높았고, 기준(
+                이번 픽 시간대 경기 중 데이터 점검을 통과한 결과 가운데 분석 확률이 가장 높았고,
+                기준(
                 {pct(pick.threshold, 0)})을 넘었어요.
               </li>
               {pickReasons(pick).map((r) => (
@@ -159,7 +166,7 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
         <>
           <p style={{ margin: "6px 0" }}>
             {pick.status === "no_qualifying_match" && pick.matches_in_scope === 0
-              ? "오늘은 정확도가 검증된 리그의 경기가 없어요. 검증 전 리그에서는 픽을 고르지 않아요."
+              ? "이번 픽 시간대에는 정확도가 검증된 리그의 경기가 없어요. 검증 전 리그에서는 픽을 고르지 않아요."
               : info.description}
           </p>
           {closest && (

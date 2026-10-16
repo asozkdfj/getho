@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 
 from edge_ml.value import expected_value
@@ -249,8 +251,12 @@ def test_today_pick_endpoint(client):
     body = client.get("/picks/today").json()
     assert body["tz"] == "Asia/Seoul" and body["is_demo"] is True
     assert body["status"] in {"published", "no_qualifying_match", "no_matches"}
+    # a pick day runs from the publish hour to the same hour the next day
+    start, end = (datetime.fromisoformat(body[k]) for k in ("window_start", "window_end"))
+    assert end - start == timedelta(days=1) and body["publish_at"] == body["window_start"]
     if body["status"] == "published":
         assert body["fixture"] and body["outcome"] in ("HOME", "DRAW", "AWAY")
+        assert start <= datetime.fromisoformat(body["fixture"]["kickoff_at"]) < end
         assert sum(body["probabilities"].values()) == pytest.approx(1.0)
         assert body["model"]["version"] and body["input_data_as_of"]
     again = client.get("/picks/today").json()

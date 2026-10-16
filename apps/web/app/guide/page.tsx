@@ -162,9 +162,9 @@ export default function GuidePage() {
       <h2 id="pick">&lsquo;오늘의 픽&rsquo;은 어떻게 고르나요?</h2>
       <ol>
         <li>
-          매일 아침 9시(한국 시간)에 그날 <strong>정확도가 검증된 리그</strong>의 경기 가운데{" "}
-          <strong>데이터 점검</strong>(최근 수집 성공, 배당이 최신, 두 팀 경기 기록 충분, 경기 시작
-          전)을 통과한 경기만 봅니다.
+          매일 아침 9시(한국 시간)에 그때부터 <strong>다음 날 아침 9시까지</strong> 시작하는{" "}
+          <strong>정확도가 검증된 리그</strong>의 경기 가운데 <strong>데이터 점검</strong>(최근 수집
+          성공, 배당이 최신, 두 팀 경기 기록 충분, 경기 시작 전)을 통과한 경기만 봅니다.
         </li>
         <li>
           그중 {TERM.model}이 <strong>가장 높은 결과 하나</strong>를 고릅니다. 그래도 기준 확률보다
