@@ -198,6 +198,7 @@ export function voidReasonText(reason: string | null | undefined): string {
   if (!reason) return "";
   if (reason.includes("cancelled")) return "경기 취소";
   if (reason.includes("postponed")) return "경기 연기";
+  if (reason.includes("rescheduled")) return "경기 일정 변경";
   return reason;
 }
 

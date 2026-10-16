@@ -116,6 +116,7 @@ describe("status and labels", () => {
     expect(excludedReasonText("unknown_reason")).toBe("unknown_reason");
     expect(qualityCheckLabel("odds_fresh")).toBe("배당 정보 최신");
     expect(voidReasonText("fixture postponed")).toBe("경기 연기");
+    expect(voidReasonText("fixture rescheduled")).toBe("경기 일정 변경");
     expect(voidReasonText(null)).toBe("");
   });
 

@@ -171,6 +171,24 @@ def test_settlement_and_voiding_are_appended_once(session_factory, seeded, now):
         assert summary["mean_probability"] == pytest.approx(pick.probability)
 
 
+def test_pick_on_a_rescheduled_match_is_voided(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(minutes=30)  # moved within the pick day: still counts
+        s.flush()
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 0
+        f.kickoff_at += timedelta(days=3)  # provider moved it to another day
+        s.flush()
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 1
+        event = s.scalars(select(DailyPickEvent)).one()
+        assert event.event == "voided" and event.reason == "fixture rescheduled"
+        assert settle_daily_picks(s, settings(), pick_now)["voided"] == 0  # appended once
+        # the original pick row is kept as published
+        assert s.scalars(select(DailyPick)).one().fixture_id == f.id
+
+
 def test_replace_on_void_publishes_a_new_revision(session_factory, seeded, now):
     with session_factory() as s:
         pick_now, _ = _pick_time(s, now)

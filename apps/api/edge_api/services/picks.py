@@ -320,6 +320,16 @@ def _outcome_of(f: Fixture) -> Outcome | None:
     return Outcome.DRAW if f.home_score == f.away_score else Outcome.AWAY
 
 
+def _moved_out_of_window(pick: DailyPick, fixture: Fixture) -> bool:
+    """True when the fixture now kicks off outside the window the pick was chosen
+    from (recorded in its evidence when it was published)."""
+    window = (pick.evidence or {}).get("window_utc")
+    if not window or len(window) != 2:
+        return False
+    start, end = (datetime.fromisoformat(w) for w in window)
+    return not (start <= fixture.kickoff_at < end)
+
+
 def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> dict[str, int]:
     """Append settled/voided events for published picks whose match has resolved."""
     counts = {"settled": 0, "voided": 0, "republished": 0}
@@ -335,6 +345,9 @@ def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> d
         f = pick.fixture
         if f.status in (FixtureStatus.CANCELLED.value, FixtureStatus.POSTPONED.value):
             values = {"event": "voided", "reason": f"fixture {f.status}"}
+        elif f.status == FixtureStatus.SCHEDULED.value and _moved_out_of_window(pick, f):
+            # rescheduled to a time outside the pick day: the pick's match did not happen
+            values = {"event": "voided", "reason": "fixture rescheduled"}
         elif f.status == FixtureStatus.FINISHED.value and (actual := _outcome_of(f)):
             values = {
                 "event": "settled",
