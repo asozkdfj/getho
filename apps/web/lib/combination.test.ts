@@ -8,11 +8,13 @@ import {
   matchesTeam,
   oddsUpdatedSincePrediction,
   pricedOdds,
+  requestAnalysis,
   selectedLegs,
   selectedPerLeague,
   toRequest,
   toggleSelection,
 } from "./combination";
+import { LatestRequest } from "./latestRequest";
 import { TEST_LEAGUE } from "./testing";
 
 function fx(id: number, home: number, away: number, extra: Partial<FixtureSummary> = {}) {
@@ -139,5 +141,67 @@ describe("picker helpers", () => {
     const counts = selectedPerLeague({ 2: "HOME", 3: "AWAY", 1: "DRAW" }, named);
     expect(counts.get(TEST_LEAGUE.id)).toBe(1);
     expect(counts.get(2)).toBe(2);
+  });
+});
+
+describe("analysis requests racing (QA-01)", () => {
+  /** A fetch whose answers the test releases in any order. */
+  function controllableFetch() {
+    const pending: { resolve: (r: Response) => void; reject: (e: unknown) => void }[] = [];
+    const impl = ((_url: string, init?: RequestInit) =>
+      new Promise<Response>((resolve, reject) => {
+        pending.push({ resolve, reject });
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted")));
+      })) as unknown as typeof fetch;
+    const answer = (i: number, body: unknown, status = 200) =>
+      pending[i]!.resolve(new Response(JSON.stringify(body), { status }));
+    return { impl, answer };
+  }
+
+  it("ignores the older answer when a newer request was started", async () => {
+    const guard = new LatestRequest();
+    const { impl, answer } = controllableFetch();
+    const first = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    const second = requestAnalysis({ 1: "DRAW", 3: "AWAY" }, guard.start(), impl);
+    answer(1, { model_probability: 0.2 });
+    answer(0, { model_probability: 0.9 }); // too late, and already aborted
+    expect(await second).toEqual({ kind: "result", combination: { model_probability: 0.2 } });
+    expect(await first).toEqual({ kind: "stale" });
+  });
+
+  it("drops an answer that arrives after the selection was reset", async () => {
+    const guard = new LatestRequest();
+    const { impl, answer } = controllableFetch();
+    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    guard.cancel(); // the user changed or cleared the selection
+    answer(0, { model_probability: 0.5 });
+    expect(await running).toEqual({ kind: "stale" }); // no result, no error, no scroll
+  });
+
+  it("drops an answer already received when the selection changes", async () => {
+    // The response is in, its body not yet read: aborting can no longer stop
+    // it, so only the ticket check keeps the old result off the screen.
+    const guard = new LatestRequest();
+    const { impl, answer } = controllableFetch();
+    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    answer(0, { model_probability: 0.5 });
+    guard.cancel();
+    expect(await running).toEqual({ kind: "stale" });
+  });
+
+  it("reports API errors and network failures for the current request only", async () => {
+    const guard = new LatestRequest();
+    const { impl, answer } = controllableFetch();
+    const rejected = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    answer(0, { detail: "같은 경기를 두 번 고를 수 없습니다" }, 422);
+    expect(await rejected).toEqual({
+      kind: "error",
+      message: "같은 경기를 두 번 고를 수 없습니다",
+    });
+    const failing = (() => Promise.reject(new TypeError("network"))) as unknown as typeof fetch;
+    expect(await requestAnalysis({ 1: "HOME" }, guard.start(), failing)).toEqual({
+      kind: "error",
+      message: "API에 연결할 수 없습니다. 잠시 후 다시 시도하세요.",
+    });
   });
 });

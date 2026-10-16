@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { formatInTz, type TimeFormat } from "@/lib/time";
+import { displayTimeZone, formatInTz, type TimeFormat } from "@/lib/time";
 
 const subscribe = () => () => {};
 const browserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -25,7 +25,7 @@ export function LocalTime({
   fixed?: boolean;
 }) {
   const viewer = useSyncExternalStore(subscribe, browserTz, () => fallbackTz);
-  const tz = fixed ? fallbackTz : viewer;
+  const tz = displayTimeZone(fixed, viewer, fallbackTz);
   return (
     <time dateTime={iso} title={`${iso} (UTC 기준 저장)`}>
       {formatInTz(iso, tz, format)}
