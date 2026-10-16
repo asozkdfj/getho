@@ -10,6 +10,8 @@ from edge_api.schemas import (
     DailyPickBacktestRowOut,
     DataStatusOut,
     EvaluationOut,
+    LeagueEvaluationOut,
+    LeagueModelMetricOut,
     LiveEvaluationOut,
     ModelMetricOut,
     PerformanceOut,
@@ -37,6 +39,27 @@ def _metrics(section: dict[str, Any]) -> list[ModelMetricOut]:
     ]
 
 
+def _league(entry: dict[str, Any]) -> LeagueEvaluationOut:
+    models = entry.get("models", {})
+    gain = entry.get("gain_vs_base_rate", {})
+    return LeagueEvaluationOut(
+        code=entry["code"],
+        name=entry.get("name", entry["code"]),
+        country=entry.get("country", ""),
+        test_matches=entry.get("test_matches", 0),
+        production=LeagueModelMetricOut(**models["production"]),
+        base_rate=LeagueModelMetricOut(**models["base_rate"]),
+        elo_only=LeagueModelMetricOut(**models["elo_only"]) if "elo_only" in models else None,
+        gain_vs_base_rate=[
+            gain.get("mean", 0.0),
+            gain.get("ci_low", 0.0),
+            gain.get("ci_high", 0.0),
+        ],
+        verified=bool(entry.get("verified")),
+        data_warnings=entry.get("data_warnings", []),
+    )
+
+
 @router.get("/performance", response_model=PerformanceOut)
 def performance(db: DbSession, settings: AppSettings) -> PerformanceOut:
     """Backtest results of the production model plus live scoring of stored predictions."""
@@ -44,6 +67,7 @@ def performance(db: DbSession, settings: AppSettings) -> PerformanceOut:
     evaluation = None
     if ev is not None:
         r = ev.report
+        names = {lg.get("code"): lg.get("name") for lg in r.get("leagues") or []}
         test = r.get("test", {})
         prod = test.get("models", {}).get("production", {})
         evaluation = EvaluationOut(
@@ -66,6 +90,14 @@ def performance(db: DbSession, settings: AppSettings) -> PerformanceOut:
                 DailyPickBacktestRowOut(**row)
                 for row in (r.get("daily_pick_backtest") or {}).get("rows", [])
             ],
+            daily_picks_leagues=[
+                names.get(c, c) for c in (r.get("daily_pick_backtest") or {}).get("leagues", [])
+            ],
+            daily_picks_timing=[
+                DailyPickBacktestRowOut(**row)
+                for row in (r.get("daily_pick_timing_proxy") or {}).get("rows", [])
+            ],
+            leagues=[_league(lg) for lg in r.get("leagues") or []],
             promotion_decisions={
                 k: r[k]["reasons"] for k in ("promotion", "promotion_calibrated") if k in r
             },

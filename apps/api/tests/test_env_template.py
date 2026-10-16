@@ -21,5 +21,5 @@ def test_template_values_are_valid_settings(monkeypatch):
         monkeypatch.setenv(key, value)
     settings = Settings(_env_file=None)
     assert settings.data_provider == "mock"
-    assert settings.api_football_season is None
+    assert settings.api_football_leagues == "all" and settings.odds_lookahead_days is None
     assert settings.api_football_key is None

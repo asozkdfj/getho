@@ -1,9 +1,10 @@
-"""openfootball/football.json loader (EPL results, public domain / CC0).
+"""openfootball/football.json loader (league results, public domain / CC0).
 
-https://github.com/openfootball/football.json - one JSON file per season with
-date, local kick-off time (UK) and full-time score. No odds: use it for model
-evaluation; market comparisons need a dataset with prices (football_data.py).
-Data is cached on disk so a backtest can be re-run offline and reproducibly.
+https://github.com/openfootball/football.json - one JSON file per league and
+season with date, local kick-off time and full-time score. No odds: use it for
+model evaluation; market comparisons need a dataset with prices
+(football_data.py). Data is cached on disk so a backtest can be re-run offline
+and reproducibly.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import urllib.request
+from dataclasses import dataclass
 from datetime import UTC, datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -20,9 +22,38 @@ from edge_ml.forecasters import BacktestMatch
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://raw.githubusercontent.com/openfootball/football.json/master/{season}/en.1.json"
+BASE_URL = (
+    "https://raw.githubusercontent.com/openfootball/football.json/master/{season}/{code}.json"
+)
 UK = ZoneInfo("Europe/London")
 DEFAULT_KICKOFF = time(15, 0)  # used only when a match has no time
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryLeague:
+    code: str  # openfootball file name, e.g. "de.1"
+    name: str
+    country: str
+    tz: str  # kick-off times in the files are local times
+    api_football_id: str
+
+
+# Leagues with complete 2018-19..2025-26 files (checked 2026-10-15).
+LEAGUES: dict[str, HistoryLeague] = {
+    lg.code: lg
+    for lg in (
+        HistoryLeague("en.1", "Premier League", "England", "Europe/London", "39"),
+        HistoryLeague("en.2", "Championship", "England", "Europe/London", "40"),
+        HistoryLeague("de.1", "Bundesliga", "Germany", "Europe/Berlin", "78"),
+        HistoryLeague("de.2", "2. Bundesliga", "Germany", "Europe/Berlin", "79"),
+        HistoryLeague("es.1", "La Liga", "Spain", "Europe/Madrid", "140"),
+        HistoryLeague("it.1", "Serie A", "Italy", "Europe/Rome", "135"),
+        HistoryLeague("fr.1", "Ligue 1", "France", "Europe/Paris", "61"),
+        HistoryLeague("nl.1", "Eredivisie", "Netherlands", "Europe/Amsterdam", "88"),
+        HistoryLeague("pt.1", "Primeira Liga", "Portugal", "Europe/Lisbon", "94"),
+        HistoryLeague("at.1", "Austrian Bundesliga", "Austria", "Europe/Vienna", "218"),
+    )
+}
 
 
 def normalize_team(name: str) -> str:
@@ -37,17 +68,28 @@ def normalize_team(name: str) -> str:
     return name
 
 
-def validate_season(matches: list[BacktestMatch], season: str) -> list[str]:
-    """Integrity checks for a complete double round-robin season."""
+def validate_season(
+    matches: list[BacktestMatch], season: str, *, expected_teams: int | None = 20
+) -> list[str]:
+    """Integrity checks. With ``expected_teams`` the season must be a complete double
+    round robin of that size (EPL); without it only generic checks run (leagues
+    with split formats or seasons cut short, e.g. 2019-20, are reported, not fixed)."""
     problems: list[str] = []
     teams = {m.result.home for m in matches} | {m.result.away for m in matches}
     pairs = [(m.result.home, m.result.away) for m in matches]
-    if len(teams) != 20:
-        problems.append(f"{season}: expected 20 teams, found {len(teams)}")
-    if len(set(pairs)) != len(pairs):
+    n = expected_teams or len(teams)
+    if expected_teams is not None and len(teams) != expected_teams:
+        problems.append(f"{season}: expected {expected_teams} teams, found {len(teams)}")
+    if expected_teams is None and matches and len(set(pairs)) != len(pairs):
+        # split-format leagues (e.g. Austria) legitimately repeat pairings
+        problems.append(f"{season}: repeated pairings (split format?)")
+    elif expected_teams is not None and len(set(pairs)) != len(pairs):
         problems.append(f"{season}: duplicated fixtures")
-    if len(matches) not in (0, 380):
-        problems.append(f"{season}: {len(matches)} finished matches (incomplete season)")
+    if matches and len(matches) != n * (n - 1):
+        problems.append(
+            f"{season}: {len(matches)} finished matches, a double round robin of "
+            f"{n} teams has {n * (n - 1)}"
+        )
     return problems
 
 
@@ -59,10 +101,10 @@ def season_labels(first: str, last: str) -> list[str]:
     return [f"{y}-{(y + 1) % 100:02d}" for y in range(start, end + 1)]
 
 
-def _fetch(season: str, cache_dir: Path, timeout: float = 30.0) -> dict:
-    path = cache_dir / f"openfootball-en1-{season}.json"
+def _fetch(season: str, cache_dir: Path, code: str = "en.1", timeout: float = 30.0) -> dict:
+    path = cache_dir / f"openfootball-{code.replace('.', '')}-{season}.json"
     if not path.exists():
-        url = BASE_URL.format(season=season)
+        url = BASE_URL.format(season=season, code=code)
         logger.info("downloading %s", url)
         with urllib.request.urlopen(url, timeout=timeout) as resp:
             data = resp.read()
@@ -71,7 +113,7 @@ def _fetch(season: str, cache_dir: Path, timeout: float = 30.0) -> dict:
     return json.loads(path.read_text())
 
 
-def parse_season(payload: dict, season: str) -> list[BacktestMatch]:
+def parse_season(payload: dict, season: str, tz: ZoneInfo = UK) -> list[BacktestMatch]:
     out: list[BacktestMatch] = []
     for m in payload.get("matches", []):
         score = m.get("score")
@@ -80,7 +122,7 @@ def parse_season(payload: dict, season: str) -> list[BacktestMatch]:
         if not ft or len(ft) != 2 or ft[0] is None or ft[1] is None:
             continue  # not played (yet), postponed or abandoned
         local_time = time.fromisoformat(m["time"]) if m.get("time") else DEFAULT_KICKOFF
-        local = datetime.combine(datetime.fromisoformat(m["date"]).date(), local_time, tzinfo=UK)
+        local = datetime.combine(datetime.fromisoformat(m["date"]).date(), local_time, tzinfo=tz)
         out.append(
             BacktestMatch(
                 MatchResult(
@@ -96,12 +138,23 @@ def parse_season(payload: dict, season: str) -> list[BacktestMatch]:
     return out
 
 
-def load(first: str, last: str, cache_dir: Path) -> list[BacktestMatch]:
+def load(
+    first: str,
+    last: str,
+    cache_dir: Path,
+    code: str = "en.1",
+    warnings: list[str] | None = None,
+) -> list[BacktestMatch]:
+    league = LEAGUES.get(code)
+    tz = ZoneInfo(league.tz) if league else UK
     matches: list[BacktestMatch] = []
     for season in season_labels(first, last):
-        parsed = parse_season(_fetch(season, cache_dir), season)
-        logger.info("openfootball %s: %d finished matches", season, len(parsed))
-        for problem in validate_season(parsed, season):
-            logger.warning("data check: %s", problem)
+        parsed = parse_season(_fetch(season, cache_dir, code), season, tz)
+        logger.info("openfootball %s %s: %d finished matches", code, season, len(parsed))
+        expected = 20 if code == "en.1" else None
+        for problem in validate_season(parsed, season, expected_teams=expected):
+            logger.warning("data check %s: %s", code, problem)
+            if warnings is not None:
+                warnings.append(problem)
         matches.extend(parsed)
     return matches

@@ -5,6 +5,8 @@ import type {
   FixtureDetail,
   FixtureList,
   HighlightList,
+  LeagueList,
+  LeagueSummary,
   Performance,
   PickHistory,
   Prediction,
@@ -34,10 +36,36 @@ async function getJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function fetchFixtures(params: { days: number; tz: string; date?: string }) {
+export function fetchFixtures(params: {
+  days: number;
+  tz: string;
+  date?: string;
+  leagueId?: number;
+  featured?: boolean;
+}) {
   const q = new URLSearchParams({ days: String(params.days), tz: params.tz });
   if (params.date) q.set("date", params.date);
+  if (params.leagueId !== undefined) q.set("league_id", String(params.leagueId));
+  if (params.featured) q.set("featured", "true");
   return getJson<FixtureList>(`/fixtures?${q.toString()}`);
+}
+
+export function fetchLeagues(params: { days?: number; activeOnly?: boolean } = {}) {
+  const q = new URLSearchParams({
+    days: String(params.days ?? 7),
+    active_only: String(params.activeOnly ?? true),
+  });
+  return getJson<LeagueList>(`/leagues?${q.toString()}`);
+}
+
+/** Returns null when the league does not exist (404). */
+export async function fetchLeague(id: number): Promise<LeagueSummary | null> {
+  try {
+    return await getJson<LeagueSummary>(`/leagues/${id}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
 }
 
 export function fetchFixture(id: number) {
@@ -54,11 +82,12 @@ export async function fetchPrediction(id: number): Promise<Prediction | null> {
   }
 }
 
-export function fetchHighlights(params: { days?: number; limit?: number } = {}) {
+export function fetchHighlights(params: { days?: number; limit?: number; leagueId?: number } = {}) {
   const q = new URLSearchParams({
     days: String(params.days ?? 7),
     limit: String(params.limit ?? 3),
   });
+  if (params.leagueId !== undefined) q.set("league_id", String(params.leagueId));
   return getJson<HighlightList>(`/highlights?${q.toString()}`);
 }
 

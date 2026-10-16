@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from edge_ingestion.history.football_data import parse_csv
 from edge_ingestion.history.openfootball import (
+    LEAGUES,
     normalize_team,
     parse_season,
     season_labels,
@@ -57,7 +59,37 @@ def test_validate_season_flags_incomplete_data():
         {"matches": [{"date": "2024-01-13", "team1": "A", "team2": "B", "score": [1, 0]}]}, "x"
     )
     problems = validate_season(ms, "x")
-    assert any("20 teams" in p for p in problems) and any("incomplete" in p for p in problems)
+    assert any("20 teams" in p for p in problems) and any(
+        "double round robin" in p for p in problems
+    )
+
+
+def test_validate_season_without_fixed_size_and_league_timezones():
+    ms = parse_season(
+        {
+            "matches": [
+                {
+                    "date": "2024-08-24",
+                    "time": "15:30",
+                    "team1": "A",
+                    "team2": "B",
+                    "score": [1, 0],
+                },
+                {
+                    "date": "2024-08-25",
+                    "time": "15:30",
+                    "team1": "B",
+                    "team2": "A",
+                    "score": [2, 2],
+                },
+            ]
+        },
+        "2024-25",
+        ZoneInfo("Europe/Berlin"),
+    )
+    assert ms[0].result.kickoff_at == datetime(2024, 8, 24, 13, 30, tzinfo=UTC)  # CEST
+    assert validate_season(ms, "2024-25", expected_teams=None) == []  # 2 teams, 2 matches
+    assert LEAGUES["de.1"].api_football_id == "78" and LEAGUES["en.1"].tz == "Europe/London"
 
 
 def test_football_data_csv_prefers_closing_pinnacle_odds(tmp_path):
@@ -71,3 +103,31 @@ def test_football_data_csv_prefers_closing_pinnacle_odds(tmp_path):
     assert ms[0].odds == (1.65, 4.10, 5.60)  # Pinnacle closing
     assert ms[1].odds == (5.50, 4.50, 1.55)  # falls back to Bet365 opening
     assert ms[0].result.kickoff_at == datetime(2024, 8, 16, 19, 0, tzinfo=UTC)
+
+
+def test_statsbomb_team_sheet_minutes_and_starters():
+    from edge_ingestion.history.statsbomb import team_sheet
+
+    entry = {
+        "team_id": 1,
+        "lineup": [
+            {
+                "player_id": 10,
+                "positions": [{"from": "00:00", "to": None, "start_reason": "Starting XI"}],
+            },
+            {
+                "player_id": 11,
+                "positions": [
+                    {"from": "00:00", "to": "62:30", "start_reason": "Starting XI"},
+                ],
+            },
+            {
+                "player_id": 12,
+                "positions": [{"from": "62:30", "to": None, "start_reason": "Substitution - On"}],
+            },
+            {"player_id": 13, "positions": []},  # unused substitute
+        ],
+    }
+    sheet = team_sheet(entry)
+    assert sheet.starters == ("10", "11")
+    assert sheet.minutes == {"10": 90, "11": 62, "12": 28}

@@ -1,11 +1,15 @@
 # EPL Edge Lab (working title)
 
-EPL 경기의 통계 데이터와 시장 배당으로 **1X2 모델 확률 · 시장 공정확률(de-vig) · Edge · EV**를
-계산하고, 2~3경기 조합을 분석하는 **스포츠 데이터/확률 분석 플랫폼** MVP입니다.
+축구 리그 경기의 통계 데이터와 시장 배당으로 **1X2 모델 확률 · 시장 공정확률(de-vig) · Edge · EV**를
+계산하고, 2~3경기 조합을 분석하는 **스포츠 데이터/확률 분석 플랫폼** MVP입니다. 처음에는 EPL만
+다뤘고, 지금은 데이터 provider가 제공하는 **모든 리그**를 지역·나라·리그로 나눠 보여 줍니다.
 
 - 확률은 **통계 모델(Poisson + Elo)** 이 계산합니다. LLM은 확률을 정하지 않습니다(설명/구조화는 Phase 3).
-- 모델 성과는 실제 EPL 8시즌(3,040경기) walk-forward 백테스트로 측정했습니다
-  ([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). mock 데이터 결과는 성과 근거로 쓰지 않습니다.
+- 같은 모델을 **리그마다 그 리그의 결과로만** 따로 학습합니다. 컵 대회는 여러 리그 팀이 섞여 있어
+  예측하지 않습니다.
+- 모델 성과는 실제 경기 walk-forward 백테스트로 측정했습니다: EPL 8시즌(3,040경기) 상세 평가 + 10개 리그
+  리그별 채점([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). 측정한 리그만 "정확도 검증됨"으로 표시하고,
+  mock 데이터 결과는 성과 근거로 쓰지 않습니다.
 - 베팅 실행·계정 연동·자동 주문 기능은 **없고, 만들지 않습니다**.
 - 유료 API 키 없이 **결정적(deterministic) MockProvider + seed 데이터**로 전체가 동작합니다.
   데모 데이터의 결과·배당은 합성 데이터이며 실제와 무관합니다.
@@ -30,8 +34,9 @@ docker compose up -d --build     # 또는: make up
 | API (FastAPI, OpenAPI 문서) | http://localhost:8000/docs |
 | Postgres / Redis | localhost:5432 / localhost:6379 |
 
-API 컨테이너는 시작할 때 `alembic upgrade head`를 실행하고, 로컬 compose에서는 seed도 자동으로
-실행합니다. 둘 다 idempotent합니다. 샘플 데이터를 다시 만들거나 갱신하려면 아래 명령을 씁니다.
+API 컨테이너는 시작할 때 `alembic upgrade head`를 실행하고, 로컬 compose에서는 seed(첫 수집)를
+**백그라운드로** 실행합니다. API는 바로 켜지고, 전체 리그 첫 수집은 몇 분 걸릴 수 있습니다(`make logs`에서
+`[entrypoint] seed finished` 확인). 둘 다 idempotent합니다. 샘플 데이터를 다시 만들거나 갱신하려면 아래 명령을 씁니다.
 
 ```bash
 make seed        # = docker compose exec api python -m edge_ingestion.cli seed
@@ -80,7 +85,7 @@ make web-dev                         # http://localhost:3000 (API_INTERNAL_URL=h
 | `DATA_PROVIDER` | 필요한 것 | 설명 |
 | --- | --- | --- |
 | `mock` (기본) | 없음 | 합성 데이터, 오프라인, 결정적 |
-| `api_football` | `API_FOOTBALL_KEY` | EPL 일정·결과·1X2 배당. [가이드](docs/providers/api-football.md) |
+| `api_football` | `API_FOOTBALL_KEY` | 플랜의 모든 리그(또는 `API_FOOTBALL_LEAGUES`로 고른 리그) 일정·결과·1X2 배당. [가이드](docs/providers/api-football.md) |
 
 ```bash
 # .env 에 DATA_PROVIDER=api_football, API_FOOTBALL_KEY=... 설정 후
@@ -118,8 +123,11 @@ lint/typecheck/test/build, API contract drift, `docker compose up` smoke 및 see
 | Method | Path | 설명 |
 | --- | --- | --- |
 | GET | `/health` | DB/Redis 상태, git sha |
-| GET | `/fixtures?date=YYYY-MM-DD&days=1..14&tz=Asia/Seoul` | 기간 내 경기 + 최신 배당/공정확률/모델확률 요약 |
+| GET | `/leagues?days=7` | 리그 목록(지역 → 나라 → 리그), 경기 수, 예측·검증 여부 |
+| GET | `/leagues/{id}` | 리그 한 개 |
+| GET | `/fixtures?date=YYYY-MM-DD&days=1..14&tz=Asia/Seoul` | 기간 내 경기 + 최신 배당/공정확률/모델확률 요약. `league_id`, `country`, `region`, `featured` 필터 |
 | GET | `/fixtures/{id}` | 경기 상세 + 배당 스냅샷 이력 |
+| GET | `/fixtures/{id}/simulation?runs=10000&seed=` | 최신 예측의 기대 득점으로 경기를 여러 번 다시 치른 결과(스코어·골 합계·양 팀 득점, 한 경기 다시보기). 새 정보는 더하지 않음 |
 | GET | `/fixtures/{id}/prediction` | 최신 예측 snapshot: 모델확률, 공정확률, overround, Edge, EV, as-of 시각, 모델 버전 |
 | POST | `/combinations/analyze` | 서로 다른 경기 2~3개 selection 조합 (`method: independence_approximation`) |
 | GET | `/highlights?days=7&limit=3` | 분석이 시장보다 가장 높게 보는 결과(주의 표시 포함, 추천 아님) |
@@ -139,11 +147,14 @@ curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: applicatio
 하루(KST)에 최대 한 경기, **데이터 점검을 통과한 오늘 경기 중 분석 확률이 가장 높은 결과 하나**를
 보여 줍니다. 추천이나 보장이 아니라 "모델이 가장 확신하는 결과"에 대한 설명입니다.
 
-- 선정 시각(`PICK_PUBLISH_HOUR`, 기본 09:00 KST)에 한 번 정해지고 `daily_picks`에 고정됩니다
+- 선정 시각(`PICK_PUBLISH_HOUR`, 기본 09:00 KST)에 한 번 정해지고 `daily_picks`에 고정됩니다. 후보는 그때부터
+  **다음 날 같은 시각까지** 시작하는 경기입니다(유럽 저녁 경기 포함). 자정~선정 시각 사이에는 전날 아침에 고른 픽이 계속 보입니다
   (append-only, `INSERT ... ON CONFLICT DO NOTHING`). 새로고침·재시작·동시 요청에도 바뀌거나 중복되지
   않습니다.
 - 기준 확률(`PICK_MIN_PROBABILITY`, 기본 0.55)은 실데이터 백테스트에서 정했습니다
   ([MODEL_EVALUATION](docs/MODEL_EVALUATION.md)). 못 넘으면 그날은 "픽 없음"입니다.
+- 후보는 **정확도가 검증된 리그**의 경기뿐입니다(`PICK_LEAGUES=verified`, `all`이나 리그 id 목록도 가능).
+  같은 규칙을 검증된 10개 리그에 서비스와 같은 시점(오전 9시 선정, 다음 날 오전 9시까지의 경기)으로 적용한 백테스트: 0.55에서 647일 중 503일(78%)에 픽, 적중률 74.6% [70.6, 78.2].
 - 데이터 점검: 경기 시작 전, 최근 수집 성공(`INGEST_MAX_AGE_HOURS`), 현재 모델 버전, 확률 정상, 배당
   최신(`ODDS_MAX_AGE_HOURS`), 두 팀 경기 기록(`MIN_TEAM_MATCHES`).
 - 경기가 취소·연기되면 "무효"로 남기고 적중률에서 뺍니다. 교체 픽은 `PICK_REPLACE_ON_VOID=true`일 때만.
@@ -151,9 +162,23 @@ curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: applicatio
 
 | 화면 | 내용 |
 | --- | --- |
-| `/` | 맨 위에 오늘의 픽 카드, 데이터 신선도 배지 |
+| `/` | 맨 위에 오늘의 픽 카드, 데이터 신선도 배지, 리그별로 묶은 경기 목록(주요 리그/전체 리그) |
+| `/leagues`, `/leagues/[id]` | 지역·나라별 리그 목록과 검색, 리그별 일정 |
 | `/picks` | 지난 픽 이력과 요약 |
 | `/performance` | 모델 성과(지표·보정 그래프·시즌별·픽 규칙 백테스트) |
+
+## 선발 명단과 결장 정보
+
+- 결장·출전 불투명 선수(경기 2일 전부터), 공식 선발 명단(킥오프 약 1시간 전, worker가 10분마다 확인), 끝난 경기의
+  선수별 출전 시간을 수집해 경기 상세 화면에 보여 줍니다(`TEAM_NEWS_LEAGUES`, 기본: 검증된 리그).
+- **분석 확률에는 아직 반영하지 않습니다.** 반영 효과를 잰 실험 결과는
+  [MODEL_EVALUATION](docs/MODEL_EVALUATION.md)의 "선발 명단 변수 실험"에 있습니다.
+
+```bash
+python -m edge_ingestion.cli backtest-lineups                 # StatsBomb 공개 데이터로 실험
+python -m edge_ingestion.cli backfill-appearances --days 420  # API-Football 과거 출전 시간 채우기
+python -m edge_ingestion.cli backtest-lineups --source db     # 내 DB 데이터로 같은 실험
+```
 
 ## 저장소 구조
 

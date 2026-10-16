@@ -1,7 +1,7 @@
 import type { OutcomeAnalysis, Prediction } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
-import { plainSummary } from "./explain";
+import { UNVERIFIED_LEAGUE_CAUTION, plainSummary } from "./explain";
 
 function row(outcome: "HOME" | "DRAW" | "AWAY", model: number, fair: number, odds: number) {
   const edge = model - fair;
@@ -85,6 +85,16 @@ describe("plainSummary", () => {
     expect(s.comparison).toMatch(/거의 같습니다/);
     expect(s.ev).toBeNull();
     expect(s.cautions).toEqual([]);
+  });
+
+  it("adds a caution for leagues whose accuracy is not measured", () => {
+    const rows = [
+      row("HOME", 0.48, 0.47, 2),
+      row("DRAW", 0.25, 0.26, 3.6),
+      row("AWAY", 0.27, 0.27, 3.5),
+    ];
+    const s = plainSummary(prediction(rows), "A", "B", false);
+    expect(s.cautions).toEqual([UNVERIFIED_LEAGUE_CAUTION]);
   });
 
   it("never uses guaranteeing or prescriptive words", () => {

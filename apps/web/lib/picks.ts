@@ -55,13 +55,13 @@ export function pickStatusInfo(status: TodayPickStatus, threshold: number): Stat
         tone: "neutral",
         description:
           `데이터 점검을 통과하면서 분석 확률이 기준(${pct(threshold, 0)}) 이상인 경기가 ` +
-          "오늘은 없었어요. 억지로 고르지 않는 것도 규칙입니다.",
+          "이번 픽 시간대에는 없었어요. 억지로 고르지 않는 것도 규칙입니다.",
       };
     case "no_matches":
       return {
-        label: "오늘 경기 없음",
+        label: "경기 없음",
         tone: "neutral",
-        description: "오늘은 예정된 경기가 없어요.",
+        description: "이번 픽 시간대(오전 9시~다음 날 오전 9시)에 예정된 경기가 없어요.",
       };
   }
 }
@@ -170,7 +170,7 @@ export function closestCandidate(pick: TodayPick): string | null {
     .sort((a, b) => b.best_probability! - a.best_probability!)[0];
   if (!near) return null;
   return (
-    `오늘 가장 높았던 분석 확률: ${near.home} vs ${near.away} — ` +
+    `이번 시간대에 가장 높았던 분석 확률: ${near.home} vs ${near.away} — ` +
     `${pickOutcomeText(near.best_outcome!, near.home, near.away)} ${pct(near.best_probability, 0)}` +
     ` (기준 ${pct(pick.threshold, 0)})`
   );
@@ -266,4 +266,54 @@ export function periodText(period: string | null | undefined): string {
 
 export function thresholdText(t: number): string {
   return t <= 0 ? "기준 확률 없음" : `기준 ${pct(t, 0)}`;
+}
+
+/** "실제 EPL 경기" / "검증된 10개 리그의 실제 경기" for the backtest sentence. */
+export function backtestScope(leagues: string[] | null | undefined): string {
+  if (!leagues || leagues.length === 0) return "실제 경기";
+  if (leagues.length === 1) return `실제 ${leagues[0]} 경기`;
+  return `검증된 ${leagues.length}개 리그의 실제 경기`;
+}
+
+/** How the pick rule was replayed: the service's timing or the older whole-day count. */
+export function backtestTimingText(decisionHour: number | null | undefined): string {
+  if (decisionHour === null || decisionHour === undefined) {
+    return "그날 모든 경기를 후보로 본 계산이라, 실제 서비스보다 픽이 나오는 날이 많게 나와요.";
+  }
+  const hour = hourText(decisionHour);
+  return `서비스처럼 ${hour}에 그때부터 다음 날 ${hour}까지 시작하는 경기만 후보로 보고 다시 계산했어요(배당·수집 상태 점검은 재현하지 않음).`;
+}
+
+/**
+ * Failed data checks worth showing next to an upcoming match's analysis
+ * (QA-05). After kickoff the checks fail by nature (the match is no longer
+ * upcoming, odds stop updating), so nothing is shown: the analysis on the page
+ * is the one saved before kickoff.
+ */
+export function qualityWarnings(
+  quality: { ok: boolean; checks: { name: string; passed: boolean }[] } | null | undefined,
+  status: string,
+): string[] {
+  if (!quality || quality.ok || status !== "scheduled") return [];
+  return quality.checks
+    .filter((c) => !c.passed)
+    .map((c) => `${qualityCheckLabel(c.name)} 확인 안 됨`);
+}
+
+/** 9 -> "오전 9시", 12 -> "낮 12시", 21 -> "오후 9시", 0 -> "자정". */
+export function hourText(hour: number): string {
+  if (hour === 0) return "자정";
+  if (hour === 12) return "낮 12시";
+  return hour < 12 ? `오전 ${hour}시` : `오후 ${hour - 12}시`;
+}
+
+/** "오전 9시 ~ 다음 날 오전 9시 경기" from the pick window start (pick time zone). */
+export function pickWindowText(windowStart: string | null | undefined, tz: string): string {
+  if (!windowStart) return "";
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(
+      new Date(windowStart),
+    ),
+  );
+  return `${hourText(hour)} ~ 다음 날 ${hourText(hour)} 경기`;
 }

@@ -18,6 +18,7 @@ from edge_ingestion.providers.mock import _round_robin
 
 REF = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
 LEAGUE = 39
+KLEAGUE, FA_CUP, NO_ODDS_LEAGUE = 292, 45, 1000
 ODDS_UPDATE = "2026-10-15T06:00:04+00:00"
 
 # team id -> (name, code); 990 is relegated after 2025, 991 promoted for 2026
@@ -82,26 +83,144 @@ def teams_payload(season: int) -> list[dict]:
     ]
 
 
-def fixture_items(season: int) -> list[dict]:
+KTEAMS = {
+    2000 + k: (name, None)
+    for k, name in enumerate(
+        [
+            "Ulsan HD",
+            "Jeonbuk Motors",
+            "Pohang Steelers",
+            "FC Seoul",
+            "Gwangju FC",
+            "Gangwon FC",
+            "Daejeon Citizen",
+            "Gimcheon Sangmu",
+            "Suwon FC",
+            "Jeju SK",
+            "FC Anyang",
+            "Daegu FC",
+        ],
+        start=1,
+    )
+}
+LOWLAND = {3000 + k: (f"Lowland {k}", None) for k in range(1, 7)}
+
+# league id -> catalogue entry; "teams"/"start" per season start year
+LEAGUES: dict[int, dict] = {
+    LEAGUE: {
+        "name": "Premier League",
+        "type": "League",
+        "country": ("England", "GB-ENG"),
+        "odds": True,
+        "teams": SEASON_TEAMS,
+        "start": SEASON_START,
+        "dates": ("2026-08-15", "2027-05-23"),
+    },
+    KLEAGUE: {
+        "name": "K League 1",
+        "type": "League",
+        "country": ("South-Korea", "KR"),
+        "odds": True,
+        "teams": {2025: KTEAMS, 2026: KTEAMS},
+        "start": {
+            2025: datetime(2025, 3, 1, 5, tzinfo=UTC),
+            2026: datetime(2026, 6, 1, 5, tzinfo=UTC),
+        },
+        "dates": ("2026-02-28", "2026-11-30"),
+    },
+    FA_CUP: {
+        "name": "FA Cup",
+        "type": "Cup",
+        "country": ("England", "GB-ENG"),
+        "odds": True,
+        "teams": {2025: COMMON, 2026: COMMON},
+        "start": {
+            2025: datetime(2026, 1, 10, 15, tzinfo=UTC),
+            2026: datetime(2026, 10, 3, 15, tzinfo=UTC),
+        },
+        "dates": ("2026-08-01", "2027-05-30"),
+    },
+    NO_ODDS_LEAGUE: {
+        "name": "Lowland League",
+        "type": "League",
+        "country": ("Scotland", "GB-SCT"),
+        "odds": False,
+        "teams": {2025: LOWLAND, 2026: LOWLAND},
+        "start": {
+            2025: datetime(2025, 8, 9, 14, tzinfo=UTC),
+            2026: datetime(2026, 8, 8, 14, tzinfo=UTC),
+        },
+        "dates": ("2026-08-08", "2027-04-30"),
+    },
+}
+
+
+def leagues_payload() -> list[dict]:
+    out = []
+    for lid, lg in LEAGUES.items():
+        country, code = lg["country"]
+        start, end = lg["dates"]
+        out.append(
+            {
+                "league": {
+                    "id": lid,
+                    "name": lg["name"],
+                    "type": lg["type"],
+                    "logo": f"l{lid}.png",
+                },
+                "country": {"name": country, "code": code, "flag": f"{code}.svg"},
+                "seasons": [
+                    {
+                        "year": 2026,
+                        "start": start,
+                        "end": end,
+                        "current": True,
+                        "coverage": {"fixtures": {"events": True}, "odds": lg["odds"]},
+                    }
+                ],
+            }
+        )
+    return out
+
+
+def _status(fid: int, kickoff: datetime) -> str:
+    if fid == POSTPONED_ID:
+        return "PST"
+    if fid == CANCELLED_ID:
+        return "CANC"
+    if fid == AWARDED_ID:
+        return "AWD"
+    if kickoff + timedelta(hours=2) <= REF:
+        return "FT"
+    if kickoff <= REF:
+        return "2H"
+    return "NS"
+
+
+def _fixture_id(league: int, season: int, r: int, j: int) -> int:
+    # Premier League ids keep the earlier format (e.g. 20260900)
+    base = season * 10000 + r * 100 + j
+    return base if league == LEAGUE else league * 10**8 + base
+
+
+def fixture_items(season: int, league: int = LEAGUE) -> list[dict]:
+    lg = LEAGUES[league]
+    names = lg["teams"][season]
+    ids = sorted(names)
+    if lg["type"] == "Cup":  # a few one-off ties every two weeks
+        rounds = [list(zip(ids[0::2], ids[1::2], strict=False))[k : k + 3] for k in (0, 3, 6)]
+        rounds = [[(str(h), str(a)) for h, a in rnd] for rnd in rounds]
+        spacing = 14
+    else:
+        rounds = _round_robin([str(i) for i in ids])
+        spacing = 7
     items = []
-    ids = sorted(SEASON_TEAMS[season])
-    for r, pairs in enumerate(_round_robin([str(i) for i in ids])):
+    for r, pairs in enumerate(rounds):
         for j, (h, a) in enumerate(pairs):
             home, away = int(h), int(a)
-            kickoff = SEASON_START[season] + timedelta(days=7 * r + (j % 2), hours=(j % 3) * 2)
-            fid = season * 10000 + r * 100 + j
-            if fid == POSTPONED_ID:
-                short = "PST"
-            elif fid == CANCELLED_ID:
-                short = "CANC"
-            elif fid == AWARDED_ID:
-                short = "AWD"
-            elif kickoff + timedelta(hours=2) <= REF:
-                short = "FT"
-            elif kickoff <= REF:
-                short = "2H"
-            else:
-                short = "NS"
+            kickoff = lg["start"][season] + timedelta(days=spacing * r + (j % 2), hours=(j % 3) * 2)
+            fid = _fixture_id(league, season, r, j)
+            short = _status(fid, kickoff)
             done = short in ("FT", "AWD")
             hg, ag = (
                 ((home * 7 + away * 3 + r) % 4, (home * 5 + away + r) % 3) if done else (None, None)
@@ -117,15 +236,15 @@ def fixture_items(season: int) -> list[dict]:
                         "status": {"long": "", "short": short, "elapsed": 90 if done else None},
                     },
                     "league": {
-                        "id": LEAGUE,
-                        "name": "Premier League",
-                        "country": "England",
+                        "id": league,
+                        "name": lg["name"],
+                        "country": lg["country"][0],
                         "season": season,
                         "round": f"Regular Season - {r + 1}",
                     },
                     "teams": {
-                        "home": {"id": home, "name": SEASON_TEAMS[season][home][0], "winner": None},
-                        "away": {"id": away, "name": SEASON_TEAMS[season][away][0], "winner": None},
+                        "home": {"id": home, "name": names[home][0], "logo": f"t{home}.png"},
+                        "away": {"id": away, "name": names[away][0], "logo": f"t{away}.png"},
                     },
                     "goals": {"home": hg, "away": ag},
                     "score": {
@@ -135,6 +254,86 @@ def fixture_items(season: int) -> list[dict]:
                 }
             )
     return items
+
+
+def all_current_fixture_items() -> list[dict]:
+    return [
+        item
+        for league, lg in LEAGUES.items()
+        for season in lg["teams"]
+        for item in fixture_items(season, league)
+    ]
+
+
+def _squad_entry(team_id: int, n: int) -> dict:
+    pos = "GDDDDMMMFFF"[n - 1] if n <= 11 else "M"
+    return {"player": {"id": team_id * 100 + n, "name": f"P{team_id}-{n}", "number": n, "pos": pos}}
+
+
+def fixture_details(fid: int) -> dict | None:
+    """/fixtures?ids= item: line-ups once kickoff is within 1h, player minutes when finished."""
+    item = next((i for i in all_current_fixture_items() if i["fixture"]["id"] == fid), None)
+    if item is None:
+        return None
+    kickoff = datetime.fromisoformat(item["fixture"]["date"])
+    teams = [item["teams"]["home"]["id"], item["teams"]["away"]["id"]]
+    lineups, players = [], []
+    if kickoff - timedelta(hours=1) <= REF:
+        for tid in teams:
+            # player 11 is rested in every other match: a "missing regular" now and then
+            xi = [_squad_entry(tid, n) for n in range(1, 12)]
+            if fid % 2:
+                xi[-1] = _squad_entry(tid, 12)
+            lineups.append(
+                {
+                    "team": {"id": tid},
+                    "formation": "4-3-3",
+                    "startXI": xi,
+                    "substitutes": [_squad_entry(tid, n) for n in range(12, 16)],
+                }
+            )
+    if item["fixture"]["status"]["short"] == "FT":
+        for tid in teams:
+            entries = [
+                {
+                    "player": {"id": tid * 100 + n, "name": f"P{tid}-{n}"},
+                    "statistics": [
+                        {
+                            "games": {
+                                "minutes": 90 if n <= 11 else None,
+                                "number": n,
+                                "position": "M",
+                                "substitute": n > 11,
+                            }
+                        }
+                    ],
+                }
+                for n in range(1, 15)
+            ]
+            players.append({"team": {"id": tid}, "players": entries})
+    return {**item, "lineups": lineups, "players": players}
+
+
+def injuries_for(day: str) -> list[dict]:
+    out = []
+    for item in all_current_fixture_items():
+        if item["fixture"]["date"][:10] != day or item["fixture"]["status"]["short"] != "NS":
+            continue
+        tid = item["teams"]["home"]["id"]
+        out.append(
+            {
+                "player": {
+                    "id": tid * 100 + 9,
+                    "name": f"P{tid}-9",
+                    "type": "Missing Fixture",
+                    "reason": "Hamstring Injury",
+                },
+                "team": {"id": tid},
+                "fixture": {"id": item["fixture"]["id"]},
+                "league": {"id": item["league"]["id"]},
+            }
+        )
+    return out
 
 
 def _bet(home: str, draw: str, away: str) -> dict:
@@ -152,9 +351,11 @@ def _bet(home: str, draw: str, away: str) -> dict:
 def odds_items(update: str = ODDS_UPDATE) -> list[dict]:
     """Pre-match odds for scheduled fixtures within 14 days (like the real feed)."""
     out = []
-    for item in fixture_items(2026):
+    for item in all_current_fixture_items():
         kickoff = datetime.fromisoformat(item["fixture"]["date"])
         if item["fixture"]["status"]["short"] != "NS" or kickoff > REF + timedelta(days=14):
+            continue
+        if not LEAGUES[item["league"]["id"]]["odds"]:
             continue
         fid = item["fixture"]["id"]
         h = 1.6 + (fid % 7) * 0.35
@@ -182,7 +383,7 @@ def odds_items(update: str = ODDS_UPDATE) -> list[dict]:
             )
         out.append(
             {
-                "league": {"id": LEAGUE, "season": 2026},
+                "league": {"id": item["league"]["id"], "season": item["league"]["season"]},
                 "fixture": {"id": fid, "timezone": "UTC", "date": item["fixture"]["date"]},
                 "update": update,
                 "bookmakers": bookmakers,
@@ -194,7 +395,10 @@ def odds_items(update: str = ODDS_UPDATE) -> list[dict]:
 class FakeApiFootball:
     """Transport double: routes requests to synthetic payloads and records calls."""
 
-    def __init__(self, *, odds_update: str = ODDS_UPDATE, page_size: int = 10) -> None:
+    def __init__(
+        self, *, odds_update: str = ODDS_UPDATE, page_size: int = 10, remaining: int = 7400
+    ) -> None:
+        self.remaining = remaining
         self.calls: list[tuple[str, dict[str, str], Mapping[str, str]]] = []
         self.odds_update = odds_update
         self.page_size = page_size
@@ -220,21 +424,44 @@ class FakeApiFootball:
                     "requests": {"current": 3, "limit_day": 100},
                 },
             )
+        elif parsed.path == "/leagues":
+            body = envelope("leagues", params, leagues_payload())
         elif parsed.path == "/teams":
             body = envelope("teams", params, teams_payload(int(params["season"])))
+        elif parsed.path == "/injuries":
+            body = envelope("injuries", params, injuries_for(params["date"]))
+        elif parsed.path == "/fixtures" and "ids" in params:
+            details = [fixture_details(int(i)) for i in params["ids"].split("-")]
+            body = envelope("fixtures", params, [d for d in details if d])
         elif parsed.path == "/fixtures":
-            body = envelope("fixtures", params, fixture_items(int(params["season"])))
+            if "date" in params:
+                items = [
+                    i
+                    for i in all_current_fixture_items()
+                    if i["fixture"]["date"][:10] == params["date"]
+                ]
+            else:
+                league, season = int(params["league"]), int(params["season"])
+                known = season in LEAGUES.get(league, {}).get("teams", {})
+                items = fixture_items(season, league) if known else []
+            body = envelope("fixtures", params, items)
         elif parsed.path == "/odds":
             items = odds_items(self.odds_update)
+            if "date" in params:
+                items = [i for i in items if i["fixture"]["date"][:10] == params["date"]]
+            if "league" in params:
+                items = [i for i in items if str(i["league"]["id"]) == params["league"]]
             page = int(params.get("page", 1))
             total = max(1, -(-len(items) // self.page_size))
             chunk = items[(page - 1) * self.page_size : page * self.page_size]
             body = envelope("odds", params, chunk, page=page, total=total)
         else:
             return HttpResponse(404, {}, b"{}")
-        return HttpResponse(
-            200, {"x-ratelimit-requests-remaining": "97"}, json.dumps(body).encode()
-        )
+        headers = {
+            "x-ratelimit-requests-remaining": str(self.remaining),
+            "x-ratelimit-limit": "300",
+        }
+        return HttpResponse(200, headers, json.dumps(body).encode())
 
 
 def json_response(body: object, status: int = 200) -> HttpResponse:

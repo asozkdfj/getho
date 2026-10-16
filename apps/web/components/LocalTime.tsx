@@ -16,12 +16,16 @@ export function LocalTime({
   iso,
   fallbackTz,
   format = "datetime",
+  fixed = false,
 }: {
   iso: string;
   fallbackTz: string;
   format?: TimeFormat;
+  /** Always use `fallbackTz`: for a time shown under a date heading grouped in that zone. */
+  fixed?: boolean;
 }) {
-  const tz = useSyncExternalStore(subscribe, browserTz, () => fallbackTz);
+  const viewer = useSyncExternalStore(subscribe, browserTz, () => fallbackTz);
+  const tz = fixed ? fallbackTz : viewer;
   return (
     <time dateTime={iso} title={`${iso} (UTC 기준 저장)`}>
       {formatInTz(iso, tz, format)}

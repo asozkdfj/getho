@@ -2,8 +2,8 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 
-from edge_api.db.models import Fixture, OddsSnapshot, Team
-from edge_ingestion.jobs import run_ingestion
+from edge_api.db.models import Fixture, League, OddsSnapshot, Team
+from edge_ingestion.jobs import RECENT_LOOKBACK, run_ingestion
 from edge_ingestion.providers import MockProvider
 
 
@@ -17,14 +17,47 @@ def test_ingestion_is_idempotent(db_session, now):
     first = run_ingestion(db_session, MockProvider(now), now=now)
     db_session.commit()
     counts = _counts(db_session)
-    assert first.teams_changed == 20
+    assert first.leagues_changed == 4
+    assert first.teams_changed == 20 + 20 + 12  # the cup reuses Premier League teams
+    assert first.leagues_backfilled == 3 and first.leagues_pending_backfill == 0  # no cup
     assert first.fixtures_changed == counts[1] > 0
     assert first.odds_inserted == counts[2] > 0
 
     second = run_ingestion(db_session, MockProvider(now), now=now)
     db_session.commit()
     assert (second.teams_changed, second.fixtures_changed, second.odds_inserted) == (0, 0, 0)
+    assert (second.leagues_changed, second.leagues_backfilled) == (0, 0)
     assert _counts(db_session) == counts
+
+
+def test_history_is_backfilled_once_and_kept_by_the_rolling_window(db_session, now):
+    run_ingestion(db_session, MockProvider(now), now=now)
+    db_session.commit()
+    synced = {lg.provider_id: lg.results_synced_at for lg in db_session.scalars(select(League))}
+    assert synced["eng-cup"] is None  # cups are not predicted, so no history is fetched
+    assert synced["eng-1"] == synced["kor-1"] == now
+
+    later = now + timedelta(days=1)  # within the rolling window: no new backfill
+    res = run_ingestion(db_session, MockProvider(later), now=later)
+    db_session.commit()
+    assert res.leagues_backfilled == 0
+
+    gap = later + RECENT_LOOKBACK + timedelta(days=1)  # pipeline was off too long
+    res = run_ingestion(db_session, MockProvider(gap), now=gap)
+    db_session.commit()
+    assert res.leagues_backfilled == 3
+
+
+def test_backfill_is_bounded_per_run(db_session, now):
+    from edge_api.config import Settings
+
+    res = run_ingestion(
+        db_session, MockProvider(now), now=now, settings=Settings(backfill_leagues_per_run=1)
+    )
+    db_session.commit()
+    assert (res.leagues_backfilled, res.leagues_pending_backfill) == (1, 2)
+    first = db_session.scalars(select(League).where(League.results_synced_at.is_not(None))).one()
+    assert first.provider_id == "eng-1"  # featured leagues first
 
 
 def test_timestamps_are_stored_in_utc(db_session, now):

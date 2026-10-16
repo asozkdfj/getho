@@ -1,6 +1,49 @@
 {
   "components": {
     "schemas": {
+      "AbsenceOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "regular": {
+            "title": "Regular",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "out",
+              "doubtful"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "status",
+          "regular"
+        ],
+        "title": "AbsenceOut",
+        "type": "object"
+      },
       "CalibrationBinOut": {
         "properties": {
           "count": {
@@ -231,11 +274,83 @@
         "title": "CombinationRequest",
         "type": "object"
       },
+      "CountryGroupOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueSummaryOut"
+            },
+            "title": "Leagues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "country",
+          "country_ko",
+          "leagues"
+        ],
+        "title": "CountryGroupOut",
+        "type": "object"
+      },
       "DailyPickBacktestRowOut": {
         "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of match days with a pick",
+            "title": "Coverage"
+          },
           "days_with_pick": {
             "title": "Days With Pick",
             "type": "integer"
+          },
+          "decision_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local hour of the decision; null = every match of the day",
+            "title": "Decision Hour"
+          },
+          "eligible_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Matches"
           },
           "hit_rate": {
             "anyOf": [
@@ -437,6 +552,21 @@
             "title": "Daily Picks",
             "type": "array"
           },
+          "daily_picks_leagues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Daily Picks Leagues",
+            "type": "array"
+          },
+          "daily_picks_timing": {
+            "description": "Same rule replayed with the service's timing (decided at the publish hour, later kickoffs only). Timing only: not a replay of live odds or quality checks.",
+            "items": {
+              "$ref": "#/components/schemas/DailyPickBacktestRowOut"
+            },
+            "title": "Daily Picks Timing",
+            "type": "array"
+          },
           "dataset": {
             "title": "Dataset",
             "type": "string"
@@ -448,6 +578,13 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueEvaluationOut"
+            },
+            "title": "Leagues",
+            "type": "array"
           },
           "license": {
             "anyOf": [
@@ -612,8 +749,12 @@
             ]
           },
           "league": {
-            "title": "League",
-            "type": "string"
+            "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "lineups_announced": {
+            "default": false,
+            "title": "Lineups Announced",
+            "type": "boolean"
           },
           "model_probabilities": {
             "anyOf": [
@@ -643,6 +784,17 @@
             ],
             "title": "Prediction Id"
           },
+          "prediction_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed"
+          },
           "round": {
             "anyOf": [
               {
@@ -661,6 +813,16 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "team_news": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeamNewsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -794,8 +956,12 @@
             ]
           },
           "league": {
-            "title": "League",
-            "type": "string"
+            "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "lineups_announced": {
+            "default": false,
+            "title": "Lineups Announced",
+            "type": "boolean"
           },
           "model_probabilities": {
             "anyOf": [
@@ -817,6 +983,17 @@
               }
             ],
             "title": "Prediction Id"
+          },
+          "prediction_odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Odds snapshot the stored prediction uses (combinations are priced on it); can be older than latest_odds until the prediction is refreshed"
           },
           "round": {
             "anyOf": [
@@ -851,6 +1028,28 @@
           "away_score"
         ],
         "title": "FixtureSummaryOut",
+        "type": "object"
+      },
+      "GoalEventOut": {
+        "properties": {
+          "minute": {
+            "title": "Minute",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "home",
+              "away"
+            ],
+            "title": "Side",
+            "type": "string"
+          }
+        },
+        "required": [
+          "minute",
+          "side"
+        ],
+        "title": "GoalEventOut",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -957,7 +1156,8 @@
               "enum": [
                 "promoted_home",
                 "promoted_away",
-                "large_gap"
+                "large_gap",
+                "unverified_league"
               ],
               "type": "string"
             },
@@ -1007,6 +1207,395 @@
           "caveats"
         ],
         "title": "HighlightOut",
+        "type": "object"
+      },
+      "LeagueEvaluationOut": {
+        "properties": {
+          "base_rate": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "data_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Warnings",
+            "type": "array"
+          },
+          "elo_only": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueModelMetricOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gain_vs_base_rate": {
+            "description": "[mean, ci_low, ci_high] log-loss improvement over the base rate",
+            "items": {
+              "type": "number"
+            },
+            "title": "Gain Vs Base Rate",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "production": {
+            "$ref": "#/components/schemas/LeagueModelMetricOut"
+          },
+          "test_matches": {
+            "title": "Test Matches",
+            "type": "integer"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "country",
+          "test_matches",
+          "production",
+          "base_rate",
+          "gain_vs_base_rate",
+          "verified"
+        ],
+        "title": "LeagueEvaluationOut",
+        "type": "object"
+      },
+      "LeagueListOut": {
+        "properties": {
+          "data_provider": {
+            "title": "Data Provider",
+            "type": "string"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "featured": {
+            "items": {
+              "$ref": "#/components/schemas/LeagueSummaryOut"
+            },
+            "title": "Featured",
+            "type": "array"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/RegionGroupOut"
+            },
+            "title": "Regions",
+            "type": "array"
+          },
+          "total_leagues": {
+            "title": "Total Leagues",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data_provider",
+          "days",
+          "total_leagues",
+          "featured",
+          "regions"
+        ],
+        "title": "LeagueListOut",
+        "type": "object"
+      },
+      "LeagueModelMetricOut": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "ece": {
+            "title": "Ece",
+            "type": "number"
+          },
+          "log_loss": {
+            "title": "Log Loss",
+            "type": "number"
+          }
+        },
+        "required": [
+          "log_loss",
+          "brier",
+          "accuracy",
+          "ece"
+        ],
+        "title": "LeagueModelMetricOut",
+        "type": "object"
+      },
+      "LeagueRefOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "description": "Country name for display (Korean when known)",
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "featured": {
+            "description": "Shown first (major leagues)",
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "predicted": {
+            "description": "The model makes predictions here (league format with enough history)",
+            "title": "Predicted",
+            "type": "boolean"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "league",
+              "cup"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "verified": {
+            "description": "Accuracy measured by a walk-forward backtest on real results",
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "country_ko",
+          "region",
+          "type",
+          "featured",
+          "predicted",
+          "verified"
+        ],
+        "title": "LeagueRefOut",
+        "type": "object"
+      },
+      "LeagueSummaryOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_ko": {
+            "description": "Country name for display (Korean when known)",
+            "title": "Country Ko",
+            "type": "string"
+          },
+          "current_season": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Season"
+          },
+          "featured": {
+            "description": "Shown first (major leagues)",
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "flag_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "predicted": {
+            "description": "The model makes predictions here (league format with enough history)",
+            "title": "Predicted",
+            "type": "boolean"
+          },
+          "predicted_count": {
+            "description": "...of which the model has a prediction",
+            "title": "Predicted Count",
+            "type": "integer"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "league",
+              "cup"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "upcoming_count": {
+            "description": "Fixtures in the requested window",
+            "title": "Upcoming Count",
+            "type": "integer"
+          },
+          "verified": {
+            "description": "Accuracy measured by a walk-forward backtest on real results",
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "country_ko",
+          "region",
+          "type",
+          "featured",
+          "predicted",
+          "verified",
+          "upcoming_count",
+          "predicted_count"
+        ],
+        "title": "LeagueSummaryOut",
+        "type": "object"
+      },
+      "LineupPlayerOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "regular": {
+            "description": "Among the team's most used players in recent matches",
+            "title": "Regular",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "regular"
+        ],
+        "title": "LineupPlayerOut",
         "type": "object"
       },
       "LiveEvaluationOut": {
@@ -1076,6 +1665,36 @@
           "brier"
         ],
         "title": "LiveSideOut",
+        "type": "object"
+      },
+      "MissingRegularOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "From the absence report, when known",
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "player_id",
+          "name"
+        ],
+        "title": "MissingRegularOut",
         "type": "object"
       },
       "ModelMetricOut": {
@@ -1315,6 +1934,18 @@
             "title": "Days With Pick",
             "type": "integer"
           },
+          "decision_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replay decided at this local hour like the service; null = whole-day replay",
+            "title": "Decision Hour"
+          },
           "hit_rate": {
             "title": "Hit Rate",
             "type": "number"
@@ -1324,6 +1955,14 @@
               "type": "number"
             },
             "title": "Hit Rate Ci",
+            "type": "array"
+          },
+          "leagues": {
+            "description": "Leagues pooled in the replay",
+            "items": {
+              "type": "string"
+            },
+            "title": "Leagues",
             "type": "array"
           },
           "match_days": {
@@ -1413,6 +2052,17 @@
             "format": "date-time",
             "title": "Kickoff At",
             "type": "string"
+          },
+          "league": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "League"
           }
         },
         "required": [
@@ -1914,6 +2564,98 @@
         "title": "QualityOut",
         "type": "object"
       },
+      "RegionGroupOut": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/CountryGroupOut"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "region": {
+            "enum": [
+              "international",
+              "europe",
+              "asia",
+              "south_america",
+              "north_america",
+              "africa",
+              "oceania",
+              "other"
+            ],
+            "title": "Region",
+            "type": "string"
+          },
+          "region_ko": {
+            "title": "Region Ko",
+            "type": "string"
+          }
+        },
+        "required": [
+          "region",
+          "region_ko",
+          "countries"
+        ],
+        "title": "RegionGroupOut",
+        "type": "object"
+      },
+      "ReplayOut": {
+        "properties": {
+          "away_goals": {
+            "title": "Away Goals",
+            "type": "integer"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/GoalEventOut"
+            },
+            "title": "Goals",
+            "type": "array"
+          },
+          "home_goals": {
+            "title": "Home Goals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "home_goals",
+          "away_goals",
+          "goals"
+        ],
+        "title": "ReplayOut",
+        "type": "object"
+      },
+      "ScoreFrequencyOut": {
+        "properties": {
+          "away": {
+            "title": "Away",
+            "type": "integer"
+          },
+          "exact": {
+            "description": "Model probability of this score (score matrix)",
+            "title": "Exact",
+            "type": "number"
+          },
+          "home": {
+            "title": "Home",
+            "type": "integer"
+          },
+          "share": {
+            "description": "Share of simulated matches with this score",
+            "title": "Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "home",
+          "away",
+          "share",
+          "exact"
+        ],
+        "title": "ScoreFrequencyOut",
+        "type": "object"
+      },
       "SeasonMetricOut": {
         "properties": {
           "accuracy": {
@@ -1964,11 +2706,247 @@
         "title": "SelectionIn",
         "type": "object"
       },
+      "SimulationOut": {
+        "properties": {
+          "away_clean_sheet": {
+            "title": "Away Clean Sheet",
+            "type": "number"
+          },
+          "both_teams_score": {
+            "title": "Both Teams Score",
+            "type": "number"
+          },
+          "expected_goals": {
+            "$ref": "#/components/schemas/ExpectedGoalsOut"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "home_clean_sheet": {
+            "title": "Home Clean Sheet",
+            "type": "number"
+          },
+          "model_probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut",
+            "description": "The prediction being simulated"
+          },
+          "note": {
+            "default": "시뮬레이션은 분석 확률(기대 득점)로 경기를 여러 번 다시 치러 본 결과입니다. 새로운 정보를 더하지 않으므로 결과 비율은 분석 확률과 거의 같아야 정상이며, 실제 결과를 보장하지 않습니다.",
+            "title": "Note",
+            "type": "string"
+          },
+          "outcome_share": {
+            "$ref": "#/components/schemas/ProbabilitiesOut",
+            "description": "Simulated home / draw / away shares"
+          },
+          "over": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Over",
+            "type": "object"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
+          },
+          "replay": {
+            "$ref": "#/components/schemas/ReplayOut"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "standard_error": {
+            "description": "Largest sampling error (1 s.e.) of the shares",
+            "title": "Standard Error",
+            "type": "number"
+          },
+          "top_scores": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreFrequencyOut"
+            },
+            "title": "Top Scores",
+            "type": "array"
+          },
+          "total_goals": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Total Goals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "prediction_id",
+          "runs",
+          "seed",
+          "expected_goals",
+          "outcome_share",
+          "model_probabilities",
+          "standard_error",
+          "top_scores",
+          "total_goals",
+          "over",
+          "both_teams_score",
+          "home_clean_sheet",
+          "away_clean_sheet",
+          "replay"
+        ],
+        "title": "SimulationOut",
+        "type": "object"
+      },
+      "TeamNewsOut": {
+        "properties": {
+          "away": {
+            "$ref": "#/components/schemas/TeamNewsSideOut"
+          },
+          "home": {
+            "$ref": "#/components/schemas/TeamNewsSideOut"
+          },
+          "lineups_announced": {
+            "title": "Lineups Announced",
+            "type": "boolean"
+          },
+          "note": {
+            "default": "선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요.",
+            "title": "Note",
+            "type": "string"
+          },
+          "used_by_model": {
+            "default": false,
+            "description": "Whether model probabilities use this information",
+            "title": "Used By Model",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lineups_announced",
+          "home",
+          "away"
+        ],
+        "title": "TeamNewsOut",
+        "type": "object"
+      },
+      "TeamNewsSideOut": {
+        "properties": {
+          "absences": {
+            "items": {
+              "$ref": "#/components/schemas/AbsenceOut"
+            },
+            "title": "Absences",
+            "type": "array"
+          },
+          "absences_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absences Captured At"
+          },
+          "formation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formation"
+          },
+          "lineup_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineup Captured At"
+          },
+          "missing_regulars": {
+            "description": "Regular starters not in the line-up (or reported out before it)",
+            "items": {
+              "$ref": "#/components/schemas/MissingRegularOut"
+            },
+            "title": "Missing Regulars",
+            "type": "array"
+          },
+          "recent_matches": {
+            "description": "Matches used to find the regular starters",
+            "title": "Recent Matches",
+            "type": "integer"
+          },
+          "regulars_known": {
+            "description": "Enough recent matches with player minutes to tell regulars apart",
+            "title": "Regulars Known",
+            "type": "boolean"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/LineupPlayerOut"
+            },
+            "title": "Starters",
+            "type": "array"
+          },
+          "team_id": {
+            "title": "Team Id",
+            "type": "integer"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "team_name",
+          "regulars_known",
+          "recent_matches"
+        ],
+        "title": "TeamNewsSideOut",
+        "type": "object"
+      },
       "TeamOut": {
         "properties": {
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
           },
           "name": {
             "title": "Name",
@@ -2011,7 +2989,7 @@
             "type": "string"
           },
           "disclaimer": {
-            "default": "오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.",
+            "default": "오늘의 픽은 선정 시각부터 다음 날 같은 시각까지의 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. 확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -2062,6 +3040,35 @@
           "is_demo": {
             "title": "Is Demo",
             "type": "boolean"
+          },
+          "league_scope": {
+            "default": "verified",
+            "description": "verified | all | explicit league ids",
+            "title": "League Scope",
+            "type": "string"
+          },
+          "matches_in_scope": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Matches of the pick window in leagues the pick may come from",
+            "title": "Matches In Scope"
+          },
+          "matches_today": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matches Today"
           },
           "model": {
             "anyOf": [
@@ -2192,6 +3199,31 @@
           "tz": {
             "title": "Tz",
             "type": "string"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window End"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Candidates kick off in [window_start, window_end)",
+            "title": "Window Start"
           }
         },
         "required": [
@@ -2344,6 +3376,82 @@
               "title": "Tz",
               "type": "string"
             }
+          },
+          {
+            "description": "Only this league",
+            "in": "query",
+            "name": "league_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this league",
+              "title": "League Id"
+            }
+          },
+          {
+            "description": "Only featured (major) leagues",
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Only featured (major) leagues",
+              "title": "Featured",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Only leagues of this region",
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "international",
+                    "europe",
+                    "asia",
+                    "south_america",
+                    "north_america",
+                    "africa",
+                    "oceania",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only leagues of this region",
+              "title": "Region"
+            }
+          },
+          {
+            "description": "Only leagues of this country",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only leagues of this country",
+              "title": "Country"
+            }
           }
         ],
         "responses": {
@@ -2478,6 +3586,93 @@
         ]
       }
     },
+    "/fixtures/{fixture_id}/simulation": {
+      "get": {
+        "description": "Replay the match many times from the latest prediction's expected goals.",
+        "operationId": "simulate_fixtures__fixture_id__simulation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Simulated matches",
+            "in": "query",
+            "name": "runs",
+            "required": false,
+            "schema": {
+              "default": 10000,
+              "description": "Simulated matches",
+              "maximum": 100000,
+              "minimum": 1000,
+              "title": "Runs",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default: the prediction id",
+            "in": "query",
+            "name": "seed",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 2147483647,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: the prediction id",
+              "title": "Seed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",
@@ -2541,6 +3736,24 @@
               "title": "Min Edge",
               "type": "number"
             }
+          },
+          {
+            "description": "Only this league",
+            "in": "query",
+            "name": "league_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this league",
+              "title": "League Id"
+            }
           }
         ],
         "responses": {
@@ -2568,6 +3781,118 @@
         "summary": "List Highlights",
         "tags": [
           "highlights"
+        ]
+      }
+    },
+    "/leagues": {
+      "get": {
+        "description": "League catalogue grouped by region and country, with upcoming fixture counts.",
+        "operationId": "list_leagues_leagues_get",
+        "parameters": [
+          {
+            "description": "Window for fixture counts",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Window for fixture counts",
+              "maximum": 14,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only leagues with fixtures in the window",
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Only leagues with fixtures in the window",
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Leagues",
+        "tags": [
+          "leagues"
+        ]
+      }
+    },
+    "/leagues/{league_id}": {
+      "get": {
+        "operationId": "get_league_leagues__league_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "league_id",
+            "required": true,
+            "schema": {
+              "title": "League Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueSummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get League",
+        "tags": [
+          "leagues"
         ]
       }
     },
@@ -2640,7 +3965,7 @@
     },
     "/picks/today": {
       "get": {
-        "description": "The day's single highest-probability outcome that passed the quality gate.",
+        "description": "The pick day's single highest-probability outcome that passed the quality gate.\n\nA pick day runs from the publish hour to the same hour the next day (pick_tz).",
         "operationId": "today_picks_today_get",
         "parameters": [
           {

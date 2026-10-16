@@ -8,19 +8,27 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from edge_api.db.models import Fixture, OddsSnapshot, Prediction
+from edge_api.db.models import Fixture, League, OddsSnapshot, Prediction
 
 
 def fixtures_between(
-    session: Session, start: datetime, end: datetime, provider: str
+    session: Session,
+    start: datetime,
+    end: datetime,
+    provider: str,
+    *,
+    league_id: int | None = None,
+    country: str | None = None,
 ) -> Sequence[Fixture]:
     """Fixtures of ONE data provider (mock and real data are never mixed)."""
-    stmt = (
-        select(Fixture)
-        .where(Fixture.provider == provider, Fixture.kickoff_at >= start, Fixture.kickoff_at < end)
-        .order_by(Fixture.kickoff_at, Fixture.id)
+    stmt = select(Fixture).where(
+        Fixture.provider == provider, Fixture.kickoff_at >= start, Fixture.kickoff_at < end
     )
-    return session.scalars(stmt).unique().all()
+    if league_id is not None:
+        stmt = stmt.where(Fixture.league_id == league_id)
+    if country is not None:
+        stmt = stmt.join(League, League.id == Fixture.league_id).where(League.country == country)
+    return session.scalars(stmt.order_by(Fixture.kickoff_at, Fixture.id)).unique().all()
 
 
 def get_fixture(session: Session, fixture_id: int) -> Fixture | None:

@@ -2,6 +2,10 @@ import type { CalibrationBin, PickHistory, TodayPick } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
+  backtestScope,
+  backtestTimingText,
+  hourText,
+  pickWindowText,
   closestCandidate,
   excludedReasonText,
   historySummaryText,
@@ -10,11 +14,13 @@ import {
   pickReasons,
   pickStatusInfo,
   qualityCheckLabel,
+  qualityWarnings,
   rateWithCi,
   reliabilityPoints,
   thresholdText,
   voidReasonText,
 } from "./picks";
+import { TEST_LEAGUE } from "./testing";
 
 const pick: TodayPick = {
   date: "2026-10-17",
@@ -23,12 +29,13 @@ const pick: TodayPick = {
   is_demo: false,
   publish_at: "2026-10-17T00:00:00Z",
   threshold: 0.55,
+  league_scope: "verified",
   pick_id: 1,
   revision: 1,
   published_at: "2026-10-17T00:00:05Z",
   fixture: {
     id: 7,
-    league: "EPL",
+    league: TEST_LEAGUE,
     season: "2026-27",
     round: 8,
     kickoff_at: "2026-10-17T14:00:00Z",
@@ -37,6 +44,7 @@ const pick: TodayPick = {
     away_team: { id: 2, name: "Hull City", short_name: "HUL" },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
   },
   outcome: "HOME",
   probability: 0.68,
@@ -111,6 +119,20 @@ describe("status and labels", () => {
     expect(voidReasonText(null)).toBe("");
   });
 
+  it("lists failed data checks for the detail page (QA-05)", () => {
+    const quality = {
+      ok: false,
+      checks: [
+        { name: "odds_fresh", passed: false },
+        { name: "current_model", passed: true },
+      ],
+    };
+    expect(qualityWarnings(quality, "scheduled")).toEqual(["배당 정보 최신 확인 안 됨"]);
+    expect(qualityWarnings(quality, "finished")).toEqual([]); // after kickoff checks fail by nature
+    expect(qualityWarnings({ ok: true, checks: [] }, "scheduled")).toEqual([]);
+    expect(qualityWarnings(null, "scheduled")).toEqual([]);
+  });
+
   it("formats rates with their range", () => {
     expect(rateWithCi(0.714, [0.653, 0.768])).toBe("71% (65%–77%)");
     expect(rateWithCi(null, null)).toBe("–");
@@ -119,6 +141,25 @@ describe("status and labels", () => {
   it("describes a zero threshold as no threshold", () => {
     expect(thresholdText(0)).toBe("기준 확률 없음");
     expect(thresholdText(0.55)).toBe("기준 55%");
+  });
+
+  it("names the leagues pooled in the backtest", () => {
+    expect(backtestScope(["Premier League"])).toBe("실제 Premier League 경기");
+    expect(backtestScope(["A", "B", "C"])).toBe("검증된 3개 리그의 실제 경기");
+    expect(backtestScope([])).toBe("실제 경기");
+  });
+
+  it("says how the rule was replayed", () => {
+    expect(backtestTimingText(9)).toMatch(/오전 9시에 그때부터 다음 날 오전 9시까지/);
+    expect(backtestTimingText(null)).toMatch(/실제 서비스보다 픽이 나오는 날이 많게/);
+  });
+
+  it("describes the pick window (09:00 to 09:00 the next day)", () => {
+    expect(pickWindowText("2026-10-17T00:00:00Z", "Asia/Seoul")).toBe(
+      "오전 9시 ~ 다음 날 오전 9시 경기",
+    );
+    expect(pickWindowText(null, "Asia/Seoul")).toBe("");
+    expect([0, 12, 21].map(hourText)).toEqual(["자정", "낮 12시", "오후 9시"]);
   });
 
   it("describes report periods in words", () => {
@@ -221,7 +262,7 @@ describe("no-pick day", () => {
       ],
     };
     expect(closestCandidate(day)).toBe(
-      "오늘 가장 높았던 분석 확률: Chelsea vs Arsenal — Chelsea 승리 44% (기준 55%)",
+      "이번 시간대에 가장 높았던 분석 확률: Chelsea vs Arsenal — Chelsea 승리 44% (기준 55%)",
     );
     expect(closestCandidate({ ...day, candidates: [day.candidates![0]!] })).toBeNull();
   });

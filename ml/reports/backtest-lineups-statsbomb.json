@@ -1,0 +1,1026 @@
+{
+  "generated_at": "2026-10-15T23:32:18.806747+00:00",
+  "data": {
+    "name": "StatsBomb open data",
+    "license": "free for research; credit StatsBomb when publishing",
+    "seasons": {
+      "en.1": [
+        "2015-16"
+      ],
+      "es.1": [
+        "2015-16"
+      ],
+      "it.1": [
+        "2015-16"
+      ],
+      "fr.1": [
+        "2015-16"
+      ]
+    },
+    "n_matches": {
+      "en.1": 379,
+      "es.1": 379,
+      "it.1": 380,
+      "fr.1": 377
+    }
+  },
+  "split": {
+    "warmup": "first 26% of each league's matches",
+    "validation": "up to 60% (fit beta, gamma only)",
+    "test": "the rest, scored once, pooled over leagues"
+  },
+  "production": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "lineup_fit": {
+    "beta": 0.2122791444703611,
+    "gamma": 0.1761211919282959,
+    "n_matches": 488,
+    "log_likelihood_gain": 0.0008225523346224419,
+    "mean_strength": 0.8536304504767147,
+    "share_below_90pct": 0.6506147540983607
+  },
+  "test": {
+    "n_matches": 613,
+    "first_kickoff": "2016-01-24T14:30:00+00:00",
+    "last_kickoff": "2016-05-14T19:00:00+00:00",
+    "observed_frequency": {
+      "HOME": 0.4632952691680261,
+      "DRAW": 0.2495921696574225,
+      "AWAY": 0.28711256117455136
+    },
+    "skipped_matches": {
+      "base_rate": 0,
+      "production": 0,
+      "production_lineup": 0
+    },
+    "models": {
+      "base_rate": {
+        "log_loss": {
+          "mean": 1.0669575346730167,
+          "ci_low": 1.0485664202236042,
+          "ci_high": 1.0848864419834872
+        },
+        "brier": {
+          "mean": 0.6445043005660622,
+          "ci_low": 0.6314311849226081,
+          "ci_high": 0.6570661270701849
+        },
+        "rps": {
+          "mean": 0.22807402317085013,
+          "ci_low": 0.22136956837957475,
+          "ci_high": 0.23485556984724976
+        },
+        "accuracy": 0.4632952691680261,
+        "ece": 0.025753203573327783,
+        "mean_predicted": {
+          "HOME": 0.43279904012391074,
+          "DRAW": 0.27355567335065467,
+          "AWAY": 0.29364528652543465
+        },
+        "per_season": {
+          "2015-16": {
+            "n": 613,
+            "log_loss": 1.0669575346730167,
+            "brier": 0.6445043005660622,
+            "accuracy": 0.4632952691680261
+          }
+        },
+        "calibration": [
+          {
+            "outcome": "HOME",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 145,
+            "mean_predicted": 0.393127325415778,
+            "observed_frequency": 0.4482758620689655
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 468,
+            "mean_predicted": 0.4450904901937382,
+            "observed_frequency": 0.46794871794871795
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 552,
+            "mean_predicted": 0.26976987138131414,
+            "observed_frequency": 0.2554347826086957
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 61,
+            "mean_predicted": 0.3078140780568185,
+            "observed_frequency": 0.19672131147540983
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 433,
+            "mean_predicted": 0.28178780073526055,
+            "observed_frequency": 0.29330254041570436
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 180,
+            "mean_predicted": 0.32216912734290876,
+            "observed_frequency": 0.2722222222222222
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          }
+        ],
+        "vs_reference": {
+          "reference": "production",
+          "log_loss": {
+            "mean_diff": 0.07510903302488961,
+            "ci_low": 0.04830646833823778,
+            "ci_high": 0.10135889801149209,
+            "better_than_reference": false,
+            "worse_than_reference": true
+          },
+          "brier": {
+            "mean_diff": 0.054328027257104755,
+            "ci_low": 0.035476948944184475,
+            "ci_high": 0.07285165706615027,
+            "better_than_reference": false,
+            "worse_than_reference": true
+          },
+          "rps": {
+            "mean_diff": 0.02590512805968477,
+            "ci_low": 0.017011635735229923,
+            "ci_high": 0.034418798078812214,
+            "better_than_reference": false,
+            "worse_than_reference": true
+          }
+        }
+      },
+      "production": {
+        "log_loss": {
+          "mean": 0.9918485016481272,
+          "ci_low": 0.959871106536659,
+          "ci_high": 1.022591394839763
+        },
+        "brier": {
+          "mean": 0.5901762733089574,
+          "ci_low": 0.5675535540295145,
+          "ci_high": 0.612052203758179
+        },
+        "rps": {
+          "mean": 0.2021688951111654,
+          "ci_low": 0.19316890381707832,
+          "ci_high": 0.21163177022612734
+        },
+        "accuracy": 0.5203915171288744,
+        "ece": 0.03355951353449912,
+        "mean_predicted": {
+          "HOME": 0.441742579482005,
+          "DRAW": 0.25034586817681986,
+          "AWAY": 0.3079115523411752
+        },
+        "per_season": {
+          "2015-16": {
+            "n": 613,
+            "log_loss": 0.9918485016481272,
+            "brier": 0.5901762733089574,
+            "accuracy": 0.5203915171288744
+          }
+        },
+        "calibration": [
+          {
+            "outcome": "HOME",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 2,
+            "mean_predicted": 0.09947343777213483,
+            "observed_frequency": 0.5
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 27,
+            "mean_predicted": 0.16408448305422965,
+            "observed_frequency": 0.14814814814814814
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 72,
+            "mean_predicted": 0.25952985637385123,
+            "observed_frequency": 0.2638888888888889
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 140,
+            "mean_predicted": 0.354543408310468,
+            "observed_frequency": 0.35714285714285715
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 167,
+            "mean_predicted": 0.44336132655639177,
+            "observed_frequency": 0.46706586826347307
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 117,
+            "mean_predicted": 0.5468228000236064,
+            "observed_frequency": 0.5555555555555556
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 62,
+            "mean_predicted": 0.6449725029670154,
+            "observed_frequency": 0.7096774193548387
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 22,
+            "mean_predicted": 0.7511393087323228,
+            "observed_frequency": 0.8636363636363636
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 4,
+            "mean_predicted": 0.8259443420830925,
+            "observed_frequency": 1.0
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 1,
+            "mean_predicted": 0.08698754099532324,
+            "observed_frequency": 0.0
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 61,
+            "mean_predicted": 0.16834488311557372,
+            "observed_frequency": 0.09836065573770492
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 494,
+            "mean_predicted": 0.2526774673257466,
+            "observed_frequency": 0.27530364372469635
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 57,
+            "mean_predicted": 0.32076005127063906,
+            "observed_frequency": 0.19298245614035087
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 19,
+            "mean_predicted": 0.08238726421635342,
+            "observed_frequency": 0.05263157894736842
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 107,
+            "mean_predicted": 0.15884886428791367,
+            "observed_frequency": 0.102803738317757
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 199,
+            "mean_predicted": 0.2522955191128185,
+            "observed_frequency": 0.2562814070351759
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 154,
+            "mean_predicted": 0.3432148053195801,
+            "observed_frequency": 0.2922077922077922
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 80,
+            "mean_predicted": 0.44213846001128976,
+            "observed_frequency": 0.3875
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 34,
+            "mean_predicted": 0.5465474682266676,
+            "observed_frequency": 0.6470588235294118
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 17,
+            "mean_predicted": 0.6479211436162015,
+            "observed_frequency": 0.7058823529411765
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 3,
+            "mean_predicted": 0.719118867157125,
+            "observed_frequency": 1.0
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          }
+        ]
+      },
+      "production_lineup": {
+        "log_loss": {
+          "mean": 0.9894194886256601,
+          "ci_low": 0.9568749029167367,
+          "ci_high": 1.0208237063570582
+        },
+        "brier": {
+          "mean": 0.5885183314121042,
+          "ci_low": 0.5655320745001531,
+          "ci_high": 0.6108424659625725
+        },
+        "rps": {
+          "mean": 0.20137037030369784,
+          "ci_low": 0.19229101779827218,
+          "ci_high": 0.2109061341329567
+        },
+        "accuracy": 0.5187601957585645,
+        "ece": 0.03547083692035555,
+        "mean_predicted": {
+          "HOME": 0.4440965598953899,
+          "DRAW": 0.25044643299707325,
+          "AWAY": 0.30545700710753687
+        },
+        "per_season": {
+          "2015-16": {
+            "n": 613,
+            "log_loss": 0.9894194886256601,
+            "brier": 0.5885183314121042,
+            "accuracy": 0.5187601957585645
+          }
+        },
+        "calibration": [
+          {
+            "outcome": "HOME",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 28,
+            "mean_predicted": 0.1576044354837924,
+            "observed_frequency": 0.17857142857142858
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 68,
+            "mean_predicted": 0.25246971114639954,
+            "observed_frequency": 0.20588235294117646
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 145,
+            "mean_predicted": 0.3554420146974058,
+            "observed_frequency": 0.3793103448275862
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 168,
+            "mean_predicted": 0.4462344039556725,
+            "observed_frequency": 0.4642857142857143
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 111,
+            "mean_predicted": 0.5484189463450698,
+            "observed_frequency": 0.5495495495495496
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 65,
+            "mean_predicted": 0.6445594796131933,
+            "observed_frequency": 0.6923076923076923
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 23,
+            "mean_predicted": 0.7477147765596158,
+            "observed_frequency": 0.9130434782608695
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 5,
+            "mean_predicted": 0.8351091177328664,
+            "observed_frequency": 1.0
+          },
+          {
+            "outcome": "HOME",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 2,
+            "mean_predicted": 0.088772451224335,
+            "observed_frequency": 0.0
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 63,
+            "mean_predicted": 0.16952758779641577,
+            "observed_frequency": 0.07936507936507936
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 488,
+            "mean_predicted": 0.25293493225552044,
+            "observed_frequency": 0.2766393442622951
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 60,
+            "mean_predicted": 0.32056055921481813,
+            "observed_frequency": 0.21666666666666667
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "DRAW",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 20,
+            "mean_predicted": 0.0795995443663074,
+            "observed_frequency": 0.05
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 110,
+            "mean_predicted": 0.15696097072690054,
+            "observed_frequency": 0.13636363636363635
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 203,
+            "mean_predicted": 0.2526807346074478,
+            "observed_frequency": 0.2413793103448276
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 150,
+            "mean_predicted": 0.34373291533678885,
+            "observed_frequency": 0.2733333333333333
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 74,
+            "mean_predicted": 0.4411385623065456,
+            "observed_frequency": 0.4189189189189189
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.5,
+            "upper": 0.6000000000000001,
+            "count": 37,
+            "mean_predicted": 0.5484581472318587,
+            "observed_frequency": 0.6756756756756757
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 16,
+            "mean_predicted": 0.6525788507849732,
+            "observed_frequency": 0.6875
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 3,
+            "mean_predicted": 0.7182848643273173,
+            "observed_frequency": 1.0
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          },
+          {
+            "outcome": "AWAY",
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 0,
+            "mean_predicted": null,
+            "observed_frequency": null
+          }
+        ],
+        "vs_reference": {
+          "reference": "production",
+          "log_loss": {
+            "mean_diff": -0.0024290130224669635,
+            "ci_low": -0.0053493589679983805,
+            "ci_high": 0.0005735935549418365,
+            "better_than_reference": false,
+            "worse_than_reference": false
+          },
+          "brier": {
+            "mean_diff": -0.0016579418968533156,
+            "ci_low": -0.003722561227981647,
+            "ci_high": 0.0004359123391057368,
+            "better_than_reference": false,
+            "worse_than_reference": false
+          },
+          "rps": {
+            "mean_diff": -0.0007985248074675274,
+            "ci_low": -0.001790209283774647,
+            "ci_high": 0.0001890819780689358,
+            "better_than_reference": false,
+            "worse_than_reference": false
+          }
+        }
+      }
+    }
+  },
+  "per_league": {
+    "en.1": {
+      "name": "Premier League",
+      "test_matches": 152,
+      "log_loss": {
+        "base_rate": 1.07851375839788,
+        "production": 1.0051717508307658,
+        "production_lineup": 1.00764933337024
+      }
+    },
+    "es.1": {
+      "name": "La Liga",
+      "test_matches": 152,
+      "log_loss": {
+        "base_rate": 1.0578322214524853,
+        "production": 0.9702216231339564,
+        "production_lineup": 0.9652005704847554
+      }
+    },
+    "it.1": {
+      "name": "Serie A",
+      "test_matches": 158,
+      "log_loss": {
+        "base_rate": 1.0601214908404772,
+        "production": 0.9724996759928527,
+        "production_lineup": 0.9706718398413373
+      }
+    },
+    "fr.1": {
+      "name": "Ligue 1",
+      "test_matches": 151,
+      "log_loss": {
+        "base_rate": 1.0716634719503857,
+        "production": 1.0204529129853868,
+        "production_lineup": 1.0150649698452916
+      }
+    }
+  },
+  "promotion": {
+    "promote": true,
+    "reasons": [
+      "all promotion checks passed"
+    ],
+    "checks": {
+      "n_matches": 613,
+      "log_loss_diff": -0.0024290130224669635,
+      "log_loss_diff_ci": [
+        -0.0053493589679983805,
+        0.0005735935549418365
+      ],
+      "brier_diff": -0.0016579418968533156,
+      "ece_candidate": 0.03547083692035555,
+      "ece_production": 0.03355951353449912
+    }
+  },
+  "sensitivity": [
+    {
+      "validation_end": 0.55,
+      "beta": 0.23113983346627753,
+      "gamma": 0.1468878424134343,
+      "test_matches": 684,
+      "log_loss_diff": -0.0021865435153119095,
+      "log_loss_diff_ci": [
+        -0.004889507355855077,
+        0.000665131496731941
+      ],
+      "promote": true
+    },
+    {
+      "validation_end": 0.6,
+      "beta": 0.2122791444703611,
+      "gamma": 0.1761211919282959,
+      "test_matches": 613,
+      "log_loss_diff": -0.0024290130224669635,
+      "log_loss_diff_ci": [
+        -0.0053493589679983805,
+        0.0005735935549418365
+      ],
+      "promote": true
+    },
+    {
+      "validation_end": 0.65,
+      "beta": 0.27898715058647133,
+      "gamma": 0.2141019475926331,
+      "test_matches": 532,
+      "log_loss_diff": -0.0024176519892018873,
+      "log_loss_diff_ci": [
+        -0.006503606115115606,
+        0.0017488945158347028
+      ],
+      "promote": true
+    }
+  ],
+  "adopt": true,
+  "adopt_rule": "promotion policy must pass for every validation end in [0.55, 0.6, 0.65]"
+}

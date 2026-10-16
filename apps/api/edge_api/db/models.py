@@ -60,6 +60,37 @@ def _ts(**kw: Any) -> Mapped[datetime]:
     return mapped_column(DateTime(timezone=True), **kw)
 
 
+class LeagueType(StrEnum):
+    LEAGUE = "league"  # one table of teams playing each other -> the model applies
+    CUP = "cup"  # knockout / mixed competitions -> no predictions (teams from many leagues)
+
+
+class League(Base):
+    """A competition as the provider defines it (mutable reference data, upserted)."""
+
+    __tablename__ = "leagues"
+    __table_args__ = (UniqueConstraint("provider", "provider_id", name="provider_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    provider_id: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str] = mapped_column(String(120))
+    country: Mapped[str] = mapped_column(String(80))
+    country_code: Mapped[str | None] = mapped_column(String(16))
+    type: Mapped[str] = mapped_column(String(16), default=LeagueType.LEAGUE.value)
+    current_season: Mapped[str | None] = mapped_column(String(16))
+    season_year: Mapped[int | None] = mapped_column(Integer)  # provider's season key
+    has_odds: Mapped[bool] = mapped_column(Boolean, default=False)
+    logo_url: Mapped[str | None] = mapped_column(String(255))
+    flag_url: Mapped[str | None] = mapped_column(String(255))
+    # Results are complete up to this instant (history backfill + rolling date
+    # window). NULL or older than the rolling window -> the league needs a backfill
+    # before it can be predicted.
+    results_synced_at: Mapped[datetime | None] = _ts()
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+    updated_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
 class Team(Base):
     __tablename__ = "teams"
     __table_args__ = (UniqueConstraint("provider", "provider_id", name="provider_key"),)
@@ -69,7 +100,7 @@ class Team(Base):
     provider_id: Mapped[str] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(100))
     short_name: Mapped[str] = mapped_column(String(10))
-    league: Mapped[str] = mapped_column(String(32), default="EPL")
+    logo_url: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = _ts(server_default=func.now())
     updated_at: Mapped[datetime] = _ts(server_default=func.now())
 
@@ -80,12 +111,13 @@ class Fixture(Base):
         UniqueConstraint("provider", "provider_id", name="provider_key"),
         CheckConstraint("home_team_id <> away_team_id", name="distinct_teams"),
         Index("ix_fixtures_kickoff_at", "kickoff_at"),
+        Index("ix_fixtures_league_kickoff", "league_id", "kickoff_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     provider: Mapped[str] = mapped_column(String(32))
     provider_id: Mapped[str] = mapped_column(String(64))
-    league: Mapped[str] = mapped_column(String(32), default="EPL")
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"))
     season: Mapped[str] = mapped_column(String(16))
     round: Mapped[int | None] = mapped_column(Integer)
     kickoff_at: Mapped[datetime] = _ts()
@@ -97,6 +129,7 @@ class Fixture(Base):
     created_at: Mapped[datetime] = _ts(server_default=func.now())
     updated_at: Mapped[datetime] = _ts(server_default=func.now())
 
+    league: Mapped[League] = relationship(lazy="joined")
     home_team: Mapped[Team] = relationship(foreign_keys=[home_team_id], lazy="joined")
     away_team: Mapped[Team] = relationship(foreign_keys=[away_team_id], lazy="joined")
 
@@ -281,4 +314,58 @@ class DailyPickEvent(Base):
     actual_outcome: Mapped[str | None] = mapped_column(String(8))
     hit: Mapped[bool | None] = mapped_column(Boolean)
     reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class TeamNewsKind(StrEnum):
+    LINEUP = "lineup"  # official starting XI (published shortly before kickoff)
+    ABSENCES = "absences"  # injured / suspended / doubtful players (days before)
+
+
+class TeamNewsSnapshot(Base):
+    """What was known about one team's line-up for one fixture at a point in time.
+
+    Append-only: a changed report (new content hash) is a new row. Re-fetching the
+    same report is a no-op, so polling before kickoff never duplicates rows.
+    """
+
+    __tablename__ = "team_news_snapshots"
+    __table_args__ = (
+        UniqueConstraint("fixture_id", "team_id", "kind", "content_hash", name="content_key"),
+        Index("ix_team_news_fixture_kind_captured", "fixture_id", "kind", "captured_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    kind: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    captured_at: Mapped[datetime] = _ts()
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class PlayerAppearance(Base):
+    """Minutes a player played in a finished fixture (append-only fact).
+
+    Used to tell regular starters from squad players, so a published line-up can
+    be described as "usual XI" or "n regulars missing".
+    """
+
+    __tablename__ = "player_appearances"
+    __table_args__ = (
+        UniqueConstraint("fixture_id", "player_provider_id", name="fixture_player"),
+        Index("ix_player_appearances_team", "team_id", "fixture_id"),
+        CheckConstraint("minutes >= 0 AND minutes <= 130", name="minutes_range"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    player_provider_id: Mapped[str] = mapped_column(String(64))
+    player_name: Mapped[str] = mapped_column(String(120))
+    started: Mapped[bool] = mapped_column(Boolean)
+    minutes: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _ts(server_default=func.now())

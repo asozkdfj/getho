@@ -5,7 +5,7 @@ import pytest
 
 from edge_ingestion.providers import MockProvider, get_provider
 from edge_ingestion.providers.base import FootballDataProvider
-from edge_ingestion.providers.mock import SNAPSHOT_OFFSETS, _round_robin
+from edge_ingestion.providers.mock import LEAGUES, SNAPSHOT_OFFSETS, _round_robin
 from edge_ml.market import overround
 
 REF = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
@@ -48,9 +48,38 @@ def test_same_grid_window_gives_identical_data():
     assert a.season_start == b.season_start
 
 
+def test_catalogue_has_leagues_and_a_cup():
+    leagues = {lg.provider_id: lg for lg in MockProvider(REF).get_leagues()}
+    assert set(leagues) == {"eng-1", "esp-1", "kor-1", "eng-cup"}
+    assert leagues["eng-cup"].type == "cup" and leagues["eng-1"].type == "league"
+    assert leagues["kor-1"].season == "2026"  # calendar-year season
+    assert leagues["eng-1"].season == "2026-27"
+    assert all(lg.has_odds for lg in leagues.values())
+
+
+def test_team_ids_are_unique_across_leagues():
+    codes = [t.code for lg in LEAGUES if lg.type == "league" for t in lg.teams]
+    assert len(codes) == len(set(codes))
+
+
+def test_league_history_is_two_full_seasons():
+    p = MockProvider(REF)
+    sizes = {lg.provider_id: len(p.get_league_history(lg)) for lg in p.get_leagues()}
+    assert sizes["eng-1"] == sizes["esp-1"] == 2 * 380
+    assert sizes["kor-1"] == 2 * 132
+    ids = [f.provider_id for lg in p.get_leagues() for f in p.get_league_history(lg)]
+    assert len(ids) == len(set(ids))
+
+
+def test_premier_league_fixture_ids_are_unchanged():
+    # data collected before the multi-league version keeps matching (upsert, no duplicates)
+    epl = [f for f in MockProvider(REF).get_fixtures(*ALL) if f.league_provider_id == "eng-1"]
+    assert all(f.provider_id.startswith(("2025-26-r", "2026-27-r")) for f in epl)
+
+
 def test_fixture_status_is_consistent_with_reference_time():
     p = MockProvider(REF)
-    fixtures = p.get_fixtures(*ALL)
+    fixtures = [f for f in p.get_fixtures(*ALL) if f.league_provider_id == "eng-1"]
     assert len(fixtures) == 2 * 380
     for f in fixtures:
         assert f.kickoff_at.tzinfo is not None

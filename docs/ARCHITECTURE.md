@@ -35,6 +35,20 @@ Provider ─>│ get_teams / get_fixtures / get_odds  ->  jobs.run_ingestion    
                 Next.js (SSR, cache: no-store)
 ```
 
+### 여러 리그 수집
+
+```
+get_leagues ──> leagues upsert (형식, 현재 시즌, 배당 제공 여부)
+get_fixtures(now-3일, now+8일) ──> 모든 리그의 최근·예정 경기 (API-Football: 날짜당 1요청)
+leagues_needing_history ──> 예측 가능(리그 형식+배당)하고 예정 경기가 있는데 과거 결과가 없거나
+                            공백이 생긴 리그 → get_league_history (주요 리그부터, 실행당 상한)
+get_odds(앞으로 N일 경기) ──> odds_snapshots append (필요한 경기를 다 찾으면 페이지 중단)
+```
+
+`results_synced_at`은 "이 시각까지 결과가 빠짐없이 DB에 있다"는 표시입니다. 매 실행의 3일 창이 직전
+동기화 이후를 덮으면 갱신하고, 수집이 3일 넘게 멈췄다면 그 리그는 다시 backfill합니다. 예측 job은 리그별로
+그 리그 결과만으로 모델을 학습하고, 컵 대회·과거 결과가 부족한 리그는 건너뜁니다.
+
 `run_pipeline`(CLI `seed`, Celery task)은 수집 → 예측 → 픽 정산 → (선정 시각 이후) 오늘의 픽 선정을 한
 트랜잭션에서 실행합니다. 이때 `pg_advisory_xact_lock`으로 동시 실행을 직렬화하고, 실행마다
 `ingestion_runs`에 성공/실패를 기록합니다(실패는 별도 트랜잭션).
@@ -66,8 +80,9 @@ predictions(최신, 현재 모델) ─> quality.assess (7개 점검) ─> edge_m
 
 | 테이블 | 주요 컬럼 | 키 / 제약 |
 | --- | --- | --- |
-| `teams` | provider, provider_id, name, short_name, league | UQ(provider, provider_id) |
-| `fixtures` | provider_id, season, round, kickoff_at(UTC), home/away_team_id, status, score | UQ(provider, provider_id), CK(home≠away), IX(kickoff_at) |
+| `leagues` | provider, provider_id, name, country, type(league/cup), current_season, season_year, has_odds, logo/flag, results_synced_at | UQ(provider, provider_id) — 참조 데이터(upsert) |
+| `teams` | provider, provider_id, name, short_name, logo_url | UQ(provider, provider_id) |
+| `fixtures` | provider_id, league_id, season, round, kickoff_at(UTC), home/away_team_id, status, score | UQ(provider, provider_id), CK(home≠away), IX(kickoff_at), IX(league_id, kickoff_at) |
 | `odds_snapshots` | fixture_id, bookmaker, market, odds_home/draw/away, captured_at, raw_payload | UQ(fixture, bookmaker, market, captured_at), CK(odds>1), **append-only trigger** |
 | `model_versions` | name, version(semver), git_sha, feature_set, calibration, params, metrics, artifact_uri | UQ(name, version, git_sha, feature_set) |
 | `ingestion_runs` | provider, started_at, finished_at, status, counts, error | IX(provider, started_at), **append-only trigger** |

@@ -6,6 +6,7 @@ All functions take ``probs`` with shape (n, 3) in HOME, DRAW, AWAY order and
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -108,6 +109,31 @@ def bootstrap_mean_ci(
     rng = np.random.default_rng(seed)
     idx = rng.integers(0, len(values), size=(n_resamples, len(values)))
     means = values[idx].mean(axis=1)
+    return float(np.quantile(means, alpha / 2)), float(np.quantile(means, 1 - alpha / 2))
+
+
+def cluster_bootstrap_ci(
+    values: np.ndarray,
+    clusters: Sequence[object],
+    n_resamples: int = 4000,
+    alpha: float = 0.05,
+    seed: int = 20261016,
+) -> tuple[float, float]:
+    """Percentile CI of a per-match mean, resampling whole clusters (e.g. ISO weeks).
+
+    Matches of the same week share news, weather and fixture congestion, so
+    they are not independent; resampling weeks keeps that dependence inside a
+    draw. The weighted mean handles weeks with different numbers of matches.
+    """
+    if len(values) == 0 or len(values) != len(clusters):
+        raise ValueError("values and clusters must be non-empty and aligned")
+    labels = {c: i for i, c in enumerate(dict.fromkeys(clusters))}
+    ids = np.array([labels[c] for c in clusters])
+    sums = np.bincount(ids, weights=values)
+    sizes = np.bincount(ids).astype(float)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(sums), size=(n_resamples, len(sums)))
+    means = sums[idx].sum(axis=1) / sizes[idx].sum(axis=1)
     return float(np.quantile(means, alpha / 2)), float(np.quantile(means, 1 - alpha / 2))
 
 

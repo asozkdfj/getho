@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 
 from edge_ml.value import expected_value
@@ -127,6 +129,11 @@ def test_combination_analyze(client, n_legs):
     assert body["combined_odds"] == pytest.approx(odds)
     assert body["expected_value"] == pytest.approx(p_model * odds - 1)
     assert body["edge"] == pytest.approx(p_model - p_fair)
+    # the list shows the same odds the combination is priced on (QA-02)
+    odds_key = {"HOME": "odds_home", "DRAW": "odds_draw", "AWAY": "odds_away"}
+    for f, leg in zip(fixtures, body["legs"], strict=True):
+        assert leg["odds_snapshot_id"] == f["prediction_odds"]["id"]
+        assert leg["decimal_odds"] == pytest.approx(f["prediction_odds"][odds_key[leg["outcome"]]])
 
 
 def test_combination_rejects_same_fixture(client):
@@ -217,8 +224,11 @@ def test_highlights_are_upcoming_distinct_and_sorted(client, now):
         assert h["fixture"]["status"] == "scheduled"
         assert h["fixture"]["kickoff_at"] > now.isoformat().replace("+00:00", "Z")
         assert h["edge"] == pytest.approx(h["model_probability"] - h["fair_probability"])
-        assert set(h["caveats"]) <= {"promoted_home", "promoted_away", "large_gap"}
+        allowed = {"promoted_home", "promoted_away", "large_gap", "unverified_league"}
+        assert set(h["caveats"]) <= allowed
         assert ("large_gap" in h["caveats"]) == (h["edge"] >= 0.10)
+        verified = h["fixture"]["league"]["verified"]
+        assert ("unverified_league" in h["caveats"]) == (not verified)
 
 
 def test_highlights_respect_min_edge_and_validation(client):
@@ -241,8 +251,12 @@ def test_today_pick_endpoint(client):
     body = client.get("/picks/today").json()
     assert body["tz"] == "Asia/Seoul" and body["is_demo"] is True
     assert body["status"] in {"published", "no_qualifying_match", "no_matches"}
+    # a pick day runs from the publish hour to the same hour the next day
+    start, end = (datetime.fromisoformat(body[k]) for k in ("window_start", "window_end"))
+    assert end - start == timedelta(days=1) and body["publish_at"] == body["window_start"]
     if body["status"] == "published":
         assert body["fixture"] and body["outcome"] in ("HOME", "DRAW", "AWAY")
+        assert start <= datetime.fromisoformat(body["fixture"]["kickoff_at"]) < end
         assert sum(body["probabilities"].values()) == pytest.approx(1.0)
         assert body["model"]["version"] and body["input_data_as_of"]
     again = client.get("/picks/today").json()
@@ -272,3 +286,124 @@ def test_performance_endpoint_serves_imported_backtest(client, session_factory):
     assert {"base_rate", "production"} <= names
     assert ev["calibration"] and ev["daily_picks"]
     assert body["live"]["is_demo"] is True
+
+
+def test_leagues_are_grouped_by_region_and_country(client):
+    body = client.get("/leagues", params={"days": 7}).json()
+    assert body["data_provider"] == "mock" and body["total_leagues"] == 4
+    regions = {r["region"]: r for r in body["regions"]}
+    assert list(regions) == ["europe", "asia"]  # catalogue order
+    england = next(c for c in regions["europe"]["countries"] if c["country"] == "England")
+    assert england["country_ko"] == "잉글랜드"
+    names = [lg["name"] for lg in england["leagues"]]
+    assert names == ["Premier League", "FA Cup"]  # featured rank order
+    leagues = {lg["name"]: lg for c in regions["europe"]["countries"] for lg in c["leagues"]}
+    cup, epl = leagues["FA Cup"], leagues["Premier League"]
+    assert cup["type"] == "cup" and cup["predicted"] is False and cup["predicted_count"] == 0
+    assert epl["predicted"] is True and 0 < epl["predicted_count"] <= epl["upcoming_count"]
+    assert epl["verified"] is False  # synthetic data is never "verified"
+    assert [lg["name"] for lg in body["featured"]][:3] == [
+        "Premier League",
+        "La Liga",
+        "K League 1",
+    ]
+    kl = regions["asia"]["countries"][0]
+    assert kl["country_ko"] == "대한민국" and kl["leagues"][0]["current_season"] == "2026"
+
+
+def test_league_detail_and_404(client):
+    first = client.get("/leagues").json()["featured"][0]
+    detail = client.get(f"/leagues/{first['id']}").json()
+    assert detail["name"] == first["name"] and detail["region"] == "europe"
+    assert client.get("/leagues/999999").status_code == 404
+
+
+def test_fixture_filters_by_league_region_and_featured(client):
+    week = {"days": 7, "tz": "Asia/Seoul"}
+    everything = client.get("/fixtures", params=week).json()["fixtures"]
+    by_league = {}
+    for f in everything:
+        by_league.setdefault(f["league"]["name"], []).append(f)
+    assert {"Premier League", "La Liga", "K League 1"} <= set(by_league)
+    epl_id = by_league["Premier League"][0]["league"]["id"]
+    only = client.get("/fixtures", params={**week, "league_id": epl_id}).json()["fixtures"]
+    assert len(only) == len(by_league["Premier League"])
+    asia = client.get("/fixtures", params={**week, "region": "asia"}).json()["fixtures"]
+    assert asia and {f["league"]["name"] for f in asia} == {"K League 1"}
+    spain = client.get("/fixtures", params={**week, "country": "Spain"}).json()["fixtures"]
+    assert {f["league"]["name"] for f in spain} == {"La Liga"}
+    featured = client.get("/fixtures", params={**week, "featured": True}).json()["fixtures"]
+    assert len(featured) == len(everything)  # every mock league is featured
+    cup = [f for f in everything if f["league"]["type"] == "cup"]
+    assert all(f["model_probabilities"] is None for f in cup)  # cups are never predicted
+
+
+def test_today_pick_reports_league_scope(client):
+    body = client.get("/picks/today").json()
+    assert body["league_scope"] == "verified"
+    if body["status"] != "scheduled":
+        assert body["matches_in_scope"] == body["matches_today"]  # mock: demo-wide scope
+
+
+def test_fixture_detail_shows_team_news(client, session_factory, now):
+    from datetime import timedelta
+
+    from sqlalchemy import select
+
+    from edge_api.config import Settings
+    from edge_api.db.models import Fixture
+    from edge_ingestion.providers import MockProvider
+    from edge_ingestion.team_news import ingest_team_news
+
+    settings = Settings(team_news_leagues="all", appearances_per_run=10_000)
+    with session_factory() as s:
+        ingest_team_news(s, MockProvider(now), now=now, settings=settings)  # minutes, absences
+        f = s.scalars(
+            select(Fixture)
+            .where(Fixture.status == "scheduled", Fixture.kickoff_at > now)
+            .order_by(Fixture.kickoff_at)
+        ).first()
+        before = f.kickoff_at - timedelta(minutes=30)
+        ingest_team_news(s, MockProvider(before), now=before, settings=settings, lineups_only=True)
+        s.commit()
+        fid = f.id
+
+    detail = client.get(f"/fixtures/{fid}").json()
+    news = detail["team_news"]
+    assert detail["lineups_announced"] is True and news["lineups_announced"] is True
+    assert news["used_by_model"] is False and "반영하지 않았어요" in news["note"]
+    for side in (news["home"], news["away"]):
+        assert len(side["starters"]) == 11 and side["formation"]
+        assert side["regulars_known"] is True and side["recent_matches"] >= 3
+        regulars_in_xi = sum(p["regular"] for p in side["starters"])
+        assert regulars_in_xi + len(side["missing_regulars"]) == 11
+    listed = client.get("/fixtures", params={"days": 7}).json()["fixtures"]
+    assert next(x for x in listed if x["id"] == fid)["lineups_announced"] is True
+
+
+def test_team_news_is_absent_without_data(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    assert client.get(f"/fixtures/{fid}").json()["team_news"] is None
+
+
+def test_simulation_endpoint(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    body = client.get(f"/fixtures/{fid}/simulation", params={"runs": 20000}).json()
+    assert body["runs"] == 20000 and body["seed"] == body["prediction_id"]
+    se = body["standard_error"]
+    for k in ("home", "draw", "away"):
+        assert abs(body["outcome_share"][k] - body["model_probabilities"][k]) < 5 * se + 0.005
+    assert sum(share for _, share in body["total_goals"]) == pytest.approx(1.0)
+    assert body["top_scores"] and body["note"].startswith("시뮬레이션은")
+    replay = body["replay"]
+    assert len(replay["goals"]) == replay["home_goals"] + replay["away_goals"]
+    again = client.get(f"/fixtures/{fid}/simulation", params={"runs": 20000}).json()
+    assert again == body  # same seed -> same result
+    other = client.get(f"/fixtures/{fid}/simulation", params={"seed": 12345}).json()
+    assert other["seed"] == 12345 and other["outcome_share"] != body["outcome_share"]
+
+
+def test_simulation_validation_and_404(client):
+    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    assert client.get(f"/fixtures/{fid}/simulation", params={"runs": 10}).status_code == 422
+    assert client.get("/fixtures/999999/simulation").status_code == 404

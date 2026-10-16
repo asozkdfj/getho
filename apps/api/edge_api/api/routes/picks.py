@@ -22,6 +22,7 @@ from edge_api.schemas import (
     TodayPickOut,
 )
 from edge_api.services import queries
+from edge_api.services.leagues import verified_league_ids
 from edge_api.services.picks import effective_status, get_today_pick, pick_history
 
 router = APIRouter(prefix="/picks", tags=["picks"])
@@ -46,7 +47,9 @@ def today(
     now: Now,
     tz: Annotated[str, Query(description="Only the configured pick timezone is supported")] = "",
 ) -> TodayPickOut:
-    """The day's single highest-probability outcome that passed the quality gate."""
+    """The pick day's single highest-probability outcome that passed the quality gate.
+
+    A pick day runs from the publish hour to the same hour the next day (pick_tz)."""
     if tz and tz != settings.pick_tz:
         raise HTTPException(422, f"picks are published for {settings.pick_tz} days only")
     view = get_today_pick(db, settings, now)
@@ -56,6 +59,8 @@ def today(
         "status": view.status,
         "is_demo": settings.data_provider == "mock",
         "publish_at": view.day.publish_at,
+        "window_start": view.day.start_utc,
+        "window_end": view.day.end_utc,
         "threshold": settings.pick_min_probability,
     }
     pick = view.pick
@@ -69,6 +74,9 @@ def today(
         published_at=pick.published_at,
         factors_used=ev.get("factors_used", []),
         candidates=[PickCandidateOut(**c) for c in ev.get("candidates", [])],
+        league_scope=ev.get("league_scope", "verified"),
+        matches_today=ev.get("matches_today"),
+        matches_in_scope=ev.get("matches_in_scope", ev.get("matches_today")),
         backtest=PickBacktestOut(**ev["backtest"]) if ev.get("backtest") else None,
         result=_result(pick),
     )
@@ -76,7 +84,12 @@ def today(
     if pick.fixture is not None and pick.prediction is not None and chosen:
         odds = queries.latest_odds_by_fixture(db, [pick.fixture.id], settings.bookmaker)
         base.update(
-            fixture=fixture_summary(pick.fixture, odds.get(pick.fixture.id), pick.prediction),
+            fixture=fixture_summary(
+                pick.fixture,
+                odds.get(pick.fixture.id),
+                pick.prediction,
+                verified_league_ids(db, settings.data_provider),
+            ),
             outcome=pick.outcome,
             probability=pick.probability,
             probabilities=ProbabilitiesOut(**chosen["probabilities"]),

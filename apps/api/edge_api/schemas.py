@@ -33,6 +33,7 @@ class TeamOut(ApiModel):
     id: int
     name: str
     short_name: str
+    logo_url: str | None = None
 
 
 class ProbabilitiesOut(ApiModel):
@@ -51,9 +52,66 @@ class OddsSnapshotOut(ApiModel):
     captured_at: datetime
 
 
+Region = Literal[
+    "international",
+    "europe",
+    "asia",
+    "south_america",
+    "north_america",
+    "africa",
+    "oceania",
+    "other",
+]
+
+
+class LeagueRefOut(ApiModel):
+    id: int
+    name: str
+    country: str
+    country_ko: str = Field(description="Country name for display (Korean when known)")
+    region: Region
+    type: Literal["league", "cup"]
+    logo_url: str | None = None
+    flag_url: str | None = None
+    featured: bool = Field(description="Shown first (major leagues)")
+    predicted: bool = Field(
+        description="The model makes predictions here (league format with enough history)"
+    )
+    verified: bool = Field(
+        description="Accuracy measured by a walk-forward backtest on real results"
+    )
+
+
+class LeagueSummaryOut(LeagueRefOut):
+    current_season: str | None = None
+    upcoming_count: int = Field(description="Fixtures in the requested window")
+    predicted_count: int = Field(description="...of which the model has a prediction")
+
+
+class CountryGroupOut(ApiModel):
+    country: str
+    country_ko: str
+    flag_url: str | None = None
+    leagues: list[LeagueSummaryOut]
+
+
+class RegionGroupOut(ApiModel):
+    region: Region
+    region_ko: str
+    countries: list[CountryGroupOut]
+
+
+class LeagueListOut(ApiModel):
+    data_provider: str
+    days: int
+    total_leagues: int
+    featured: list[LeagueSummaryOut]
+    regions: list[RegionGroupOut]
+
+
 class FixtureSummaryOut(ApiModel):
     id: int
-    league: str
+    league: LeagueRefOut
     season: str
     round: int | None
     kickoff_at: datetime
@@ -66,6 +124,12 @@ class FixtureSummaryOut(ApiModel):
     fair_market_probabilities: ProbabilitiesOut | None = None
     model_probabilities: ProbabilitiesOut | None = None
     prediction_id: int | None = None
+    prediction_odds: OddsSnapshotOut | None = Field(
+        default=None,
+        description="Odds snapshot the stored prediction uses (combinations are priced on it);"
+        " can be older than latest_odds until the prediction is refreshed",
+    )
+    lineups_announced: bool = False
 
 
 class FixtureListOut(ApiModel):
@@ -79,8 +143,102 @@ class FixtureListOut(ApiModel):
     fixtures: list[FixtureSummaryOut]
 
 
+class LineupPlayerOut(ApiModel):
+    player_id: str
+    name: str
+    number: int | None = None
+    position: str | None = None
+    regular: bool = Field(description="Among the team's most used players in recent matches")
+
+
+class AbsenceOut(ApiModel):
+    player_id: str
+    name: str
+    status: Literal["out", "doubtful"]
+    reason: str | None = None
+    regular: bool
+
+
+class MissingRegularOut(ApiModel):
+    player_id: str
+    name: str
+    reason: str | None = Field(default=None, description="From the absence report, when known")
+
+
+class TeamNewsSideOut(ApiModel):
+    team_id: int
+    team_name: str
+    formation: str | None = None
+    starters: list[LineupPlayerOut] = Field(default_factory=list)
+    lineup_captured_at: datetime | None = None
+    absences: list[AbsenceOut] = Field(default_factory=list)
+    absences_captured_at: datetime | None = None
+    missing_regulars: list[MissingRegularOut] = Field(
+        default_factory=list,
+        description="Regular starters not in the line-up (or reported out before it)",
+    )
+    regulars_known: bool = Field(
+        description="Enough recent matches with player minutes to tell regulars apart"
+    )
+    recent_matches: int = Field(description="Matches used to find the regular starters")
+
+
+class TeamNewsOut(ApiModel):
+    lineups_announced: bool
+    home: TeamNewsSideOut
+    away: TeamNewsSideOut
+    used_by_model: bool = Field(
+        default=False, description="Whether model probabilities use this information"
+    )
+    note: str = (
+        "선발 명단과 결장 정보는 참고용으로 보여 드립니다. 분석 확률에는 아직 반영하지 않았어요."
+    )
+
+
+class ScoreFrequencyOut(ApiModel):
+    home: int
+    away: int
+    share: float = Field(description="Share of simulated matches with this score")
+    exact: float = Field(description="Model probability of this score (score matrix)")
+
+
+class GoalEventOut(ApiModel):
+    minute: int
+    side: Literal["home", "away"]
+
+
+class ReplayOut(ApiModel):
+    home_goals: int
+    away_goals: int
+    goals: list[GoalEventOut]
+
+
+class SimulationOut(ApiModel):
+    fixture_id: int
+    prediction_id: int
+    runs: int
+    seed: int
+    expected_goals: ExpectedGoalsOut
+    outcome_share: ProbabilitiesOut = Field(description="Simulated home / draw / away shares")
+    model_probabilities: ProbabilitiesOut = Field(description="The prediction being simulated")
+    standard_error: float = Field(description="Largest sampling error (1 s.e.) of the shares")
+    top_scores: list[ScoreFrequencyOut]
+    total_goals: list[tuple[str, float]]
+    over: dict[str, float]
+    both_teams_score: float
+    home_clean_sheet: float
+    away_clean_sheet: float
+    replay: ReplayOut
+    note: str = (
+        "시뮬레이션은 분석 확률(기대 득점)로 경기를 여러 번 다시 치러 본 결과입니다. "
+        "새로운 정보를 더하지 않으므로 결과 비율은 분석 확률과 거의 같아야 정상이며, "
+        "실제 결과를 보장하지 않습니다."
+    )
+
+
 class FixtureDetailOut(FixtureSummaryOut):
     odds_history: list[OddsSnapshotOut]
+    team_news: TeamNewsOut | None = None
 
 
 class ModelVersionOut(ApiModel):
@@ -174,7 +332,7 @@ class ErrorOut(ApiModel):
     detail: str
 
 
-HighlightCaveat = Literal["promoted_home", "promoted_away", "large_gap"]
+HighlightCaveat = Literal["promoted_home", "promoted_away", "large_gap", "unverified_league"]
 
 
 class HighlightOut(ApiModel):
@@ -228,7 +386,8 @@ class DataStatusOut(ApiModel):
 
 # ---------------------------------------------------------------- Today's Pick
 PICK_DISCLAIMER = (
-    "오늘의 픽은 오늘 경기 중 통계 모델이 가장 높은 가능성을 계산한 결과 하나를 설명합니다. "
+    "오늘의 픽은 선정 시각부터 다음 날 같은 시각까지의 경기 중 통계 모델이 가장 높은 가능성을 "
+    "계산한 결과 하나를 설명합니다. "
     "확률은 추정치이며 결과를 보장하지 않고, 베팅 권유가 아닙니다."
 )
 
@@ -242,10 +401,16 @@ class PickBacktestOut(ApiModel):
     hit_rate: float
     hit_rate_ci: list[float]
     mean_pick_probability: float
+    leagues: list[str] = Field(default_factory=list, description="Leagues pooled in the replay")
+    decision_hour: int | None = Field(
+        default=None,
+        description="Replay decided at this local hour like the service; null = whole-day replay",
+    )
 
 
 class PickCandidateOut(ApiModel):
     fixture_id: int
+    league: str | None = None
     home: str
     away: str
     kickoff_at: datetime
@@ -274,6 +439,10 @@ class TodayPickOut(ApiModel):
     status: TodayPickStatus
     is_demo: bool
     publish_at: datetime
+    window_start: datetime | None = Field(
+        default=None, description="Candidates kick off in [window_start, window_end)"
+    )
+    window_end: datetime | None = None
     threshold: float
     pick_id: int | None = None
     revision: int | None = None
@@ -290,6 +459,13 @@ class TodayPickOut(ApiModel):
     features: dict[str, Any] = Field(default_factory=dict)
     quality_checks: list[QualityCheckOut] = Field(default_factory=list)
     candidates: list[PickCandidateOut] = Field(default_factory=list)
+    league_scope: str = Field(
+        default="verified", description="verified | all | explicit league ids"
+    )
+    matches_today: int | None = None
+    matches_in_scope: int | None = Field(
+        default=None, description="Matches of the pick window in leagues the pick may come from"
+    )
     backtest: PickBacktestOut | None = None
     result: PickResultOut | None = None
     disclaimer: str = PICK_DISCLAIMER
@@ -364,12 +540,39 @@ class CalibrationBinOut(ApiModel):
 
 class DailyPickBacktestRowOut(ApiModel):
     min_probability: float
+    decision_hour: int | None = Field(
+        default=None, description="Local hour of the decision; null = every match of the day"
+    )
+    eligible_matches: int | None = None
+    coverage: float | None = Field(default=None, description="Share of match days with a pick")
     match_days: int
     days_with_pick: int
     hits: int
     hit_rate: float | None
     hit_rate_ci: list[float] | None
     mean_pick_probability: float | None
+
+
+class LeagueModelMetricOut(ApiModel):
+    log_loss: float
+    brier: float
+    accuracy: float
+    ece: float
+
+
+class LeagueEvaluationOut(ApiModel):
+    code: str
+    name: str
+    country: str
+    test_matches: int
+    production: LeagueModelMetricOut
+    base_rate: LeagueModelMetricOut
+    elo_only: LeagueModelMetricOut | None = None
+    gain_vs_base_rate: list[float] = Field(
+        description="[mean, ci_low, ci_high] log-loss improvement over the base rate"
+    )
+    verified: bool
+    data_warnings: list[str] = Field(default_factory=list)
 
 
 class EvaluationOut(ApiModel):
@@ -387,6 +590,13 @@ class EvaluationOut(ApiModel):
     test_per_season: list[SeasonMetricOut]
     calibration: list[CalibrationBinOut]
     daily_picks: list[DailyPickBacktestRowOut]
+    daily_picks_leagues: list[str] = Field(default_factory=list)
+    daily_picks_timing: list[DailyPickBacktestRowOut] = Field(
+        default_factory=list,
+        description="Same rule replayed with the service's timing (decided at the publish hour,"
+        " later kickoffs only). Timing only: not a replay of live odds or quality checks.",
+    )
+    leagues: list[LeagueEvaluationOut] = Field(default_factory=list)
     promotion_decisions: dict[str, list[str]]
 
 

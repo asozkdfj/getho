@@ -2,13 +2,17 @@ import type { TodayPick } from "@edge/contracts";
 import Link from "next/link";
 
 import { OUTCOME_LABEL, pct } from "@/lib/format";
+import { leagueLabel } from "@/lib/leagues";
 import {
   closestCandidate,
   pickCautions,
   pickOutcomeText,
   pickReasons,
+  backtestScope,
+  backtestTimingText,
   periodText,
   pickStatusInfo,
+  pickWindowText,
   rateWithCi,
   thresholdText,
   voidReasonText,
@@ -48,6 +52,11 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
         </h2>
         <span className={`status pick-status ${info.tone}`}>{info.label}</span>
       </div>
+      {pick.window_start && (
+        <p className="muted small" style={{ margin: "2px 0 6px" }}>
+          {pickWindowText(pick.window_start, pick.tz)} 중에서 골라요
+        </p>
+      )}
       {pick.is_demo && (
         <p className="demo-banner small">
           데모 데이터(합성 경기)로 만든 예시입니다. 실제 경기·실제 성과가 아니에요.
@@ -56,6 +65,7 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
 
       {hasPick ? (
         <>
+          <div className="muted small pick-league">{leagueLabel(f.league)}</div>
           <div className="pick-match">
             <Link href={`/fixtures/${f.id}`} className="pick-teams">
               {f.home_team.name} <span className="muted">vs</span> {f.away_team.name}
@@ -101,32 +111,45 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
             </p>
           )}
 
-          <h3>왜 이 경기인가요?</h3>
-          <ul className="pick-reasons">
-            <li>
-              오늘 경기 중 데이터 점검을 통과한 결과 가운데 분석 확률이 가장 높았고, 기준(
-              {pct(pick.threshold, 0)})을 넘었어요.
-            </li>
-            {pickReasons(pick).map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
           <ul className="caveats">
             {pickCautions(pick).map((c) => (
               <li key={c}>⚠ {c}</li>
             ))}
           </ul>
-
           {pick.backtest && (
             <p className="small pick-backtest">
-              과거 기록: 같은 규칙({thresholdText(pick.backtest.threshold)})을{" "}
-              {periodText(pick.backtest.period)}의 실제 EPL 경기에 적용하면{" "}
-              {pick.backtest.match_days}일 중 {pick.backtest.days_with_pick}일에 픽이 나왔고, 적중률{" "}
-              {rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}, 평균 분석 확률{" "}
-              {pct(pick.backtest.mean_pick_probability, 0)}였어요. 과거 성과가 앞으로를 보장하지
-              않습니다.
+              같은 규칙의 과거 적중률{" "}
+              <strong>{rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}</strong> ·
+              픽이 나온 날{" "}
+              {pct(pick.backtest.days_with_pick / Math.max(pick.backtest.match_days, 1), 0)} — 과거
+              성과가 앞으로를 보장하지 않아요.
             </p>
           )}
+
+          <details className="pick-why">
+            <summary>왜 이 경기인가요? 근거와 과거 기록 보기</summary>
+            <ul className="pick-reasons">
+              <li>
+                이번 픽 시간대 경기 중 데이터 점검을 통과한 결과 가운데 분석 확률이 가장 높았고,
+                기준(
+                {pct(pick.threshold, 0)})을 넘었어요.
+              </li>
+              {pickReasons(pick).map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+            {pick.backtest && (
+              <p className="small">
+                과거 기록: 같은 규칙({thresholdText(pick.backtest.threshold)})을{" "}
+                {periodText(pick.backtest.period)}의 {backtestScope(pick.backtest.leagues)}에
+                적용하면 {pick.backtest.match_days}일 중 {pick.backtest.days_with_pick}일에 픽이
+                나왔고, 적중률 {rateWithCi(pick.backtest.hit_rate, pick.backtest.hit_rate_ci)}, 평균
+                분석 확률 {pct(pick.backtest.mean_pick_probability, 0)}였어요.{" "}
+                {backtestTimingText(pick.backtest.decision_hour)}{" "}
+                <Link href="/performance#daily">규칙 백테스트 자세히</Link>
+              </p>
+            )}
+          </details>
           <p className="muted small pick-meta">
             모델 {pick.model?.version ?? "–"} · 데이터 기준{" "}
             {pick.input_data_as_of ? (
@@ -141,7 +164,11 @@ export function TodayPickCard({ pick, tz }: { pick: TodayPick | null; tz: string
         </>
       ) : (
         <>
-          <p style={{ margin: "6px 0" }}>{info.description}</p>
+          <p style={{ margin: "6px 0" }}>
+            {pick.status === "no_qualifying_match" && pick.matches_in_scope === 0
+              ? "이번 픽 시간대에는 정확도가 검증된 리그의 경기가 없어요. 검증 전 리그에서는 픽을 고르지 않아요."
+              : info.description}
+          </p>
           {closest && (
             <p className="muted small" style={{ margin: "0 0 6px" }}>
               {closest}

@@ -34,3 +34,21 @@ def ingest_and_predict() -> dict[str, Any]:
         record_failed_run(settings.data_provider, now, exc)
         raise
     return asdict(result)
+
+
+@app.task(name="edge_ingestion.tasks.refresh_lineups", max_retries=0)
+def refresh_lineups() -> dict[str, Any]:
+    """Frequent, cheap poll for official line-ups of matches about to start."""
+    from edge_ingestion.team_news import ingest_team_news
+
+    settings = get_settings()
+    now = utcnow()
+    with session_scope() as session:
+        result = ingest_team_news(
+            session,
+            get_provider(settings.data_provider, settings=settings, reference_time=now),
+            now=now,
+            settings=settings,
+            lineups_only=True,
+        )
+    return asdict(result)

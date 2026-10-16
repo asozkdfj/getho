@@ -1,0 +1,1388 @@
+{
+  "generated_at": "2026-10-16T03:02:31.637175+00:00",
+  "experiment": "fatigue_rest_v1",
+  "production_model": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "protocol": "`edge backtest-fatigue` - do rest days / fixture congestion improve the model?\n\nPre-registered protocol (committed before the first run; do not edit after results):\n\nData     openfootball league files (football.json) + FA Cup, EFL Cup, Champions /\n         Europa / Conference League (Football.TXT) -> every match a club played.\nLeagues  Premier League (primary decision), Championship (replication only).\nTiming   Production model refitted weekly, a match result enters training 3 h\n         after kickoff (assumed availability lag, as in the QA protocol).\n         Fatigue features use only matches on earlier calendar days.\nWindows  2019-20             warm-up: production predictions used only to fit\n                             the first fatigue coefficients\n         2020-21..2022-23    validation: pick one variant (lowest log loss)\n         2023-24..2024-25    follow-up, PRIMARY (complete cup/Europe coverage)\n         2025-26             sensitivity only: domestic cups, Europa and\n                             Conference League files are not published\n         Coefficients are refitted before each season on all earlier seasons.\nGate     validation log loss gain >= 0.001 AND follow-up gain >= 0.002 AND\n         weekly paired 95% CI upper bound < 0 AND Brier not worse.\n         Passing the gate is a research result: no automatic deployment; a\n         new period or shadow run must confirm it first.\n",
+  "variants": [
+    "rest",
+    "congestion",
+    "rest_congestion_et"
+  ],
+  "diagnostic": "rest_league_only",
+  "missing_source_files": [
+    "el 2018-19",
+    "el 2019-20",
+    "facup 2025-26",
+    "eflcup 2025-26",
+    "el 2025-26",
+    "conf 2025-26"
+  ],
+  "source_sha256": {
+    "openfootball-at1-2018-19.json": "d44db2eccba254df96d1cd1f456eb6536d10d292c270868f8b3a05606c66efd8",
+    "openfootball-at1-2019-20.json": "4bfcf8cbfb78c41de5fc05809b986d3f4f978f93be822b19ab8c77851a58f869",
+    "openfootball-at1-2020-21.json": "725af071f3c1a0558aa1807e0f17dcb5fd412fe3a18dadd4965213e9dbebb75b",
+    "openfootball-at1-2021-22.json": "a54cdb3978789df2bf9e3e24d75c2dbfc3ef33c11169935f09f708ced501e0bb",
+    "openfootball-at1-2022-23.json": "44eb4b1bf421001eadc6e0cfb1121b2f8462d633c2548ff7d844917ab01bc594",
+    "openfootball-at1-2023-24.json": "11fc010ab0dae43300cae7067504e34219bdc733c11d8971dc48d8ebeaf15c27",
+    "openfootball-at1-2024-25.json": "70c384b64cb8d37890396255663021b44e87f5e38e0e64147dd4e093ae1325eb",
+    "openfootball-at1-2025-26.json": "ccaad0330bda2f682fee0246293363cdc85bcd27398a44c636e66225e7f50c5e",
+    "openfootball-de1-2018-19.json": "82cdafdead39129669dbae0368c294ca6372291ed095813157661c263793fac4",
+    "openfootball-de1-2019-20.json": "76c7f65ef443681515b081e325a38cf0e8b6953b665bbcac20fdf328248e7206",
+    "openfootball-de1-2020-21.json": "74a709c3f800064f26c4d44ec92af9bcd32c6b94ec00ace7cc5b684e8c3c8e74",
+    "openfootball-de1-2021-22.json": "f1b9901cffb6b073f389e730213b5f8efe6a9a73b2f86058794f2d0f1dcc54dc",
+    "openfootball-de1-2022-23.json": "b0c052dc75836dfc6b0d3781d35b828851db7377c9f6ccb39643dbbe1964f3bd",
+    "openfootball-de1-2023-24.json": "d104edde48a5e254545eac3d3ed379a09801e1ebcef5c6480e28bc36fcfa202d",
+    "openfootball-de1-2024-25.json": "f473d6595e6c29ebedc08b09177aed6a6b2ff0fa8378b82f51dea469139f44c3",
+    "openfootball-de1-2025-26.json": "17d0999db6281e6365823acdbce41a4f01dd469eac63e1f897e4e47c02906672",
+    "openfootball-de2-2018-19.json": "076d84c1235c9fe9687910c8357ff4fd6dabbf56b4d19dc7055887b9bb230a6e",
+    "openfootball-de2-2019-20.json": "ba791dffd087fa8631dfee284db7ec70f04c90c7c319a50621b691854bd16f9c",
+    "openfootball-de2-2020-21.json": "d3fe44e32021ff98038c5dc6e20e075929aa20f3c900404f99db8cae72ce304c",
+    "openfootball-de2-2021-22.json": "a73149da780709e97a962004b6093f82eb90bb44bdb2006fd5589a77b8521309",
+    "openfootball-de2-2022-23.json": "9de885f874be68e34f702b44ca21fded5de9f0188a15777346dd17deeeb1575e",
+    "openfootball-de2-2023-24.json": "13b1e0ebf06228352667a47266dbb36b40d8af415b8b79768e9fd439181ef570",
+    "openfootball-de2-2024-25.json": "55f85f85c64b85e54a43f816098c4e3a11ef66d06e294e6c0176f6b7bae1f9ab",
+    "openfootball-de2-2025-26.json": "af223a755f2a0d5b7e17e4644e8918f54f2eae4c02825d1e90c7434f6f7a6c13",
+    "openfootball-en1-2018-19.json": "e2224d86f0605a5a1b5b019c845cdecb13aca1d88035686d4159b875250d4730",
+    "openfootball-en1-2019-20.json": "9e1695f85ce5553f762e809dea357ec0a95838939be89569060a83c4e98a302d",
+    "openfootball-en1-2020-21.json": "21ddf26b48469da530c51ccc4857bf1a534bda3aed08766b55185efb142e9a20",
+    "openfootball-en1-2021-22.json": "fbdfd426fa18fa2f8630b77de87c082734da495ac4668d6d72f29f76b73b9564",
+    "openfootball-en1-2022-23.json": "8d09f0f9846981626cdfec48903e1f21e7c79aabe6f92535c9e092e8e79b808b",
+    "openfootball-en1-2023-24.json": "03e13eafbf78dfe00d7e89dd3bf6643986eb6e8fd86c7664aeb8c5bc0bed88d0",
+    "openfootball-en1-2024-25.json": "c3d18f552d83382cd4b6b21127adbbfe38e7f8618ddc979fb5404f2df07d0a75",
+    "openfootball-en1-2025-26.json": "d6070bdf731546ccf97767f062e8af4bd26dd309dee69f6092025bf9c78f43c1",
+    "openfootball-en2-2018-19.json": "7a7c2243c4a40ea428598930142f62eff7fa140f69f2cf6b0caf73cb190e7f5b",
+    "openfootball-en2-2019-20.json": "9f492b1689a636edce9012794540ff74e8ce26a22aa0a94e36a5b2499ce71852",
+    "openfootball-en2-2020-21.json": "2983c041734c8c67ba9a5e9051bae8b6722ec7a3c8bba18a10fc3d74d386a577",
+    "openfootball-en2-2021-22.json": "3c62d852dcc78649744d06902b2681cfea20cb93d79ea00958f47f566bbaf3b9",
+    "openfootball-en2-2022-23.json": "baa3c014bd0789b086a0bdfe69e3f20bf7d9ce57adbb32336f1a8eb6a63231d8",
+    "openfootball-en2-2023-24.json": "630878e082701dc51e36dc48dfe07250c09bdd0a319bef299a278e9d651c55f6",
+    "openfootball-en2-2024-25.json": "65b13a9e769ac2ed78a3c3f628cb5d76e196d514d4eeb7e0f743a8dd332d8e4f",
+    "openfootball-en2-2025-26.json": "492a2fad47b787d694a33f06c6a9828fcb91f6351e2466385550c9a2d98a44ae",
+    "openfootball-es1-2018-19.json": "7b10a3922e9ba8a9d85d2828e07438a02d0ea5f675be6a14406921e91f605716",
+    "openfootball-es1-2019-20.json": "8ade2e46a80a646159af590cb6bcca6a3739a6eebc168a4902aabeb0d1ce6c0d",
+    "openfootball-es1-2020-21.json": "817a41df564a1790147e97fc417922f6e9354b142b2baf6d376d809da2bd24b6",
+    "openfootball-es1-2021-22.json": "7beb67dd49d7132bf9f7baea540342439b97ed4a7b21ffb90d3231a402c54d02",
+    "openfootball-es1-2022-23.json": "0204c66c919c2cd5cc3d1ba26be4f68592e4e173843162a9e6755182ccf83778",
+    "openfootball-es1-2023-24.json": "e4c1e1a958f224ba3c815c898982ab495b9577315cc58ee7a5e7b532960f738b",
+    "openfootball-es1-2024-25.json": "da5bfa1b3634e1039d9e71aec50bdc847f8761189e3de235a4e730e0dc64ca38",
+    "openfootball-es1-2025-26.json": "b40397d8e62c640138548d57a1a9f76150549213d2a07fcbbb90ed0eabc6ccea",
+    "openfootball-fr1-2018-19.json": "5add69e52b80732444cf8243a64dcf831e5ea267ee588d0b6996275a70eedd14",
+    "openfootball-fr1-2019-20.json": "0c42a7b9ab70c7bd7003bcc7085f3896c95e19965941be2d04976e7bba440205",
+    "openfootball-fr1-2020-21.json": "27eceef1ea5b9b3b601074c3bfbb6a80f7e969d73d513f9dba104b688003c4e2",
+    "openfootball-fr1-2021-22.json": "8abb493061d32faaf413c403b440c043723d9743a9e69d6472bf5410e2d4e039",
+    "openfootball-fr1-2022-23.json": "6301ac1ba1fa0f5b72345759711beac3b3be3c989725cc1c6ef9307ffef692c7",
+    "openfootball-fr1-2023-24.json": "fa328cecf4c12232ac77a5d477059eebe16b68b3712ec87800b89efda8ddfb70",
+    "openfootball-fr1-2024-25.json": "90e9974afe6597452622387ad218f6b0011a5f91f1b426f05152f5b9c105e355",
+    "openfootball-fr1-2025-26.json": "3e9403445dd96f4bb7f740de22d4ea7e3ea7d640777a12eab621ae4d4dbf3bc7",
+    "openfootball-it1-2018-19.json": "b8efba80e794bd3ce5805bf802ac98e0ca9938545e6800b5a8844529b43060d3",
+    "openfootball-it1-2019-20.json": "cb3a8dfd4152a0d1dfa0638b25623a963fda47a35910ecb114517d2e20c4a8e2",
+    "openfootball-it1-2020-21.json": "0e00abb3f9d03675c4bdde14b3bde34fed5713727282f82ed095b49e60fbcfea",
+    "openfootball-it1-2021-22.json": "a3e94b23cac768e4191e99312f4d48471c4000c5c2fe766b0325cee935754061",
+    "openfootball-it1-2022-23.json": "d775fdd375af6998233fbfcd5b33d176cb9d016a981682626c5ce2f95b0c2f88",
+    "openfootball-it1-2023-24.json": "47734fc8d2ec34c5529ca814c97d1c86ecddc4a2c8095506d9b12f29cb283308",
+    "openfootball-it1-2024-25.json": "7d9bb936de3ccaeec54d57371512a58a5eeb21277e7d5f0882911a834d22b659",
+    "openfootball-it1-2025-26.json": "28f7773dea86345aeb0cbb4aff2f90231033f7ed855219e70fdd1cf45d4d7e7f",
+    "openfootball-nl1-2018-19.json": "eaaaaeb9b37ce13b40e75997f25d029129e7b5f1844ee888f5c784f0233a7ceb",
+    "openfootball-nl1-2019-20.json": "8fc6cd7b1059d56ff0957efceb11a881690106cd7b31604ce746c40ae0d4fba3",
+    "openfootball-nl1-2020-21.json": "714f85624e40ee5f635841be5647d073d033807b38aa2aff5ece04d2d3b2a39a",
+    "openfootball-nl1-2021-22.json": "6918998992aae77f498a1f39622f17032dde29649f0827822b9017699ee8212a",
+    "openfootball-nl1-2022-23.json": "4c033f836ad98581c5055456d363a57d80d612a0e6605cf63c053ada1bfa19c1",
+    "openfootball-nl1-2023-24.json": "7fca2acdd40027c59890e68cc5b8cba667eebed353c2e4870315ae02f3ef5380",
+    "openfootball-nl1-2024-25.json": "e6398379f3d68eb2863cc7dcac12c60219ab186614366bb86560039638b2f6c5",
+    "openfootball-nl1-2025-26.json": "67b38b62062641055946f99f0f393e44ac22a7df3021d4fc7ba1bb6adf94df30",
+    "openfootball-pt1-2018-19.json": "d50e074303cdbd9f8c68e15a1472e0caa07227660ead18de03e8548d9dd742d3",
+    "openfootball-pt1-2019-20.json": "5675c42696c1959e5b3772fee7c0b0637be3ca615ac2537e4410e28d40854557",
+    "openfootball-pt1-2020-21.json": "e80d030359a89f503cda349ae1716ca780b0510adaecf13c0e82d9a8440d9821",
+    "openfootball-pt1-2021-22.json": "053899d21effad8bc15aa74852631324276819673ad29ea9c3ed74ac02af2a51",
+    "openfootball-pt1-2022-23.json": "fdec06d71d3fe491d8fac75a7680c1ea8dc0e952f5d071e4722cd1fa77f76a06",
+    "openfootball-pt1-2023-24.json": "70ae548487e9c3afb38d4af97f5896f90ec268b6aea9cb95e0da4765af0cee75",
+    "openfootball-pt1-2024-25.json": "204a047e80abae556e9aed6afede82335d93866a49b479f585313ae5e7a9ecff",
+    "openfootball-pt1-2025-26.json": "c35c7b249ce7f3eb21c543d89ca32a3654cb218ed79c22ce6a9765fead5334da",
+    "openfootball-txt-cl-2018-19.txt": "7ae98396b779c3e97d049e77bbd0af6dabedcecdd73fa17d27a212aadd18c727",
+    "openfootball-txt-cl-2019-20.txt": "e0f6d8990b3110108193eecdcd698dfa48b6f324ffa7532cdc11aea19f7ee419",
+    "openfootball-txt-cl-2020-21.txt": "9d94e40aa2fe2e98cbe5eedcffb7b9223daaaf3acf682411f4965f92a65d666e",
+    "openfootball-txt-cl-2021-22.txt": "36241f4479aa9efda62c62318366bbf36f84cc8719f6387c5747cb5dea7ec519",
+    "openfootball-txt-cl-2022-23.txt": "bf9cd05939b055f12ee9b095bec1c20a0922277bef8940172218548de2e7b93a",
+    "openfootball-txt-cl-2023-24.txt": "5872bee720b32410f28c5272fb7fe7b07aa0f66bcb31ffe157893d75c14c47c5",
+    "openfootball-txt-cl-2024-25.txt": "c2692b22af02c5df4587b69c5f430aebf7d936845b5337aee462ce8e649eb1b5",
+    "openfootball-txt-cl-2025-26.txt": "2b1877308587ff1004c21b8e961b9050b8754f968244e0635eb005040fd9d5cb",
+    "openfootball-txt-conf-2021-22.txt": "5537cd70cc73898f2c44c1c512be6cd7abfc147df1aa6716a41a2a66dbc4aff1",
+    "openfootball-txt-conf-2022-23.txt": "a40da4aab99944bdcd2976f9419ea817badb5dfc8f165d18242945109532b555",
+    "openfootball-txt-conf-2023-24.txt": "d7030d077ffe5f4d8ddc6eae3e50b846b9409bd085593fde08342ddbae80f909",
+    "openfootball-txt-conf-2024-25.txt": "b2534794b2e8f70ed8734c2fd7baf9dc0f500c0ab9dd4fc575d82815340574d7",
+    "openfootball-txt-eflcup-2018-19.txt": "4a58085b51ab92cc7139ccb76821f0d4ecec78a3b135058775174e1b40a50627",
+    "openfootball-txt-eflcup-2019-20.txt": "b67534be8d537201512a69f7cb3e6a682958dac4c367dc08fd8f5c4e8ffa1ccc",
+    "openfootball-txt-eflcup-2020-21.txt": "35c793c54bb605740c09f419511a6713156584f6dff988058f4e460b30e9338b",
+    "openfootball-txt-eflcup-2021-22.txt": "ca90bd107ce33fc7ea19bf55f4c2528caf62d9f84f1a1cc4d9d4c119d024e704",
+    "openfootball-txt-eflcup-2022-23.txt": "90bf44b8d3e4f18d5b899f96ebb06a1565751bcdbe529b5ad8cc3179353d3781",
+    "openfootball-txt-eflcup-2023-24.txt": "129cb57a2ff512523df20dc8e3aae1afad587fc5f8f092f3a2bd07e0f873a59f",
+    "openfootball-txt-eflcup-2024-25.txt": "e0514dc8d5d9dceee39fc37452b7d6eaab1a19bdd33a976184875863f1e1fc36",
+    "openfootball-txt-el-2020-21.txt": "d494cc0c88c951d92b3839f2e425752a382f2779de251a0df115a1f19b308f21",
+    "openfootball-txt-el-2021-22.txt": "0bd953fd4927f096a8e4162c414b639801d4c5d33b49cba33ac54fcf565bf788",
+    "openfootball-txt-el-2022-23.txt": "e71450d2a60478dbcb253ce4eef1f95c262caafaaa715735f9d838bb2920311a",
+    "openfootball-txt-el-2023-24.txt": "2655fbfb3b636e3584664531463719711e79ea58a17cb27543a9521bfc1c1818",
+    "openfootball-txt-el-2024-25.txt": "4f004729005e45fb26e5a4adff614d5c6081564e504137705cceaa15a9213bd9",
+    "openfootball-txt-facup-2018-19.txt": "100daacc11d9f20ce1dc1f659588ee6dee2cba6c5592536d0f6a4233d5b34f92",
+    "openfootball-txt-facup-2019-20.txt": "8239a21c7de3f5f1e67ad08deda4628f41f916ceba6ba9f0b4734aad1584a21d",
+    "openfootball-txt-facup-2020-21.txt": "af029e1f94048194e07fff4081f36e6e1ea61d47afd5490673ce4a84dbcadb6a",
+    "openfootball-txt-facup-2021-22.txt": "cd6b1e4c2ad1e6ff42b5b7345174e6d07f93b1152d38a8ce15840861d6752c36",
+    "openfootball-txt-facup-2022-23.txt": "780baaccce4bb722298c41a7d0b1462fe9810d474920ae9300324a6735a34d17",
+    "openfootball-txt-facup-2023-24.txt": "2ccca37d088961f07e396dae438f88f767566c53dba4aa290f924e07017056ee",
+    "openfootball-txt-facup-2024-25.txt": "4d36f0935e01c1cd5186b70a7e8887ecb819a0fb11eb9fb195099da5f441086a"
+  },
+  "leagues": [
+    {
+      "league": "en.1",
+      "n_predicted": 2660,
+      "min_history": 380,
+      "fatigue_profile": {
+        "team_matches": 4560,
+        "rest_le_3_days": 0.2274122807017544,
+        "rest_4_5_days": 0.243640350877193,
+        "rest_ge_6_days": 0.5289473684210526,
+        "mean_load_14": 2.0348684210526318,
+        "extra_time_4d": 0.007675438596491228,
+        "europe_4d": 0.0537280701754386
+      },
+      "fatigue_profile_2025_26_incomplete": {
+        "team_matches": 760,
+        "rest_le_3_days": 0.14736842105263157,
+        "rest_4_5_days": 0.1986842105263158,
+        "rest_ge_6_days": 0.6539473684210526,
+        "mean_load_14": 1.7276315789473684,
+        "extra_time_4d": 0.0,
+        "europe_4d": 0.08026315789473684
+      },
+      "coefficients": {
+        "rest": {
+          "2020-21": {
+            "own": [
+              0.017966587069282055
+            ],
+            "opponent": [
+              0.08381093277310006
+            ],
+            "n_matches": 380,
+            "log_likelihood_gain": 0.00198345901634172
+          },
+          "2021-22": {
+            "own": [
+              0.053970243554154154
+            ],
+            "opponent": [
+              0.0673914585423572
+            ],
+            "n_matches": 760,
+            "log_likelihood_gain": 0.000962712772984799
+          },
+          "2022-23": {
+            "own": [
+              0.013465963936875644
+            ],
+            "opponent": [
+              0.014981535311075787
+            ],
+            "n_matches": 1140,
+            "log_likelihood_gain": 5.770485422764275e-05
+          },
+          "2023-24": {
+            "own": [
+              0.020342968503140463
+            ],
+            "opponent": [
+              0.03745173345433038
+            ],
+            "n_matches": 1520,
+            "log_likelihood_gain": 0.00032290528803705933
+          },
+          "2024-25": {
+            "own": [
+              0.012532078316750505
+            ],
+            "opponent": [
+              0.011142972656445456
+            ],
+            "n_matches": 1900,
+            "log_likelihood_gain": 4.207060644555321e-05
+          },
+          "2025-26": {
+            "own": [
+              0.010484719439425796
+            ],
+            "opponent": [
+              0.005034532579290207
+            ],
+            "n_matches": 2280,
+            "log_likelihood_gain": 3.1711069484692036e-05
+          }
+        },
+        "congestion": {
+          "2020-21": {
+            "own": [
+              -0.05019311430707732
+            ],
+            "opponent": [
+              0.0018540052860209998
+            ],
+            "n_matches": 380,
+            "log_likelihood_gain": 0.0011037661145289683
+          },
+          "2021-22": {
+            "own": [
+              0.02603089081979762
+            ],
+            "opponent": [
+              0.03225577574603156
+            ],
+            "n_matches": 760,
+            "log_likelihood_gain": 0.00022236485880823334
+          },
+          "2022-23": {
+            "own": [
+              0.06345297982426072
+            ],
+            "opponent": [
+              0.07396634708558598
+            ],
+            "n_matches": 1140,
+            "log_likelihood_gain": 0.0015025133209168448
+          },
+          "2023-24": {
+            "own": [
+              0.032084061572763736
+            ],
+            "opponent": [
+              0.06500681100675543
+            ],
+            "n_matches": 1520,
+            "log_likelihood_gain": 0.0010321082793217629
+          },
+          "2024-25": {
+            "own": [
+              0.01794241858284695
+            ],
+            "opponent": [
+              0.04881004785484315
+            ],
+            "n_matches": 1900,
+            "log_likelihood_gain": 0.0006421090448075599
+          },
+          "2025-26": {
+            "own": [
+              0.005057049406349626
+            ],
+            "opponent": [
+              0.008861820346217174
+            ],
+            "n_matches": 2280,
+            "log_likelihood_gain": 2.049358805228015e-05
+          }
+        },
+        "rest_congestion_et": {
+          "2020-21": {
+            "own": [
+              0.03626670455345125,
+              -0.08286975365735558,
+              0.33264719977471685
+            ],
+            "opponent": [
+              0.08683295572771346,
+              -0.04652094374414898,
+              0.879441177228249
+            ],
+            "n_matches": 380,
+            "log_likelihood_gain": 0.005077140094648843
+          },
+          "2021-22": {
+            "own": [
+              0.05868677221148686,
+              -9.2054209048855e-05,
+              -0.27919894170238574
+            ],
+            "opponent": [
+              0.06472330143366532,
+              -0.00033357159784554646,
+              0.21516627135161362
+            ],
+            "n_matches": 760,
+            "log_likelihood_gain": 0.0020215075236562465
+          },
+          "2022-23": {
+            "own": [
+              -0.03579105270730205,
+              0.08159658332485621,
+              0.03755746108407309
+            ],
+            "opponent": [
+              -0.03495042436048458,
+              0.09099116307620073,
+              0.1898260466220787
+            ],
+            "n_matches": 1140,
+            "log_likelihood_gain": 0.002067340519126024
+          },
+          "2023-24": {
+            "own": [
+              -0.004015401285803678,
+              0.03371058933027484,
+              0.08030146163751743
+            ],
+            "opponent": [
+              0.00553376468988594,
+              0.06256177898968096,
+              0.03591819608851168
+            ],
+            "n_matches": 1520,
+            "log_likelihood_gain": 0.0011325001322655967
+          },
+          "2024-25": {
+            "own": [
+              -0.007078644152323468,
+              0.019155724093261182,
+              0.1737240351089317
+            ],
+            "opponent": [
+              -0.015205807058704859,
+              0.05422648080916534,
+              -0.010955362791528754
+            ],
+            "n_matches": 1900,
+            "log_likelihood_gain": 0.0010909531033307996
+          },
+          "2025-26": {
+            "own": [
+              0.00816770056029909,
+              -0.00027158204836358747,
+              0.07388962271654897
+            ],
+            "opponent": [
+              0.0024649188177339,
+              0.006472312105907871,
+              -0.02320362531554043
+            ],
+            "n_matches": 2280,
+            "log_likelihood_gain": 0.00012781481184008538
+          }
+        },
+        "rest_league_only": {
+          "2020-21": {
+            "own": [
+              0.17656538214376086
+            ],
+            "opponent": [
+              0.23348835047841476
+            ],
+            "n_matches": 380,
+            "log_likelihood_gain": 0.004798282277994304
+          },
+          "2021-22": {
+            "own": [
+              0.0067718827105785525
+            ],
+            "opponent": [
+              0.06901399522287074
+            ],
+            "n_matches": 760,
+            "log_likelihood_gain": 0.0012449100315324669
+          },
+          "2022-23": {
+            "own": [
+              -0.027816275669677596
+            ],
+            "opponent": [
+              0.012488687916689577
+            ],
+            "n_matches": 1140,
+            "log_likelihood_gain": 0.0004494368516596998
+          },
+          "2023-24": {
+            "own": [
+              0.0038387938274549943
+            ],
+            "opponent": [
+              0.04813913472167814
+            ],
+            "n_matches": 1520,
+            "log_likelihood_gain": 0.0005998225864956159
+          },
+          "2024-25": {
+            "own": [
+              0.0424331136026626
+            ],
+            "opponent": [
+              0.06927584617493868
+            ],
+            "n_matches": 1900,
+            "log_likelihood_gain": 0.0005764436503085036
+          },
+          "2025-26": {
+            "own": [
+              0.059772656134562084
+            ],
+            "opponent": [
+              0.07553383377280083
+            ],
+            "n_matches": 2280,
+            "log_likelihood_gain": 0.0006017372793777261
+          }
+        }
+      },
+      "validation": {
+        "seasons": [
+          "2020-21",
+          "2021-22",
+          "2022-23"
+        ],
+        "n_matches": 1140,
+        "production": {
+          "log_loss": 0.9854929940001019,
+          "brier": 0.585946965122753,
+          "accuracy": 0.5342105263157895,
+          "ece": 0.016639573209855183
+        },
+        "rest": {
+          "log_loss": 0.9855536979276366,
+          "brier": 0.5859270430661658,
+          "accuracy": 0.5298245614035088,
+          "ece": 0.01644986234866645,
+          "vs_production": {
+            "log_loss_diff": 6.0703927534676125e-05,
+            "log_loss_diff_ci95_weekly": [
+              -0.0016816959570161636,
+              0.0017445824499090663
+            ],
+            "brier_diff": -1.9922056587224473e-05,
+            "accuracy_diff": -0.0043859649122807015,
+            "weeks": 104
+          }
+        },
+        "congestion": {
+          "log_loss": 0.9855365617498546,
+          "brier": 0.5858666640929117,
+          "accuracy": 0.5412280701754386,
+          "ece": 0.014982294793572833,
+          "vs_production": {
+            "log_loss_diff": 4.356774975283385e-05,
+            "log_loss_diff_ci95_weekly": [
+              -0.0015462226550493525,
+              0.0016482006502827743
+            ],
+            "brier_diff": -8.030102984133576e-05,
+            "accuracy_diff": 0.007017543859649123,
+            "weeks": 104
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 0.9912122323654105,
+          "brier": 0.5888224409197504,
+          "accuracy": 0.5263157894736842,
+          "ece": 0.015560735603913842,
+          "vs_production": {
+            "log_loss_diff": 0.00571923836530859,
+            "log_loss_diff_ci95_weekly": [
+              0.00036598590526916224,
+              0.012185455549093902
+            ],
+            "brier_diff": 0.002875475796997355,
+            "accuracy_diff": -0.007894736842105263,
+            "weeks": 104
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 0.9880797702884361,
+          "brier": 0.5874927414129116,
+          "accuracy": 0.5333333333333333,
+          "ece": 0.01951193141497282,
+          "vs_production": {
+            "log_loss_diff": 0.002586776288334226,
+            "log_loss_diff_ci95_weekly": [
+              -0.0008404370819357287,
+              0.006370899942117356
+            ],
+            "brier_diff": 0.0015457762901586428,
+            "accuracy_diff": -0.0008771929824561404,
+            "weeks": 104
+          }
+        }
+      },
+      "follow_up": {
+        "seasons": [
+          "2023-24",
+          "2024-25"
+        ],
+        "n_matches": 760,
+        "production": {
+          "log_loss": 0.9575193885330936,
+          "brier": 0.5674242034545444,
+          "accuracy": 0.5473684210526316,
+          "ece": 0.033181268177033894
+        },
+        "rest": {
+          "log_loss": 0.9580391954068387,
+          "brier": 0.5678174086960021,
+          "accuracy": 0.55,
+          "ece": 0.0302725573702572,
+          "vs_production": {
+            "log_loss_diff": 0.000519806873745041,
+            "log_loss_diff_ci95_weekly": [
+              -0.0004650540932433592,
+              0.0015621316628877339
+            ],
+            "brier_diff": 0.0003932052414575907,
+            "accuracy_diff": 0.002631578947368421,
+            "weeks": 73
+          }
+        },
+        "congestion": {
+          "log_loss": 0.9587502645728675,
+          "brier": 0.5683119241999761,
+          "accuracy": 0.5447368421052632,
+          "ece": 0.02514483083008026,
+          "vs_production": {
+            "log_loss_diff": 0.0012308760397739939,
+            "log_loss_diff_ci95_weekly": [
+              -0.001049788357870876,
+              0.003573807977450668
+            ],
+            "brier_diff": 0.0008877207454316966,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 73
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 0.958901103699294,
+          "brier": 0.568464971426487,
+          "accuracy": 0.5447368421052632,
+          "ece": 0.02528846096500347,
+          "vs_production": {
+            "log_loss_diff": 0.0013817151662004876,
+            "log_loss_diff_ci95_weekly": [
+              -0.0010104325061619486,
+              0.0038216656141352675
+            ],
+            "brier_diff": 0.001040767971942491,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 73
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 0.9565433547031424,
+          "brier": 0.5667297064654557,
+          "accuracy": 0.5513157894736842,
+          "ece": 0.03184622176379809,
+          "vs_production": {
+            "log_loss_diff": -0.0009760338299511032,
+            "log_loss_diff_ci95_weekly": [
+              -0.0020574685058460714,
+              3.9919352907633145e-05
+            ],
+            "brier_diff": -0.000694496989088791,
+            "accuracy_diff": 0.003947368421052632,
+            "weeks": 73
+          }
+        }
+      },
+      "sensitivity_2025_26": {
+        "seasons": [
+          "2025-26"
+        ],
+        "n_matches": 380,
+        "production": {
+          "log_loss": 1.0345222162280099,
+          "brier": 0.622226143756587,
+          "accuracy": 0.4710526315789474,
+          "ece": 0.03734422360791125
+        },
+        "rest": {
+          "log_loss": 1.034606806786392,
+          "brier": 0.6222547573425025,
+          "accuracy": 0.4710526315789474,
+          "ece": 0.03801503321682663,
+          "vs_production": {
+            "log_loss_diff": 8.459055838216341e-05,
+            "log_loss_diff_ci95_weekly": [
+              -0.00032251367044924616,
+              0.0005081897906736225
+            ],
+            "brier_diff": 2.8613585915379276e-05,
+            "accuracy_diff": 0.0,
+            "weeks": 36
+          }
+        },
+        "congestion": {
+          "log_loss": 1.0345449535376035,
+          "brier": 0.6222617525674966,
+          "accuracy": 0.46842105263157896,
+          "ece": 0.040093404624823685,
+          "vs_production": {
+            "log_loss_diff": 2.273730959363327e-05,
+            "log_loss_diff_ci95_weekly": [
+              -0.0003831290625997378,
+              0.00047274295428523916
+            ],
+            "brier_diff": 3.560881090949984e-05,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 36
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 1.0346335382946608,
+          "brier": 0.6222926976807849,
+          "accuracy": 0.46842105263157896,
+          "ece": 0.03935097850209641,
+          "vs_production": {
+            "log_loss_diff": 0.00011132206665090595,
+            "log_loss_diff_ci95_weekly": [
+              -0.00030336787430623074,
+              0.0005678285713665955
+            ],
+            "brier_diff": 6.655392419773069e-05,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 36
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 1.0347157928270074,
+          "brier": 0.62226148174486,
+          "accuracy": 0.47368421052631576,
+          "ece": 0.03825120696816337,
+          "vs_production": {
+            "log_loss_diff": 0.00019357659899741416,
+            "log_loss_diff_ci95_weekly": [
+              -0.0010599277591181822,
+              0.0014128398239372246
+            ],
+            "brier_diff": 3.533798827283639e-05,
+            "accuracy_diff": 0.002631578947368421,
+            "weeks": 36
+          }
+        }
+      },
+      "follow_up_incl_2025_26": {
+        "seasons": [
+          "2023-24",
+          "2024-25",
+          "2025-26"
+        ],
+        "n_matches": 1140,
+        "production": {
+          "log_loss": 0.9831869977647325,
+          "brier": 0.5856915168885587,
+          "accuracy": 0.5219298245614035,
+          "ece": 0.02743559502368435
+        },
+        "rest": {
+          "log_loss": 0.9835617325333565,
+          "brier": 0.5859631915781689,
+          "accuracy": 0.5236842105263158,
+          "ece": 0.027102485839747815,
+          "vs_production": {
+            "log_loss_diff": 0.0003747347686240818,
+            "log_loss_diff_ci95_weekly": [
+              -0.00031276588754391624,
+              0.0011214131676487828
+            ],
+            "brier_diff": 0.000271674689610187,
+            "accuracy_diff": 0.0017543859649122807,
+            "weeks": 109
+          }
+        },
+        "congestion": {
+          "log_loss": 0.9840151608944461,
+          "brier": 0.586295200322483,
+          "accuracy": 0.519298245614035,
+          "ece": 0.025379820475114168,
+          "vs_production": {
+            "log_loss_diff": 0.0008281631297138737,
+            "log_loss_diff_ci95_weekly": [
+              -0.0006429162849777421,
+              0.002448776679054392
+            ],
+            "brier_diff": 0.0006036834339242978,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 109
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 0.9841452485644164,
+          "brier": 0.5864075468445862,
+          "accuracy": 0.519298245614035,
+          "ece": 0.02525722577900317,
+          "vs_production": {
+            "log_loss_diff": 0.0009582507996839607,
+            "log_loss_diff_ci95_weekly": [
+              -0.0005866912819748006,
+              0.002629126251306668
+            ],
+            "brier_diff": 0.0007160299560275708,
+            "accuracy_diff": -0.002631578947368421,
+            "weeks": 109
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 0.9826008340777642,
+          "brier": 0.5852402982252571,
+          "accuracy": 0.525438596491228,
+          "ece": 0.02666350416180612,
+          "vs_production": {
+            "log_loss_diff": -0.0005861636869682641,
+            "log_loss_diff_ci95_weekly": [
+              -0.001410640353279524,
+              0.0002316827977602581
+            ],
+            "brier_diff": -0.0004512186633015818,
+            "accuracy_diff": 0.0035087719298245615,
+            "weeks": 109
+          }
+        }
+      }
+    },
+    {
+      "league": "en.2",
+      "n_predicted": 3889,
+      "min_history": 552,
+      "fatigue_profile": {
+        "team_matches": 6664,
+        "rest_le_3_days": 0.3115246098439376,
+        "rest_4_5_days": 0.30687274909963985,
+        "rest_ge_6_days": 0.38160264105642255,
+        "mean_load_14": 2.3176770708283314,
+        "extra_time_4d": 0.0031512605042016808,
+        "europe_4d": 0.0010504201680672268
+      },
+      "fatigue_profile_2025_26_incomplete": {
+        "team_matches": 1114,
+        "rest_le_3_days": 0.2998204667863555,
+        "rest_4_5_days": 0.2333931777378815,
+        "rest_ge_6_days": 0.466786355475763,
+        "mean_load_14": 2.038599640933573,
+        "extra_time_4d": 0.0,
+        "europe_4d": 0.0
+      },
+      "coefficients": {
+        "rest": {
+          "2020-21": {
+            "own": [
+              -0.03701652882152684
+            ],
+            "opponent": [
+              -0.048974222062671734
+            ],
+            "n_matches": 552,
+            "log_likelihood_gain": 0.00025873024688888546
+          },
+          "2021-22": {
+            "own": [
+              0.010791159119525466
+            ],
+            "opponent": [
+              0.016643477278547134
+            ],
+            "n_matches": 1104,
+            "log_likelihood_gain": 4.032110763195424e-05
+          },
+          "2022-23": {
+            "own": [
+              0.04476256010028361
+            ],
+            "opponent": [
+              0.05571164424785864
+            ],
+            "n_matches": 1661,
+            "log_likelihood_gain": 0.00037314094051721716
+          },
+          "2023-24": {
+            "own": [
+              0.047192183294898694
+            ],
+            "opponent": [
+              0.07040811693353917
+            ],
+            "n_matches": 2218,
+            "log_likelihood_gain": 0.0006731958549110149
+          },
+          "2024-25": {
+            "own": [
+              0.04196168476834591
+            ],
+            "opponent": [
+              0.055658680727014694
+            ],
+            "n_matches": 2775,
+            "log_likelihood_gain": 0.00037613644313046484
+          },
+          "2025-26": {
+            "own": [
+              0.028642949748324542
+            ],
+            "opponent": [
+              0.048546062795109694
+            ],
+            "n_matches": 3332,
+            "log_likelihood_gain": 0.0003684565595565119
+          }
+        },
+        "congestion": {
+          "2020-21": {
+            "own": [
+              -0.015518938035174677
+            ],
+            "opponent": [
+              -0.11105553641247418
+            ],
+            "n_matches": 552,
+            "log_likelihood_gain": 0.003576771576911883
+          },
+          "2021-22": {
+            "own": [
+              -0.0036118359273699806
+            ],
+            "opponent": [
+              -0.036203410922576465
+            ],
+            "n_matches": 1104,
+            "log_likelihood_gain": 0.00046981398057008175
+          },
+          "2022-23": {
+            "own": [
+              0.024869984344374724
+            ],
+            "opponent": [
+              0.004286180234250285
+            ],
+            "n_matches": 1661,
+            "log_likelihood_gain": 0.00018519834580906774
+          },
+          "2023-24": {
+            "own": [
+              0.050894678381506665
+            ],
+            "opponent": [
+              0.027582788077634316
+            ],
+            "n_matches": 2218,
+            "log_likelihood_gain": 0.0004116720480000387
+          },
+          "2024-25": {
+            "own": [
+              0.052799838319837165
+            ],
+            "opponent": [
+              0.04132110720737771
+            ],
+            "n_matches": 2775,
+            "log_likelihood_gain": 0.0003580474639648356
+          },
+          "2025-26": {
+            "own": [
+              0.03623174712505072
+            ],
+            "opponent": [
+              0.023843329498991036
+            ],
+            "n_matches": 3332,
+            "log_likelihood_gain": 0.00017180634992818223
+          }
+        },
+        "rest_congestion_et": {
+          "2020-21": {
+            "own": [
+              -0.05551900624419184,
+              -0.020851341195707262,
+              0.3284041558667972
+            ],
+            "opponent": [
+              -0.029704628430040795,
+              -0.1316177943142349,
+              0.7496891325405116
+            ],
+            "n_matches": 552,
+            "log_likelihood_gain": 0.006505235826794027
+          },
+          "2021-22": {
+            "own": [
+              0.0030040342090119415,
+              -0.011963415764846972,
+              0.38684692120133035
+            ],
+            "opponent": [
+              0.03355071175110284,
+              -0.06531170588673338,
+              0.8572212512696039
+            ],
+            "n_matches": 1104,
+            "log_likelihood_gain": 0.0028346054286856356
+          },
+          "2022-23": {
+            "own": [
+              0.03371066241210104,
+              0.0062446160267444996,
+              0.5713190965871221
+            ],
+            "opponent": [
+              0.06196651715085314,
+              -0.03064521063933503,
+              0.6990638744041368
+            ],
+            "n_matches": 1661,
+            "log_likelihood_gain": 0.0033133063999081828
+          },
+          "2023-24": {
+            "own": [
+              0.017628759386064476,
+              0.04082589489479233,
+              0.5282203621800748
+            ],
+            "opponent": [
+              0.06506322311081705,
+              -0.011030063311421996,
+              0.3441977326680385
+            ],
+            "n_matches": 2218,
+            "log_likelihood_gain": 0.0030835716690130583
+          },
+          "2024-25": {
+            "own": [
+              0.012962798096550978,
+              0.04336353558898064,
+              0.3618600321872618
+            ],
+            "opponent": [
+              0.0391749968179685,
+              0.017398510206454876,
+              0.03028198007011694
+            ],
+            "n_matches": 2775,
+            "log_likelihood_gain": 0.0014340868854095142
+          },
+          "2025-26": {
+            "own": [
+              0.00917553641049822,
+              0.03282918566250815,
+              0.25439595642476337
+            ],
+            "opponent": [
+              0.04297584562197443,
+              0.0005879862066524696,
+              0.028317381319272587
+            ],
+            "n_matches": 3332,
+            "log_likelihood_gain": 0.0010009551716352128
+          }
+        },
+        "rest_league_only": {
+          "2020-21": {
+            "own": [
+              0.010851133715504162
+            ],
+            "opponent": [
+              0.0033880643961324546
+            ],
+            "n_matches": 552,
+            "log_likelihood_gain": 2.9622947662972734e-05
+          },
+          "2021-22": {
+            "own": [
+              0.05922517797003324
+            ],
+            "opponent": [
+              0.06521487933928338
+            ],
+            "n_matches": 1104,
+            "log_likelihood_gain": 0.00031968416261156233
+          },
+          "2022-23": {
+            "own": [
+              0.05226303690201152
+            ],
+            "opponent": [
+              0.06499984057021675
+            ],
+            "n_matches": 1661,
+            "log_likelihood_gain": 0.00037989248108011243
+          },
+          "2023-24": {
+            "own": [
+              0.04587719141443627
+            ],
+            "opponent": [
+              0.07291532004255721
+            ],
+            "n_matches": 2218,
+            "log_likelihood_gain": 0.0006358882925659796
+          },
+          "2024-25": {
+            "own": [
+              0.009394379838893362
+            ],
+            "opponent": [
+              0.029915418460159982
+            ],
+            "n_matches": 2775,
+            "log_likelihood_gain": 0.0002305243568493474
+          },
+          "2025-26": {
+            "own": [
+              0.017314985737211158
+            ],
+            "opponent": [
+              0.044928338390991265
+            ],
+            "n_matches": 3332,
+            "log_likelihood_gain": 0.0004320068341479507
+          }
+        }
+      },
+      "validation": {
+        "seasons": [
+          "2020-21",
+          "2021-22",
+          "2022-23"
+        ],
+        "n_matches": 1666,
+        "production": {
+          "log_loss": 1.0606389604629702,
+          "brier": 0.6395094063220105,
+          "accuracy": 0.44837935174069626,
+          "ece": 0.014813487216025331
+        },
+        "rest": {
+          "log_loss": 1.0610935783495086,
+          "brier": 0.6398703591723613,
+          "accuracy": 0.44837935174069626,
+          "ece": 0.016050953469528766,
+          "vs_production": {
+            "log_loss_diff": 0.0004546178865383891,
+            "log_loss_diff_ci95_weekly": [
+              -0.00034978282091343877,
+              0.0013079477267861398
+            ],
+            "brier_diff": 0.00036095285035097084,
+            "accuracy_diff": 0.0,
+            "weeks": 110
+          }
+        },
+        "congestion": {
+          "log_loss": 1.060098408547676,
+          "brier": 0.6391938945784995,
+          "accuracy": 0.4507803121248499,
+          "ece": 0.017608941042386164,
+          "vs_production": {
+            "log_loss_diff": -0.0005405519152943505,
+            "log_loss_diff_ci95_weekly": [
+              -0.0018259636601125186,
+              0.0007025109210017187
+            ],
+            "brier_diff": -0.0003155117435107987,
+            "accuracy_diff": 0.0024009603841536613,
+            "weeks": 110
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 1.0603309858646155,
+          "brier": 0.6395781735256918,
+          "accuracy": 0.4507803121248499,
+          "ece": 0.021293499233128916,
+          "vs_production": {
+            "log_loss_diff": -0.0003079745983548339,
+            "log_loss_diff_ci95_weekly": [
+              -0.0033389310399005298,
+              0.002930732139215941
+            ],
+            "brier_diff": 6.876720368145874e-05,
+            "accuracy_diff": 0.0024009603841536613,
+            "weeks": 110
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 1.060831822625537,
+          "brier": 0.6396438714154956,
+          "accuracy": 0.44837935174069626,
+          "ece": 0.015666841374985956,
+          "vs_production": {
+            "log_loss_diff": 0.00019286216256696238,
+            "log_loss_diff_ci95_weekly": [
+              -0.0008632131769187333,
+              0.0011791066834302923
+            ],
+            "brier_diff": 0.00013446509348519182,
+            "accuracy_diff": 0.0,
+            "weeks": 110
+          }
+        }
+      },
+      "follow_up": {
+        "seasons": [
+          "2023-24",
+          "2024-25"
+        ],
+        "n_matches": 1114,
+        "production": {
+          "log_loss": 1.045905149875108,
+          "brier": 0.6297649660257582,
+          "accuracy": 0.4614003590664273,
+          "ece": 0.02583570405873406
+        },
+        "rest": {
+          "log_loss": 1.0463071320448893,
+          "brier": 0.6300392844004853,
+          "accuracy": 0.4605026929982047,
+          "ece": 0.025932183550308303,
+          "vs_production": {
+            "log_loss_diff": 0.00040198216978139093,
+            "log_loss_diff_ci95_weekly": [
+              -0.0014209427945785055,
+              0.0022413565366893417
+            ],
+            "brier_diff": 0.0002743183747271839,
+            "accuracy_diff": -0.0008976660682226212,
+            "weeks": 77
+          }
+        },
+        "congestion": {
+          "log_loss": 1.046074759443462,
+          "brier": 0.6298510797430644,
+          "accuracy": 0.45870736086175945,
+          "ece": 0.02046730465194173,
+          "vs_production": {
+            "log_loss_diff": 0.00016960956835406364,
+            "log_loss_diff_ci95_weekly": [
+              -0.0011863800159428656,
+              0.0015397409496372208
+            ],
+            "brier_diff": 8.611371730621606e-05,
+            "accuracy_diff": -0.0026929982046678637,
+            "weeks": 77
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 1.0498548485264378,
+          "brier": 0.6319251078445474,
+          "accuracy": 0.45691202872531417,
+          "ece": 0.02383179728491102,
+          "vs_production": {
+            "log_loss_diff": 0.003949698651329937,
+            "log_loss_diff_ci95_weekly": [
+              -0.00043885369211560214,
+              0.010099647216809785
+            ],
+            "brier_diff": 0.002160141818789184,
+            "accuracy_diff": -0.004488330341113106,
+            "weeks": 77
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 1.0464710924139304,
+          "brier": 0.6301268352282218,
+          "accuracy": 0.4605026929982047,
+          "ece": 0.024904750198452813,
+          "vs_production": {
+            "log_loss_diff": 0.0005659425388224982,
+            "log_loss_diff_ci95_weekly": [
+              -0.0003993794468546917,
+              0.0017131315411592996
+            ],
+            "brier_diff": 0.0003618692024635291,
+            "accuracy_diff": -0.0008976660682226212,
+            "weeks": 77
+          }
+        }
+      },
+      "sensitivity_2025_26": {
+        "seasons": [
+          "2025-26"
+        ],
+        "n_matches": 557,
+        "production": {
+          "log_loss": 1.064607577644743,
+          "brier": 0.6429016821173464,
+          "accuracy": 0.42908438061041293,
+          "ece": 0.027001010798096404
+        },
+        "rest": {
+          "log_loss": 1.063875288399203,
+          "brier": 0.6423679789421535,
+          "accuracy": 0.4272890484739677,
+          "ece": 0.024909086421054005,
+          "vs_production": {
+            "log_loss_diff": -0.0007322892455399797,
+            "log_loss_diff_ci95_weekly": [
+              -0.002004903879795302,
+              0.000494024038223366
+            ],
+            "brier_diff": -0.000533703175192956,
+            "accuracy_diff": -0.0017953321364452424,
+            "weeks": 38
+          }
+        },
+        "congestion": {
+          "log_loss": 1.0647115396967566,
+          "brier": 0.643038324460924,
+          "accuracy": 0.42908438061041293,
+          "ece": 0.02869485668170468,
+          "vs_production": {
+            "log_loss_diff": 0.00010396205201370417,
+            "log_loss_diff_ci95_weekly": [
+              -0.0006793580230466944,
+              0.0008956698766744302
+            ],
+            "brier_diff": 0.00013664234357751404,
+            "accuracy_diff": 0.0,
+            "weeks": 38
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 1.0641707298253995,
+          "brier": 0.6426304237687617,
+          "accuracy": 0.42908438061041293,
+          "ece": 0.026210755065154884,
+          "vs_production": {
+            "log_loss_diff": -0.0004368478193432405,
+            "log_loss_diff_ci95_weekly": [
+              -0.0019832869321947002,
+              0.0010197366070397113
+            ],
+            "brier_diff": -0.0002712583485846663,
+            "accuracy_diff": 0.0,
+            "weeks": 38
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 1.064021177525617,
+          "brier": 0.6424826601115003,
+          "accuracy": 0.42908438061041293,
+          "ece": 0.025773097190336262,
+          "vs_production": {
+            "log_loss_diff": -0.0005864001191260037,
+            "log_loss_diff_ci95_weekly": [
+              -0.0017553153724597932,
+              0.0005337895410911877
+            ],
+            "brier_diff": -0.0004190220058461367,
+            "accuracy_diff": 0.0,
+            "weeks": 38
+          }
+        }
+      },
+      "follow_up_incl_2025_26": {
+        "seasons": [
+          "2023-24",
+          "2024-25",
+          "2025-26"
+        ],
+        "n_matches": 1671,
+        "production": {
+          "log_loss": 1.0521392924649864,
+          "brier": 0.6341438713896209,
+          "accuracy": 0.4506283662477558,
+          "ece": 0.02067322818819842
+        },
+        "rest": {
+          "log_loss": 1.052163184162994,
+          "brier": 0.6341488492477081,
+          "accuracy": 0.44943147815679235,
+          "ece": 0.021722257425948605,
+          "vs_production": {
+            "log_loss_diff": 2.389169800760072e-05,
+            "log_loss_diff_ci95_weekly": [
+              -0.0012990923280374702,
+              0.0013280133603733655
+            ],
+            "brier_diff": 4.9778580871372e-06,
+            "accuracy_diff": -0.0011968880909634949,
+            "weeks": 115
+          }
+        },
+        "congestion": {
+          "log_loss": 1.0522870195278935,
+          "brier": 0.6342468279823509,
+          "accuracy": 0.4488330341113106,
+          "ece": 0.01802440625811575,
+          "vs_production": {
+            "log_loss_diff": 0.00014772706290727716,
+            "log_loss_diff_ci95_weekly": [
+              -0.000822910620692247,
+              0.0010788956700563557
+            ],
+            "brier_diff": 0.00010295659272998213,
+            "accuracy_diff": -0.0017953321364452424,
+            "weeks": 115
+          }
+        },
+        "rest_congestion_et": {
+          "log_loss": 1.054626808959425,
+          "brier": 0.6354935464859522,
+          "accuracy": 0.44763614602034707,
+          "ece": 0.020068894460717652,
+          "vs_production": {
+            "log_loss_diff": 0.0024875164944388774,
+            "log_loss_diff_ci95_weekly": [
+              -0.000539901263270282,
+              0.006542935961801666
+            ],
+            "brier_diff": 0.0013496750963312336,
+            "accuracy_diff": -0.002992220227408737,
+            "weeks": 115
+          }
+        },
+        "rest_league_only": {
+          "log_loss": 1.0523211207844925,
+          "brier": 0.6342454435226479,
+          "accuracy": 0.4500299222022741,
+          "ece": 0.02028663038116793,
+          "vs_production": {
+            "log_loss_diff": 0.0001818283195063308,
+            "log_loss_diff_ci95_weekly": [
+              -0.0005890322935010674,
+              0.0010876587972537416
+            ],
+            "brier_diff": 0.00010157213302697385,
+            "accuracy_diff": -0.0005984440454817474,
+            "weeks": 115
+          }
+        }
+      }
+    }
+  ],
+  "gate": {
+    "selected_on_validation": "congestion",
+    "validation_gain": -4.356774975267097e-05,
+    "follow_up_gain": -0.0012308760397739939,
+    "checks": {
+      "validation_gain>=0.001": false,
+      "follow_up_gain>=0.002": false,
+      "weekly_ci_upper<0": false,
+      "brier_not_worse": false
+    },
+    "passes": false,
+    "deployed": false
+  },
+  "replication": {
+    "en.2": {
+      "selected_on_validation": "congestion",
+      "validation_gain": 0.0005405519152943405,
+      "follow_up_gain": -0.00016960956835406364,
+      "checks": {
+        "validation_gain>=0.001": false,
+        "follow_up_gain>=0.002": false,
+        "weekly_ci_upper<0": false,
+        "brier_not_worse": false
+      },
+      "passes": false,
+      "deployed": false
+    }
+  },
+  "qa_reproduction": {
+    "n_matches": 1140,
+    "log_loss": 0.9831869977647325,
+    "accuracy": 0.5219298245614035,
+    "qa_reported": {
+      "n_matches": 1140,
+      "log_loss": 0.983187,
+      "accuracy": 0.5219
+    }
+  }
+}

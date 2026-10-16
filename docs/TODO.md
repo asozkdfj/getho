@@ -13,7 +13,7 @@
 | 4 | 휴식일·일정 밀도, xG 특성 | 실험 하네스는 준비됐지만, 공개 데이터에 컵·유럽대항전 일정과 xG가 없어 평가할 수 없습니다. | 데이터 확보 시 |
 | 5 | Dixon-Coles | 실데이터 검증 결과 rho < 0이 오히려 나빠서 기각했습니다(기본 0). | 재평가 시 |
 | 6 | Shin / power de-vig | MVP는 설명하기 쉬운 proportional만 씁니다(ADR-008). | Phase 2 |
-| 7 | players, team_match_stats, injury_events, lineup_snapshots, llm_events 테이블 | Phase 1 범위 밖입니다(xG, 라인업, 부상, LLM은 Phase 2~3). 같은 append-only 패턴으로 추가합니다. | Phase 2~3 |
+| 7 | players, team_match_stats, llm_events 테이블 (선발 명단·결장·출전 시간은 `team_news_snapshots`, `player_appearances`로 구현) | Phase 1 범위 밖입니다(xG, 라인업, 부상, LLM은 Phase 2~3). 같은 append-only 패턴으로 추가합니다. | Phase 2~3 |
 | 8 | Playwright E2E를 CI에서 실행 | CI 시간과 비용 때문입니다. 지금은 Vitest 단위 테스트와 compose smoke(HTTP + 조합 API)로 대신합니다. 로컬에서는 Playwright로 모바일/데스크톱 렌더링을 수동 확인했습니다. | 화면이 늘어나면 |
 | 9 | 운영 배포(이미지 레지스트리, 마이그레이션 릴리스 단계, Sentry, structured JSON logs) | MVP는 로컬 compose가 목표입니다. production에서는 `RUN_MIGRATIONS_ON_STARTUP=false`, `SEED_ON_STARTUP=false`로 둡니다. | 공개 베타 전 |
 | 10 | Celery beat 분리 | 로컬은 `worker -B` 하나로 충분합니다. 다중 worker에서는 beat를 단일 프로세스로 분리해야 합니다. | 배포 시 |
@@ -26,3 +26,14 @@
 | 17 | 팀 로고 | 현재 teams 테이블에 로고 URL이 없습니다. API-Football 응답에는 있어 수집 컬럼을 추가하면 됩니다(라이선스 확인 필요, #1). | #1과 함께 |
 | 18 | 픽 선정 시각 경쟁 상황의 부하 테스트 | 동시 요청 안전성은 유니크 키로 보장하고 통합 테스트로 확인했습니다. 실제 다중 프로세스 부하 테스트는 하지 않았습니다. | 배포 전 |
 | 19 | 항상 켜진 개인용 배포 | 지금은 Codespaces(켜져 있을 때만 동작)로 다른 PC에서 봅니다. 매일 픽 기록을 빠짐없이 쌓으려면 관리형 DB + 예약 수집 + 접근 제한이 있는 배포가 필요합니다. | 실데이터 픽 기록을 시작할 때 |
+| 20 | 리그별 파라미터 조정 | 같은 모델을 그대로 썼습니다. 2부 리그(Championship, 2. Bundesliga)는 Elo만 쓴 모델과 비슷하거나 약간 못했습니다. 리그별 튜닝은 리그마다 검증 구간이 필요해 범위를 넘습니다. | 리그별 성과를 더 쌓은 뒤 |
+| 21 | 컵 대회 예측(전역 레이팅) | 서로 다른 리그 팀을 잇는 레이팅(유럽대항전·컵 결과로 리그 간 수준 차이 추정)이 필요합니다. | 리그 확장 이후 |
+| 22 | 더 많은 리그 검증 | openfootball에 완전한 시즌이 있는 10개 리그만 검증했습니다. 나머지 리그는 API-Football 과거 결과로 같은 백테스트를 돌리면 검증할 수 있습니다(요청량 필요). | 실데이터 운영 시작 후 |
+| 23 | 전체 리그 API 응답 실검증 | `/leagues?current=true`, 날짜 단위 `/fixtures`·`/odds`는 문서 형식으로만 테스트했습니다. `make check-provider`로 확인해야 합니다. | 다음 실행 때 |
+| 24 | 선발 명단 변수 서비스 반영(3단계) | 2단계 백테스트는 채택 가능 조건을 만족했지만 효과가 작고 CI가 0을 포함합니다. 경기 직전 예측 갱신 job, 예측 행에 명단 입력 기록, 모델 버전 0.3.0이 필요합니다. | 더 큰 표본 재측정 후 사용자 결정 |
+| 25 | 큰 표본 명단 백테스트 | API-Football 과거 경기 출전 시간(`edge backfill-appearances`, 20경기/요청)으로 검증된 10개 리그 2시즌을 채우면 약 7,000경기로 다시 잴 수 있습니다. | 실데이터 운영 시작 후 |
+| 26 | 팀 뉴스 API 응답 실검증 | `/injuries?date=`, `/fixtures?ids=`의 형식은 문서 기준으로만 테스트했습니다. | 다음 `check-provider` 실행 때 |
+| 30 | 선수 수준 피로·결장 실험 | 팀 일정 피로는 미채택. 선수별 출전 시간(`edge backfill-appearances`)을 확보해야 선수 수준으로 잴 수 있습니다. | 과거 출전 시간 확보 후 |
+| 31 | 과거 배당으로 시장 기준선 | 순위·무승부 보정까지 미채택(팀 결과 기반 변수 소진). 시장 확률과 비교해야 남은 정확도 여지를 알 수 있습니다. football-data.co.uk CSV(무료)는 이 환경에서 접속되지 않았습니다. | 접속 가능한 환경에서 |
+| 32 | xG 기반 전력 추정 | 득점 대신 슈팅 품질로 전력을 추정하는 후보. 공개 xG 데이터 확보가 먼저입니다. | 데이터 확보 후 |
+

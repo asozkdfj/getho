@@ -27,7 +27,8 @@ TEST_DATABASE_URL = os.getenv(
 NOW = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
 TABLES = (
     "daily_pick_events, daily_picks, model_evaluations, ingestion_runs, "
-    "predictions, odds_snapshots, fixtures, teams, model_versions"
+    "team_news_snapshots, player_appearances, "
+    "predictions, odds_snapshots, fixtures, teams, leagues, model_versions"
 )
 
 

@@ -1,12 +1,19 @@
 import type { Highlight } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
-import { caveatText, highlightSentence, outcomeName } from "./highlights";
+import {
+  caveatText,
+  highlightSentence,
+  outcomeName,
+  sharedCaveatText,
+  sharedCaveats,
+} from "./highlights";
+import { TEST_LEAGUE } from "./testing";
 
 const base = {
   fixture: {
     id: 1,
-    league: "EPL",
+    league: TEST_LEAGUE,
     season: "2026-27",
     round: 8,
     kickoff_at: "2026-10-17T14:00:00Z",
@@ -15,6 +22,7 @@ const base = {
     away_team: { id: 2, name: "Hull City", short_name: "HUL" },
     home_score: null,
     away_score: null,
+    lineups_announced: false,
   },
   outcome: "AWAY",
   model_probability: 0.31,
@@ -37,10 +45,32 @@ describe("highlight wording", () => {
     expect(caveatText("promoted_away", base)).toMatch(/^Hull City: 승격팀/);
     expect(caveatText("promoted_home", base)).toMatch(/^Fulham: 승격팀/);
     expect(caveatText("large_gap", base)).toMatch(/최신 소식/);
+    expect(caveatText("unverified_league", base)).toMatch(/검증하지 않았어요/);
   });
 
   it("never sounds like a tip", () => {
     const all = [highlightSentence(base), ...base.caveats.map((c) => caveatText(c, base))];
     for (const t of all) expect(t).not.toMatch(/추천|확실|무조건|필승|보장|베팅하세요/);
+  });
+});
+
+describe("shared caveats", () => {
+  it("lifts generic caveats found on every card", () => {
+    const a = { ...base, caveats: ["unverified_league", "promoted_away"] } satisfies Highlight;
+    const b = { ...base, caveats: ["unverified_league", "large_gap"] } satisfies Highlight;
+    expect(sharedCaveats([a, b])).toEqual(["unverified_league"]);
+  });
+
+  it("keeps team-specific and single-card caveats on the card", () => {
+    const a = { ...base, caveats: ["promoted_away"] } satisfies Highlight;
+    expect(sharedCaveats([a, a])).toEqual([]);
+    expect(sharedCaveats([base])).toEqual([]);
+  });
+});
+
+describe("shared caveat wording", () => {
+  it("speaks about the whole list", () => {
+    expect(sharedCaveatText("unverified_league")).toMatch(/^아래 경기는 모두 정확도 검증 전/);
+    expect(sharedCaveatText("large_gap")).toMatch(/^아래 경기 모두/);
   });
 });

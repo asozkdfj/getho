@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15T16:23:07.232339+00:00",
+  "generated_at": "2026-10-16T04:27:57.591088+00:00",
   "data": {
     "name": "openfootball/football.json",
     "license": "public domain (CC0)",
@@ -4264,105 +4264,942 @@
       }
     }
   },
+  "leagues": [
+    {
+      "code": "en.1",
+      "name": "Premier League",
+      "country": "England",
+      "provider_ids": {
+        "api_football": "39"
+      },
+      "n_matches": 3040,
+      "test_matches": 1140,
+      "test_first_kickoff": "2023-08-11T19:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0736522192262188,
+          "brier": 0.6498662774427021,
+          "accuracy": 0.43157894736842106,
+          "ece": 0.014180891545120736
+        },
+        "elo_only": {
+          "log_loss": 0.9864818883798033,
+          "brier": 0.5878686710282294,
+          "accuracy": 0.5210526315789473,
+          "ece": 0.023528038076004912
+        },
+        "poisson_only": {
+          "log_loss": 0.9833826278162832,
+          "brier": 0.5859263329956855,
+          "accuracy": 0.525438596491228,
+          "ece": 0.022512025291179735
+        },
+        "production_no_promoted_prior": {
+          "log_loss": 0.9861686964506954,
+          "brier": 0.5872115609182261,
+          "accuracy": 0.5228070175438596,
+          "ece": 0.030487301697967765
+        },
+        "production": {
+          "log_loss": 0.9831743008593544,
+          "brier": 0.5856826556070648,
+          "accuracy": 0.5219298245614035,
+          "ece": 0.027433027590187235
+        },
+        "candidate": {
+          "log_loss": 0.9831743008593544,
+          "brier": 0.5856826556070648,
+          "accuracy": 0.5219298245614035,
+          "ece": 0.027433027590187235
+        },
+        "candidate_calibrated": {
+          "log_loss": 0.9829280902863352,
+          "brier": 0.5856385478197199,
+          "accuracy": 0.5219298245614035,
+          "ece": 0.027123031738565957
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.09047791836686445,
+        "ci_low": 0.07128648197622528,
+        "ci_high": 0.10947529895412772
+      },
+      "verified": true,
+      "data_warnings": []
+    },
+    {
+      "code": "en.2",
+      "name": "Championship",
+      "country": "England",
+      "provider_ids": {
+        "api_football": "40"
+      },
+      "n_matches": 4441,
+      "test_matches": 1671,
+      "test_first_kickoff": "2023-08-04T19:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0739075442375223,
+          "brier": 0.6496614885853199,
+          "accuracy": 0.4386594853381209,
+          "ece": 0.006918680315656992
+        },
+        "elo_only": {
+          "log_loss": 1.0483902679365624,
+          "brier": 0.6317977663750369,
+          "accuracy": 0.4530221424296828,
+          "ece": 0.014129401931418142
+        },
+        "production": {
+          "log_loss": 1.0520821460250487,
+          "brier": 0.6341080850113081,
+          "accuracy": 0.4506283662477558,
+          "ece": 0.02057535300041284
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.02182539821247372,
+        "ci_low": 0.011157591278656011,
+        "ci_high": 0.03300941646665766
+      },
+      "verified": true,
+      "data_warnings": [
+        "2021-22: repeated pairings (split format?)",
+        "2021-22: 557 finished matches, a double round robin of 24 teams has 552",
+        "2022-23: repeated pairings (split format?)",
+        "2022-23: 557 finished matches, a double round robin of 24 teams has 552",
+        "2023-24: repeated pairings (split format?)",
+        "2023-24: 557 finished matches, a double round robin of 24 teams has 552",
+        "2024-25: repeated pairings (split format?)",
+        "2024-25: 557 finished matches, a double round robin of 24 teams has 552",
+        "2025-26: repeated pairings (split format?)",
+        "2025-26: 557 finished matches, a double round robin of 24 teams has 552"
+      ]
+    },
+    {
+      "code": "de.1",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "provider_ids": {
+        "api_football": "78"
+      },
+      "n_matches": 2448,
+      "test_matches": 918,
+      "test_first_kickoff": "2023-08-18T18:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.078878979399867,
+          "brier": 0.6535296268270782,
+          "accuracy": 0.420479302832244,
+          "ece": 0.012877429301543203
+        },
+        "elo_only": {
+          "log_loss": 1.0001817905092514,
+          "brier": 0.5955727097340894,
+          "accuracy": 0.5196078431372549,
+          "ece": 0.0488437410969983
+        },
+        "production": {
+          "log_loss": 0.9928326396277535,
+          "brier": 0.5906402719701992,
+          "accuracy": 0.5261437908496732,
+          "ece": 0.03710156096600407
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.08604633977211343,
+        "ci_low": 0.06436367031406837,
+        "ci_high": 0.10829081920500777
+      },
+      "verified": true,
+      "data_warnings": []
+    },
+    {
+      "code": "de.2",
+      "name": "2. Bundesliga",
+      "country": "Germany",
+      "provider_ids": {
+        "api_football": "79"
+      },
+      "n_matches": 2241,
+      "test_matches": 711,
+      "test_first_kickoff": "2023-07-28T18:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0732606848978683,
+          "brier": 0.649432613680794,
+          "accuracy": 0.4360056258790436,
+          "ece": 0.013718638945024775
+        },
+        "elo_only": {
+          "log_loss": 1.0462003252711891,
+          "brier": 0.6293731654913659,
+          "accuracy": 0.4739803094233474,
+          "ece": 0.01980397551973988
+        },
+        "production": {
+          "log_loss": 1.0449716258076425,
+          "brier": 0.6288925327421326,
+          "accuracy": 0.48523206751054854,
+          "ece": 0.024196332754475768
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.028289059090225954,
+        "ci_low": 0.007990536401950965,
+        "ci_high": 0.04917648169245419
+      },
+      "verified": true,
+      "data_warnings": [
+        "2025-26: 99 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "es.1",
+      "name": "La Liga",
+      "country": "Spain",
+      "provider_ids": {
+        "api_football": "140"
+      },
+      "n_matches": 3030,
+      "test_matches": 1130,
+      "test_first_kickoff": "2023-08-11T17:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0654703664425909,
+          "brier": 0.6434877519821637,
+          "accuracy": 0.4584070796460177,
+          "ece": 0.010135127788974223
+        },
+        "elo_only": {
+          "log_loss": 0.9848178355287932,
+          "brier": 0.5855065653612926,
+          "accuracy": 0.5274336283185841,
+          "ece": 0.044481346405161507
+        },
+        "production": {
+          "log_loss": 0.9799440475477542,
+          "brier": 0.5824126461227772,
+          "accuracy": 0.5292035398230088,
+          "ece": 0.03974190978210534
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.08552631889483647,
+        "ci_low": 0.06619730407933257,
+        "ci_high": 0.10510579985646581
+      },
+      "verified": true,
+      "data_warnings": [
+        "2024-25: 370 finished matches, a double round robin of 20 teams has 380"
+      ]
+    },
+    {
+      "code": "it.1",
+      "name": "Serie A",
+      "country": "Italy",
+      "provider_ids": {
+        "api_football": "135"
+      },
+      "n_matches": 3030,
+      "test_matches": 1130,
+      "test_first_kickoff": "2023-08-19T16:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0884626577441103,
+          "brier": 0.659636243877798,
+          "accuracy": 0.40353982300884955,
+          "ece": 0.012465246058076382
+        },
+        "elo_only": {
+          "log_loss": 0.9976151736735034,
+          "brier": 0.5958405941100892,
+          "accuracy": 0.5256637168141592,
+          "ece": 0.04670121823550555
+        },
+        "production": {
+          "log_loss": 0.9880113897652457,
+          "brier": 0.590357041711019,
+          "accuracy": 0.5247787610619469,
+          "ece": 0.03803825887527672
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.10045126797886454,
+        "ci_low": 0.08142272030833174,
+        "ci_high": 0.12030211952568677
+      },
+      "verified": true,
+      "data_warnings": [
+        "2024-25: 370 finished matches, a double round robin of 20 teams has 380"
+      ]
+    },
+    {
+      "code": "fr.1",
+      "name": "Ligue 1",
+      "country": "France",
+      "provider_ids": {
+        "api_football": "61"
+      },
+      "n_matches": 2716,
+      "test_matches": 917,
+      "test_first_kickoff": "2023-08-11T19:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0685813830428597,
+          "brier": 0.646545802982694,
+          "accuracy": 0.440567066521265,
+          "ece": 0.01442062941375664
+        },
+        "elo_only": {
+          "log_loss": 0.99994815720117,
+          "brier": 0.5974231858276707,
+          "accuracy": 0.514721919302072,
+          "ece": 0.022406591358412088
+        },
+        "production": {
+          "log_loss": 1.0064628529437496,
+          "brier": 0.6022969039312914,
+          "accuracy": 0.5125408942202835,
+          "ece": 0.0199358481292076
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.06211853009910992,
+        "ci_low": 0.0390289539630473,
+        "ci_high": 0.08334035204739865
+      },
+      "verified": true,
+      "data_warnings": [
+        "2019-20: 279 finished matches, a double round robin of 20 teams has 380",
+        "2025-26: 305 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "nl.1",
+      "name": "Eredivisie",
+      "country": "Netherlands",
+      "provider_ids": {
+        "api_football": "88"
+      },
+      "n_matches": 2373,
+      "test_matches": 917,
+      "test_first_kickoff": "2023-08-11T18:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0727667201053765,
+          "brier": 0.6486827471937527,
+          "accuracy": 0.44274809160305345,
+          "ece": 0.017551604850288893
+        },
+        "elo_only": {
+          "log_loss": 0.9850282448537492,
+          "brier": 0.5850161010880179,
+          "accuracy": 0.5310796074154853,
+          "ece": 0.05245205411495536
+        },
+        "production": {
+          "log_loss": 0.9754591183776045,
+          "brier": 0.5789207924964239,
+          "accuracy": 0.5288985823336968,
+          "ece": 0.03969393171622117
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.09730760172777195,
+        "ci_low": 0.07333615944894123,
+        "ci_high": 0.12041678675588158
+      },
+      "verified": true,
+      "data_warnings": [
+        "2019-20: 232 finished matches, a double round robin of 18 teams has 306",
+        "2025-26: 305 finished matches, a double round robin of 18 teams has 306"
+      ]
+    },
+    {
+      "code": "pt.1",
+      "name": "Primeira Liga",
+      "country": "Portugal",
+      "provider_ids": {
+        "api_football": "94"
+      },
+      "n_matches": 2448,
+      "test_matches": 918,
+      "test_first_kickoff": "2023-08-11T19:15:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0775582304561964,
+          "brier": 0.652334387072834,
+          "accuracy": 0.42701525054466233,
+          "ece": 0.011833878824080445
+        },
+        "elo_only": {
+          "log_loss": 0.9624711877015572,
+          "brier": 0.5703192335592164,
+          "accuracy": 0.5348583877995643,
+          "ece": 0.03875923960157243
+        },
+        "production": {
+          "log_loss": 0.954337763442057,
+          "brier": 0.5645697459852536,
+          "accuracy": 0.5403050108932462,
+          "ece": 0.03848282164372208
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.12322046701413931,
+        "ci_low": 0.09927224386219406,
+        "ci_high": 0.14715853037344176
+      },
+      "verified": true,
+      "data_warnings": []
+    },
+    {
+      "code": "at.1",
+      "name": "Austrian Bundesliga",
+      "country": "Austria",
+      "provider_ids": {
+        "api_football": "218"
+      },
+      "n_matches": 1435,
+      "test_matches": 460,
+      "test_first_kickoff": "2023-07-28T18:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0892217002391036,
+          "brier": 0.6604464210271646,
+          "accuracy": 0.391304347826087,
+          "ece": 0.011043310212046908
+        },
+        "elo_only": {
+          "log_loss": 1.0254370061125966,
+          "brier": 0.6148158257747754,
+          "accuracy": 0.4934782608695652,
+          "ece": 0.036892881194223515
+        },
+        "production": {
+          "log_loss": 1.0218243480717248,
+          "brier": 0.6128117156371556,
+          "accuracy": 0.48695652173913045,
+          "ece": 0.034119818371086456
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.06739735216737883,
+        "ci_low": 0.03659095941850464,
+        "ci_high": 0.09928341229074157
+      },
+      "verified": true,
+      "data_warnings": [
+        "2018-19: repeated pairings (split format?)",
+        "2018-19: 195 finished matches, a double round robin of 12 teams has 132",
+        "2019-20: repeated pairings (split format?)",
+        "2019-20: 195 finished matches, a double round robin of 12 teams has 132",
+        "2020-21: repeated pairings (split format?)",
+        "2020-21: 195 finished matches, a double round robin of 12 teams has 132",
+        "2021-22: repeated pairings (split format?)",
+        "2021-22: 195 finished matches, a double round robin of 12 teams has 132",
+        "2022-23: repeated pairings (split format?)",
+        "2022-23: 195 finished matches, a double round robin of 12 teams has 132",
+        "2023-24: repeated pairings (split format?)",
+        "2023-24: 195 finished matches, a double round robin of 12 teams has 132",
+        "2024-25: repeated pairings (split format?)",
+        "2024-25: 194 finished matches, a double round robin of 12 teams has 132",
+        "2025-26: 71 finished matches, a double round robin of 12 teams has 132"
+      ]
+    }
+  ],
   "daily_pick_backtest": {
+    "evaluation_scope": "whole_day_not_live_replay",
     "model": "production",
     "tz": "Asia/Seoul",
+    "leagues": [
+      "en.1",
+      "en.2",
+      "de.1",
+      "de.2",
+      "es.1",
+      "it.1",
+      "fr.1",
+      "nl.1",
+      "pt.1",
+      "at.1"
+    ],
     "rows": [
       {
         "min_probability": 0.0,
-        "match_days": 396,
-        "days_with_pick": 396,
-        "hits": 245,
-        "hit_rate": 0.6186868686868687,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 1.0,
+        "match_days": 654,
+        "days_with_pick": 654,
+        "hits": 462,
+        "hit_rate": 0.7064220183486238,
         "hit_rate_ci": [
-          0.5699239648962192,
-          0.6651691319701399
+          0.6703949014210097,
+          0.7400382484436386
         ],
-        "mean_pick_probability": 0.5838297259502838
+        "mean_pick_probability": 0.6758774040068446
       },
       {
         "min_probability": 0.45,
-        "match_days": 396,
-        "days_with_pick": 323,
-        "hits": 214,
-        "hit_rate": 0.6625386996904025,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.9495412844036697,
+        "match_days": 654,
+        "days_with_pick": 621,
+        "hits": 450,
+        "hit_rate": 0.7246376811594203,
         "hit_rate_ci": [
-          0.6093295634474165,
-          0.7119269718283867
+          0.6882039060747326,
+          0.7583092582216268
         ],
-        "mean_pick_probability": 0.6225281622820324
+        "mean_pick_probability": 0.6896016724522391
       },
       {
         "min_probability": 0.5,
-        "match_days": 396,
-        "days_with_pick": 284,
-        "hits": 196,
-        "hit_rate": 0.6901408450704225,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.9159021406727829,
+        "match_days": 654,
+        "days_with_pick": 599,
+        "hits": 442,
+        "hit_rate": 0.7378964941569283,
         "hit_rate_ci": [
-          0.634119692562882,
-          0.741086670937043
+          0.7012411985625353,
+          0.7715198053230625
         ],
-        "mean_pick_probability": 0.6424806217479471
+        "mean_pick_probability": 0.6974191099917918
       },
       {
         "min_probability": 0.55,
-        "match_days": 396,
-        "days_with_pick": 234,
-        "hits": 167,
-        "hit_rate": 0.7136752136752137,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.8409785932721713,
+        "match_days": 654,
+        "days_with_pick": 550,
+        "hits": 414,
+        "hit_rate": 0.7527272727272727,
         "hit_rate_ci": [
-          0.6526701225222583,
-          0.7677777722110432
+          0.7150004735284597,
+          0.7869480980486844
         ],
-        "mean_pick_probability": 0.6674256696384567
+        "mean_pick_probability": 0.712564585623463
       },
       {
         "min_probability": 0.6,
-        "match_days": 396,
-        "days_with_pick": 175,
-        "hits": 126,
-        "hit_rate": 0.72,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.7339449541284404,
+        "match_days": 654,
+        "days_with_pick": 480,
+        "hits": 369,
+        "hit_rate": 0.76875,
         "hit_rate_ci": [
-          0.6492985971943888,
-          0.78125
+          0.7289859189351519,
+          0.8042464447144394
         ],
-        "mean_pick_probability": 0.6988323223219981
+        "mean_pick_probability": 0.7326194518164949
       },
       {
         "min_probability": 0.65,
-        "match_days": 396,
-        "days_with_pick": 121,
-        "hits": 91,
-        "hit_rate": 0.7520661157024794,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.6345565749235474,
+        "match_days": 654,
+        "days_with_pick": 415,
+        "hits": 323,
+        "hit_rate": 0.7783132530120482,
         "hit_rate_ci": [
-          0.6681652874208607,
-          0.8204538908017832
+          0.7358975245664522,
+          0.8156236232851463
         ],
-        "mean_pick_probability": 0.7316356107830979
+        "mean_pick_probability": 0.7490352486653787
       },
       {
         "min_probability": 0.7,
-        "match_days": 396,
-        "days_with_pick": 76,
-        "hits": 65,
-        "hit_rate": 0.8552631578947368,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.47706422018348627,
+        "match_days": 654,
+        "days_with_pick": 312,
+        "hits": 251,
+        "hit_rate": 0.8044871794871795,
         "hit_rate_ci": [
-          0.7591234649192224,
-          0.9172156866007872
+          0.7568881977189046,
+          0.8446791702275598
         ],
-        "mean_pick_probability": 0.7655891191238089
+        "mean_pick_probability": 0.7735184936450422
       },
       {
         "min_probability": 0.75,
-        "match_days": 396,
-        "days_with_pick": 39,
-        "hits": 37,
-        "hit_rate": 0.9487179487179487,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.3058103975535168,
+        "match_days": 654,
+        "days_with_pick": 200,
+        "hits": 166,
+        "hit_rate": 0.83,
         "hit_rate_ci": [
-          0.8311406095436208,
-          0.9858223423536004
+          0.7718399896049648,
+          0.8757216464889435
         ],
-        "mean_pick_probability": 0.8030677111424636
+        "mean_pick_probability": 0.7992316789798168
+      },
+      {
+        "min_probability": 0.8,
+        "decision_hour": null,
+        "day_start_hour": 0,
+        "eligible_matches": 9912,
+        "coverage": 0.13608562691131498,
+        "match_days": 654,
+        "days_with_pick": 89,
+        "hits": 72,
+        "hit_rate": 0.8089887640449438,
+        "hit_rate_ci": [
+          0.7152254054284447,
+          0.8771814466723377
+        ],
+        "mean_pick_probability": 0.8307181625750719
+      }
+    ]
+  },
+  "daily_pick_timing_proxy": {
+    "evaluation_scope": "timing_only_not_live_quality_replay",
+    "selection_bias": "league scope selected on the same test results",
+    "model": "production",
+    "tz": "Asia/Seoul",
+    "decision_hour": 9,
+    "window": "decision_hour_to_next_day_decision_hour",
+    "leagues": [
+      "en.1",
+      "en.2",
+      "de.1",
+      "de.2",
+      "es.1",
+      "it.1",
+      "fr.1",
+      "nl.1",
+      "pt.1",
+      "at.1"
+    ],
+    "rows": [
+      {
+        "min_probability": 0.0,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.9845440494590417,
+        "match_days": 647,
+        "days_with_pick": 637,
+        "hits": 443,
+        "hit_rate": 0.695447409733124,
+        "hit_rate_ci": [
+          0.6586242068660183,
+          0.7299273478395439
+        ],
+        "mean_pick_probability": 0.6580414724187106
+      },
+      {
+        "min_probability": 0.45,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.9165378670788253,
+        "match_days": 647,
+        "days_with_pick": 593,
+        "hits": 424,
+        "hit_rate": 0.715008431703204,
+        "hit_rate_ci": [
+          0.6773822847298017,
+          0.7498667542111837
+        ],
+        "mean_pick_probability": 0.676083428316179
+      },
+      {
+        "min_probability": 0.5,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.8717156105100463,
+        "match_days": 647,
+        "days_with_pick": 564,
+        "hits": 411,
+        "hit_rate": 0.7287234042553191,
+        "hit_rate_ci": [
+          0.6905728839963478,
+          0.7637791747467947
+        ],
+        "mean_pick_probability": 0.6863088246206362
+      },
+      {
+        "min_probability": 0.55,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.7774343122102009,
+        "match_days": 647,
+        "days_with_pick": 503,
+        "hits": 375,
+        "hit_rate": 0.7455268389662028,
+        "hit_rate_ci": [
+          0.7056998634265155,
+          0.7816318788771943
+        ],
+        "mean_pick_probability": 0.7057212343356748
+      },
+      {
+        "min_probability": 0.6,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.6553323029366306,
+        "match_days": 647,
+        "days_with_pick": 424,
+        "hits": 327,
+        "hit_rate": 0.7712264150943396,
+        "hit_rate_ci": [
+          0.7289143053989542,
+          0.8086678278017445
+        ],
+        "mean_pick_probability": 0.730172495788141
+      },
+      {
+        "min_probability": 0.65,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.5548686244204019,
+        "match_days": 647,
+        "days_with_pick": 359,
+        "hits": 284,
+        "hit_rate": 0.7910863509749304,
+        "hit_rate_ci": [
+          0.7460606022944223,
+          0.829948322812291
+        ],
+        "mean_pick_probability": 0.748441860213487
+      },
+      {
+        "min_probability": 0.7,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.41112828438948995,
+        "match_days": 647,
+        "days_with_pick": 266,
+        "hits": 219,
+        "hit_rate": 0.8233082706766918,
+        "hit_rate_ci": [
+          0.7729649814536157,
+          0.8644460033611794
+        ],
+        "mean_pick_probability": 0.7738553793135065
+      },
+      {
+        "min_probability": 0.75,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.2642967542503864,
+        "match_days": 647,
+        "days_with_pick": 171,
+        "hits": 147,
+        "hit_rate": 0.8596491228070176,
+        "hit_rate_ci": [
+          0.7996565729516824,
+          0.9038373323889232
+        ],
+        "mean_pick_probability": 0.7993071096114919
+      },
+      {
+        "min_probability": 0.8,
+        "decision_hour": 9,
+        "day_start_hour": 9,
+        "eligible_matches": 9168,
+        "coverage": 0.1143740340030912,
+        "match_days": 647,
+        "days_with_pick": 74,
+        "hits": 61,
+        "hit_rate": 0.8243243243243243,
+        "hit_rate_ci": [
+          0.7222779521065887,
+          0.8943589104450547
+        ],
+        "mean_pick_probability": 0.8323270307243564
+      }
+    ]
+  },
+  "daily_pick_timing_proxy_until_midnight": {
+    "evaluation_scope": "timing_only_not_live_quality_replay",
+    "model": "production",
+    "tz": "Asia/Seoul",
+    "decision_hour": 9,
+    "window": "decision_hour_to_midnight",
+    "leagues": [
+      "en.1",
+      "en.2",
+      "de.1",
+      "de.2",
+      "es.1",
+      "it.1",
+      "fr.1",
+      "nl.1",
+      "pt.1",
+      "at.1"
+    ],
+    "rows": [
+      {
+        "min_probability": 0.0,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.3853211009174312,
+        "match_days": 654,
+        "days_with_pick": 252,
+        "hits": 176,
+        "hit_rate": 0.6984126984126984,
+        "hit_rate_ci": [
+          0.6391161491067668,
+          0.751750699755967
+        ],
+        "mean_pick_probability": 0.6810286192404452
+      },
+      {
+        "min_probability": 0.45,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.37155963302752293,
+        "match_days": 654,
+        "days_with_pick": 243,
+        "hits": 174,
+        "hit_rate": 0.7160493827160493,
+        "hit_rate_ci": [
+          0.6563343657852573,
+          0.7690396392446889
+        ],
+        "mean_pick_probability": 0.6912577528618671
+      },
+      {
+        "min_probability": 0.5,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.36850152905198774,
+        "match_days": 654,
+        "days_with_pick": 241,
+        "hits": 173,
+        "hit_rate": 0.7178423236514523,
+        "hit_rate_ci": [
+          0.6579474619176029,
+          0.77090123046147
+        ],
+        "mean_pick_probability": 0.6930081568571449
+      },
+      {
+        "min_probability": 0.55,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.36085626911314983,
+        "match_days": 654,
+        "days_with_pick": 236,
+        "hits": 172,
+        "hit_rate": 0.7288135593220338,
+        "hit_rate_ci": [
+          0.6687646586583046,
+          0.781532537491154
+        ],
+        "mean_pick_probability": 0.6965260781697503
+      },
+      {
+        "min_probability": 0.6,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.3103975535168196,
+        "match_days": 654,
+        "days_with_pick": 203,
+        "hits": 154,
+        "hit_rate": 0.7586206896551724,
+        "hit_rate_ci": [
+          0.6953023600367221,
+          0.8123324677735442
+        ],
+        "mean_pick_probability": 0.7159997307955579
+      },
+      {
+        "min_probability": 0.65,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.26452599388379205,
+        "match_days": 654,
+        "days_with_pick": 173,
+        "hits": 135,
+        "hit_rate": 0.7803468208092486,
+        "hit_rate_ci": [
+          0.7129329880375037,
+          0.8355804839057495
+        ],
+        "mean_pick_probability": 0.7306141832384071
+      },
+      {
+        "min_probability": 0.7,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.17584097859327216,
+        "match_days": 654,
+        "days_with_pick": 115,
+        "hits": 89,
+        "hit_rate": 0.7739130434782608,
+        "hit_rate_ci": [
+          0.689332717144397,
+          0.840784682823291
+        ],
+        "mean_pick_probability": 0.7585293344166176
+      },
+      {
+        "min_probability": 0.75,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.07951070336391437,
+        "match_days": 654,
+        "days_with_pick": 52,
+        "hits": 42,
+        "hit_rate": 0.8076923076923077,
+        "hit_rate_ci": [
+          0.6810087893080524,
+          0.8920406935147892
+        ],
+        "mean_pick_probability": 0.7983917228691291
+      },
+      {
+        "min_probability": 0.8,
+        "decision_hour": 9,
+        "day_start_hour": 0,
+        "eligible_matches": 3624,
+        "coverage": 0.0290519877675841,
+        "match_days": 654,
+        "days_with_pick": 19,
+        "hits": 14,
+        "hit_rate": 0.7368421052631579,
+        "hit_rate_ci": [
+          0.5120803155892935,
+          0.8819376166045982
+        ],
+        "mean_pick_probability": 0.8388543165326422
       }
     ]
   },

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, time, timedelta
 from datetime import date as date_type
 from typing import Annotated
@@ -8,16 +9,23 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, HTTPException, Query
 
 from edge_api.api.deps import AppSettings, DbSession, Now
+from edge_api.catalog import featured_rank, region_of
 from edge_api.db.models import Fixture, OddsSnapshot, Prediction
 from edge_api.schemas import (
     ErrorOut,
+    ExpectedGoalsOut,
     FixtureDetailOut,
     FixtureListOut,
     FixtureSummaryOut,
+    GoalEventOut,
     OddsSnapshotOut,
     PredictionOut,
     QualityCheckOut,
     QualityOut,
+    Region,
+    ReplayOut,
+    ScoreFrequencyOut,
+    SimulationOut,
     TeamOut,
 )
 from edge_api.services import queries
@@ -27,17 +35,24 @@ from edge_api.services.analysis import (
     model_probabilities,
     to_probabilities_out,
 )
+from edge_api.services.leagues import league_ref, verified_league_ids
 from edge_api.services.quality import assess, last_successful_run
+from edge_api.services.team_news import fixtures_with_lineups, team_news
+from edge_ml.simulation import replay_match, simulate_match
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
 
 def fixture_summary(
-    fixture: Fixture, odds: OddsSnapshot | None, prediction: Prediction | None
+    fixture: Fixture,
+    odds: OddsSnapshot | None,
+    prediction: Prediction | None,
+    verified: frozenset[str] = frozenset(),
+    lineups_announced: bool = False,
 ) -> FixtureSummaryOut:
     return FixtureSummaryOut(
         id=fixture.id,
-        league=fixture.league,
+        league=league_ref(fixture.league, verified),
         season=fixture.season,
         round=fixture.round,
         kickoff_at=fixture.kickoff_at,
@@ -52,6 +67,10 @@ def fixture_summary(
             to_probabilities_out(model_probabilities(prediction)) if prediction else None
         ),
         prediction_id=prediction.id if prediction else None,
+        prediction_odds=(
+            OddsSnapshotOut.model_validate(prediction.odds_snapshot) if prediction else None
+        ),
+        lineups_announced=lineups_announced,
     )
 
 
@@ -65,6 +84,10 @@ def list_fixtures(
     ] = None,
     days: Annotated[int, Query(ge=1, le=14, description="Number of days from `date`")] = 1,
     tz: Annotated[str, Query(description="IANA timezone used to interpret `date`")] = "UTC",
+    league_id: Annotated[int | None, Query(description="Only this league")] = None,
+    featured: Annotated[bool, Query(description="Only featured (major) leagues")] = False,
+    region: Annotated[Region | None, Query(description="Only leagues of this region")] = None,
+    country: Annotated[str | None, Query(description="Only leagues of this country")] = None,
 ) -> FixtureListOut:
     try:
         zone = ZoneInfo(tz)
@@ -74,10 +97,18 @@ def list_fixtures(
     start = datetime.combine(local_day, time.min, tzinfo=zone)
     end = start + timedelta(days=days)
 
-    fixtures = queries.fixtures_between(db, start, end, settings.data_provider)
+    fixtures = queries.fixtures_between(
+        db, start, end, settings.data_provider, league_id=league_id, country=country
+    )
+    if featured:
+        fixtures = [f for f in fixtures if featured_rank(f.provider, f.league.provider_id)]
+    if region:
+        fixtures = [f for f in fixtures if region_of(f.league.country) == region]
     ids = [f.id for f in fixtures]
     odds = queries.latest_odds_by_fixture(db, ids, settings.bookmaker)
     preds = queries.latest_predictions_by_fixture(db, ids)
+    verified = verified_league_ids(db, settings.data_provider)
+    with_lineups = fixtures_with_lineups(db, ids)
     return FixtureListOut(
         date=local_day.isoformat(),
         days=days,
@@ -86,7 +117,10 @@ def list_fixtures(
         bookmaker=settings.bookmaker,
         range_start_utc=start.astimezone(UTC),
         range_end_utc=end.astimezone(UTC),
-        fixtures=[fixture_summary(f, odds.get(f.id), preds.get(f.id)) for f in fixtures],
+        fixtures=[
+            fixture_summary(f, odds.get(f.id), preds.get(f.id), verified, f.id in with_lineups)
+            for f in fixtures
+        ],
     )
 
 
@@ -97,10 +131,17 @@ def get_fixture(fixture_id: int, db: DbSession, settings: AppSettings) -> Fixtur
         raise HTTPException(status_code=404, detail="fixture not found")
     history = queries.odds_history(db, fixture_id, settings.bookmaker)
     prediction = queries.latest_prediction(db, fixture_id)
-    summary = fixture_summary(fixture, history[-1] if history else None, prediction)
+    summary = fixture_summary(
+        fixture,
+        history[-1] if history else None,
+        prediction,
+        verified_league_ids(db, settings.data_provider),
+        fixture.id in fixtures_with_lineups(db, [fixture.id]),
+    )
     return FixtureDetailOut(
         **summary.model_dump(),
         odds_history=[OddsSnapshotOut.model_validate(o) for o in history],
+        team_news=team_news(db, fixture),
     )
 
 
@@ -133,3 +174,49 @@ def get_prediction(
         ],
     )
     return out
+
+
+@router.get(
+    "/{fixture_id}/simulation",
+    response_model=SimulationOut,
+    responses={404: {"model": ErrorOut}},
+)
+def simulate(
+    fixture_id: int,
+    db: DbSession,
+    runs: Annotated[int, Query(ge=1000, le=100_000, description="Simulated matches")] = 10_000,
+    seed: Annotated[
+        int | None, Query(ge=0, le=2**31 - 1, description="Default: the prediction id")
+    ] = None,
+) -> SimulationOut:
+    """Replay the match many times from the latest prediction's expected goals."""
+    if queries.get_fixture(db, fixture_id) is None:
+        raise HTTPException(status_code=404, detail="fixture not found")
+    prediction = queries.latest_prediction(db, fixture_id)
+    if prediction is None or prediction.expected_goals_home is None:
+        raise HTTPException(status_code=404, detail="no prediction for this fixture yet")
+    lam_h, lam_a = prediction.expected_goals_home, prediction.expected_goals_away
+    seed = prediction.id if seed is None else seed
+    s = simulate_match(lam_h, lam_a, runs=runs, seed=seed)
+    r = replay_match(lam_h, lam_a, seed=seed)
+    return SimulationOut(
+        fixture_id=fixture_id,
+        prediction_id=prediction.id,
+        runs=s.runs,
+        seed=seed,
+        expected_goals=ExpectedGoalsOut(home=lam_h, away=lam_a),
+        outcome_share=to_probabilities_out(s.outcome_share),
+        model_probabilities=to_probabilities_out(model_probabilities(prediction)),
+        standard_error=s.standard_error,
+        top_scores=[ScoreFrequencyOut(**dataclasses.asdict(t)) for t in s.top_scores],
+        total_goals=s.total_goals,
+        over=s.over,
+        both_teams_score=s.both_teams_score,
+        home_clean_sheet=s.home_clean_sheet,
+        away_clean_sheet=s.away_clean_sheet,
+        replay=ReplayOut(
+            home_goals=r.home_goals,
+            away_goals=r.away_goals,
+            goals=[GoalEventOut(minute=g.minute, side=g.side) for g in r.goals],
+        ),
+    )

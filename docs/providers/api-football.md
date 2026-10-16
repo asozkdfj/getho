@@ -1,64 +1,70 @@
 # API-Football 연동 가이드
 
-`DATA_PROVIDER=api_football`로 바꾸면 API-Football(api-sports.io v3)에서 EPL 일정·결과·1X2 배당을
-수집합니다. 코드는 `workers/ingestion/edge_ingestion/providers/api_football.py`에 있고, core(DB·모델·API·웹)는
-바뀌지 않습니다.
+`DATA_PROVIDER=api_football`로 바꾸면 API-Football(api-sports.io v3)에서 **플랜이 제공하는 모든 리그**의
+일정·결과·1X2 배당을 수집합니다. 코드는 `workers/ingestion/edge_ingestion/providers/api_football.py`에 있고,
+core(DB·모델·API·웹)는 provider를 모릅니다.
 
 ## 1. 설정 (5분)
 
 1. https://dashboard.api-football.com 에서 가입하고 API 키를 발급받습니다. Free 플랜(하루 100 요청)은
-   2022~2024 시즌만 조회할 수 있어서, 현재 시즌을 쓰려면 Pro 이상이 필요합니다.
+   2022~2024 시즌만 조회할 수 있고 요청 수도 부족해서, 전체 리그는 **Pro 이상**이 필요합니다.
 2. 저장소 루트에서 `cp .env.example .env` 후 아래 값을 바꿉니다(`.env`는 git에서 제외되어 있습니다).
    주석은 반드시 별도 줄에 둡니다. docker compose는 `KEY=   # 메모`의 주석을 값으로 읽습니다.
    ```dotenv
    DATA_PROVIDER=api_football
    API_FOOTBALL_KEY=발급받은_키
-   # 시장 기준 북메이커: 마진이 낮고 가격이 정확한 pinnacle 추천 (3단계 bookmakers 목록에서 확인)
-   PRIMARY_BOOKMAKER=pinnacle
+   # all = 플랜의 모든 리그, 일부만 원하면 리그 id를 쉼표로 (예: 39,140,292)
+   API_FOOTBALL_LEAGUES=all
+   # 시장 기준 북메이커 (리그를 가장 넓게 다루는 bet365가 기본값)
+   PRIMARY_BOOKMAKER=
    # 3시간마다 수집 (배당 갱신 주기와 같음)
    PIPELINE_INTERVAL_SECONDS=10800
-   # Pro 플랜이면 요청 간격을 줄입니다 (Free는 기본값 6.5 유지)
-   API_FOOTBALL_MIN_INTERVAL_SECONDS=0.3
    ```
-3. **DB에 쓰기 전에 키와 응답 형식을 검증합니다.** DB에 아무것도 쓰지 않는 dry run이고 약 6~8 요청을 씁니다.
+   요청 간격은 응답 헤더의 분당 한도에 맞춰 자동으로 조절됩니다(Free 10/분 → 6.3초, Pro 300/분 → 0.21초).
+3. **DB에 쓰기 전에 키와 응답 형식을 검증합니다.** DB에 아무것도 쓰지 않는 dry run이고 약 5~10 요청을 씁니다.
    ```bash
-   make check-provider        # 컨테이너에서 check-provider만 실행 (마이그레이션/seed 생략)
+   make check-provider
    ```
-   출력 예시와 확인할 점은 다음과 같습니다.
-   ```json
-   {"provider": "api_football", "bookmaker": "bet365",
-    "account": {"plan": "Free", "active": true, "requests": {"current": 7, "limit_day": 100}},
-    "seasons": [2025, 2026], "teams": 23, "fixtures": 470,
-    "fixture_statuses": {"finished": 470, "scheduled": 290}, "upcoming_14d": 18,
-    "odds_snapshots": 220, "fixtures_with_primary_bookmaker_odds": 18,
-    "bookmakers": ["bet365", "pinnacle", "..."], "requests_used": 7}
-   ```
-   - `error: ... Free plans do not have access to this season`이 나오면 Free 플랜이 해당 시즌을 지원하지
-     않는 것입니다. `API_FOOTBALL_SEASON`을 낮춰 테스트하거나 Pro로 전환합니다.
-   - `fixtures_with_primary_bookmaker_odds`가 0이면 `bookmakers` 목록에서 원하는 slug를 골라
-     `PRIMARY_BOOKMAKER`를 바꿉니다.
+   확인할 점: `leagues`(리그 수), `leagues_with_odds`, `busiest_leagues`(오늘·내일 경기가 많은 리그),
+   `sampled_fixtures_with_primary_bookmaker`(0이면 `bookmakers` 목록에서 다른 slug를 골라
+   `PRIMARY_BOOKMAKER`를 바꿉니다), `requests_left_today`.
 4. 스택을 실행합니다.
    ```bash
    docker compose up -d --build     # 시작 시 seed 1회 + worker가 3시간마다 수집/예측
    ```
 
-mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 경기 목록, 학습, 예측 모두 현재
-`DATA_PROVIDER`의 데이터만 사용합니다. 같은 DB에서 provider를 바꿔도 데이터가 섞이지 않습니다.
+mock 데이터와 실데이터는 `provider` 컬럼으로 분리됩니다. 같은 DB에서 provider를 바꿔도 섞이지 않습니다.
 
-## 2. 요청량 (Free 100/일 기준)
+## 2. 요청량 (전체 리그 기준)
 
 | 호출 | 횟수/실행 | 비고 |
 | --- | --- | --- |
-| `/teams?league=39&season=S` | 2 | 현재 + 직전 시즌(강등 팀 포함) |
-| `/fixtures?league=39&season=S&timezone=UTC` | 2 | 학습용 직전 시즌 결과 포함 |
-| `/odds?league=39&season=S&bet=1&page=N` | 1~3 | 페이지당 10경기, 킥오프 1~14일 전 경기만 |
+| `/leagues?current=true` | 1 | 리그 목록, 형식(리그/컵), 현재 시즌, 배당 제공 여부 |
+| `/fixtures?date=D&timezone=UTC` | 약 12 | 하루치 **모든 리그** 경기가 한 번에 옴. 3일 전 ~ 8일 후 |
+| `/odds?date=D&bet=1&page=N` | 날짜별 페이지 수 | 페이지당 10경기, 앞으로 3일(`ODDS_LOOKAHEAD_DAYS`). 필요한 경기를 다 찾으면 멈춤 |
+| `/injuries?date=D` | 약 2 | 앞으로 48시간 경기의 결장·불투명 선수(검증된 리그) |
+| `/fixtures?ids=a-b-…` | 20경기당 1 | 선발 명단(킥오프 90분 전부터, 10분마다) + 끝난 경기의 선수별 출전 시간(실행당 200경기) |
+| `/fixtures?league=L&season=S` | 리그당 2 | 과거 결과(현재 + 직전 시즌). **리그마다 한 번만**, 실행당 최대 40개 리그 |
 
-한 번 실행에 약 6~8 요청이 듭니다. 3시간 간격(하루 8회)이면 약 60 요청/일로 Free 한도 안에 들어갑니다.
-Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간격을 둡니다
-(`API_FOOTBALL_MIN_INTERVAL_SECONDS`, 유료 플랜이면 0.3 정도로 낮추면 됩니다).
+- 날짜 단위로 받기 때문에 리그 수가 늘어도 일정 요청은 거의 늘지 않습니다. 배당은 경기 수에 비례합니다
+  (주말 하루 수백 경기면 수십 페이지).
+- 처음 며칠은 과거 결과 채우기(backfill)로 요청이 더 듭니다. 주요 리그부터 채우고, 채워지기 전까지 그 리그는
+  "분석 준비 중"으로 표시됩니다(`BACKFILL_LEAGUES_PER_RUN`).
+- 오늘 남은 요청이 `API_FOOTBALL_MIN_REMAINING`(기본 300) 아래로 내려가면 backfill과 남은 배당 페이지를 다음
+  실행으로 미룹니다. 경기 일정·결과 갱신은 계속합니다.
+- Pro(7,500/일), 3시간 간격이면 보통 하루 수백~2천 요청 정도입니다. 실제 사용량은 `requests_left_today`와
+  `/status/data`의 수집 기록(`ingestion_runs.counts.ingestion.requests`)으로 확인합니다.
 
 ## 3. 동작 방식
 
+- **리그별 분석:** 같은 모델을 리그마다 그 리그 결과로만 따로 학습합니다. **컵 대회(type=Cup)는 예측하지
+  않습니다**(서로 다른 리그 팀이 섞여 한 리그의 전력표로 설명할 수 없음). 배당 정보가 없는 리그와 과거 결과가
+  30경기 미만인 리그도 예측하지 않습니다.
+- **정확도 검증:** 과거 실데이터로 백테스트한 10개 리그만 "정확도 검증됨"으로 표시하고 오늘의 픽 후보로
+  씁니다(`PICK_LEAGUES=verified`, [MODEL_EVALUATION](../MODEL_EVALUATION.md)). 나머지 리그는 분석은 하되
+  "검증 전"으로 표시합니다.
+- **시즌 표기:** `/leagues`의 시즌 시작·종료 연도로 판단해 유럽식은 `2026-27`, 단일 연도 리그(K리그,
+  J리그, MLS 등)는 `2026`으로 저장합니다. 승격팀 처리에 시즌 구분이 쓰입니다.
 - **배당 스냅샷:** 응답의 `update`(API-Football이 가격을 갱신한 시각)를 `captured_at`으로 씁니다. 그래서
   같은 가격을 다시 받아도 행이 늘지 않고, 가격이 갱신되면 새 스냅샷이 추가됩니다(append-only).
 - **배당 보관 기간:** API-Football은 배당을 약 7일만 보관합니다. 수집을 멈춘 기간의 배당은 되살릴 수 없으니
@@ -81,7 +87,8 @@ Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간�
 
 ## 4. 실제 응답 검증 현황
 
-2026-10-15에 Free 플랜(`API_FOOTBALL_SEASON=2024`)과 Pro 플랜(현재 시즌)으로 `make check-provider`를 실행해 확인했습니다.
+2026-10-15에 Free 플랜(시즌 2024 고정)과 Pro 플랜(현재 시즌)으로 EPL 단일 리그 버전의 `make check-provider`를
+실행해 확인한 항목입니다.
 
 - [x] Premier League `league` id = 39: 시즌별 380경기(20팀 × 38라운드)
 - [x] `/teams`, `/fixtures` 응답 파싱: 2023-24와 2024-25 시즌 760경기, 팀 연결 누락 0
@@ -94,8 +101,17 @@ Free 플랜은 분당 약 10회 제한이 있어서 요청 사이에 6.5초 간�
       페이지 처리. 앞으로 14일 20경기 중 19경기에 배당, 10개 북메이커(1xbet, bet365, betano, betfair,
       betvictor, dafabet, marathonbet, pinnacle, sbo, williamhill)에서 174개 스냅샷을 파싱했습니다.
 
-검증용으로 `API_FOOTBALL_SEASON`을 과거 시즌으로 고정하면, 그 시즌은 수집 범위(오늘 기준 400일 전 ~
-30일 후) 밖이라 `fixtures_in_ingest_window`가 0이 됩니다. 정상입니다. 운영할 때는 이 값을 비워 두세요.
+**전체 리그 버전에서 새로 쓰는 호출은 아직 실제 응답으로 확인하지 않았습니다**(개발 환경에서 해당 도메인이
+차단됨). 경기·배당 항목의 형식은 위에서 확인한 것과 같고, 차이는 조회 방식뿐입니다.
+
+- [ ] `/leagues?current=true`: `league.type`(League/Cup), `country`, `seasons[].current/start/end/coverage.odds`
+- [ ] `/fixtures?date=`: 여러 리그 경기가 한 응답에 오는지, `league.id/season/round`
+- [ ] `/odds?date=`: 날짜 단위 페이지 처리
+- [ ] 분당 한도 헤더 `x-ratelimit-limit`
+- [ ] `/injuries?date=`: `player.type`("Missing Fixture"/"Questionable"), `reason`, `fixture.id`
+- [ ] `/fixtures?ids=`: `lineups[].startXI`, `players[].players[].statistics[0].games.minutes`
+
+`make check-provider` 결과의 `leagues`, `busiest_leagues`, `odds_snapshots_sampled`가 0이 아니면 확인된 것입니다.
 
 ## 5. 라이선스 메모
 
