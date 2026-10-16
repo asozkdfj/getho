@@ -53,6 +53,7 @@
 
 ```python
 """Feasibility review (not committed): confidence tiers and a constrained combo recommender."""
+
 import gzip, json, itertools, math
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -69,7 +70,8 @@ for code in "en.1,en.2,de.1,de.2,es.1,it.1,fr.1,nl.1,pt.1".split(","):
     for m in ms:
         if m.odds:
             odds[(m.result.kickoff_at.isoformat(), m.result.home, m.result.away)] = m.odds
-VAL = {"2020-21", "2021-22", "2022-23"}; FU = {"2023-24", "2024-25", "2025-26"}
+VAL = {"2020-21", "2021-22", "2022-23"}
+FU = {"2023-24", "2024-25", "2025-26"}
 for r in rows:
     r["odds"] = odds.get((r["kickoff_at"], r["home"], r["away"]))
 rows = [r for r in rows if r["odds"]]
@@ -83,11 +85,14 @@ for name, seasons in (("validation", VAL), ("follow-up", FU)):
     print(name, len(sub))
     for lo, hi in zip(edges, edges[1:]):
         t = [r for r in sub if lo <= max(r["production"]) < hi]
-        if not t: continue
+        if not t:
+            continue
         hit = np.mean([int(np.argmax(r["production"]) == r["outcome"]) for r in t])
         mp = np.mean([max(r["production"]) for r in t])
         mk = np.mean([int(np.argmax(r["market_only"]) == r["outcome"]) for r in t])
-        print(f"  [{lo:.2f},{hi:.2f}) share {len(t)/len(sub):5.1%} n {len(t):5d}  mean prob {mp:.3f}  hit {hit:.3f}  (market's top pick hit {mk:.3f})")
+        print(
+            f"  [{lo:.2f},{hi:.2f}) share {len(t) / len(sub):5.1%} n {len(t):5d}  mean prob {mp:.3f}  hit {hit:.3f}  (market's top pick hit {mk:.3f})"
+        )
 
 # 2) combo recommender per KST pick day (09:00 -> 09:00)
 KST = ZoneInfo("Asia/Seoul")
@@ -96,25 +101,33 @@ for r in rows:
     k = datetime.fromisoformat(r["kickoff_at"]).astimezone(KST) - timedelta(hours=9)
     days[k.date()].append(r)
 
+
 def best_combo(ms, probs_key, k, min_odds, max_odds=None):
     n = len(ms)
-    if n < k: return None
-    P = np.array([m[probs_key] for m in ms]); O = np.array([m["odds"] for m in ms])
+    if n < k:
+        return None
+    P = np.array([m[probs_key] for m in ms])
+    O = np.array([m["odds"] for m in ms])
     best = None
     for idx in itertools.combinations(range(n), k):
-        p = P[list(idx)]; o = O[list(idx)]
+        p = P[list(idx)]
+        o = O[list(idx)]
         # all 3^k outcome choices
-        lp = np.log(p); lo = np.log(o)
+        lp = np.log(p)
+        lo = np.log(o)
         grids_p = sum(np.ix_(*[lp[i] for i in range(k)]))
         grids_o = sum(np.ix_(*[lo[i] for i in range(k)]))
         ok = grids_o >= math.log(min_odds) - 1e-12
-        if max_odds: ok &= grids_o <= math.log(max_odds)
-        if not ok.any(): continue
+        if max_odds:
+            ok &= grids_o <= math.log(max_odds)
+        if not ok.any():
+            continue
         cand = np.where(ok, grids_p, -np.inf)
         j = np.unravel_index(np.argmax(cand), cand.shape)
         if best is None or cand[j] > best[0]:
             best = (cand[j], idx, j, grids_o[j])
-    if best is None: return None
+    if best is None:
+        return None
     _, idx, j, lo_ = best
     legs = [(ms[i], j[t]) for t, i in enumerate(idx)]
     hit = all(m["outcome"] == o for m, o in legs)
@@ -122,20 +135,27 @@ def best_combo(ms, probs_key, k, min_odds, max_odds=None):
     market_p = math.prod(m["market_only"][o] for m, o in legs)
     return dict(hit=hit, odds=math.exp(lo_), model_p=model_p, market_p=market_p)
 
+
 def run(name, seasons, probs_key, k, min_odds, max_odds=None, top=40):
     res = []
     for d, ms in sorted(days.items()):
         ms = [m for m in ms if m["season"] in seasons]
-        if len(ms) < k: continue
+        if len(ms) < k:
+            continue
         # keep the search bounded: the matches with the most confident model outcome
         ms = sorted(ms, key=lambda m: -max(m[probs_key]))[:top]
         c = best_combo(ms, probs_key, k, min_odds, max_odds)
-        if c: res.append(c)
-    n = len(res); hits = sum(c["hit"] for c in res)
+        if c:
+            res.append(c)
+    n = len(res)
+    hits = sum(c["hit"] for c in res)
     ret = np.array([(c["odds"] - 1) if c["hit"] else -1.0 for c in res])
-    print(f"  {name:48s} days {n:4d} claimed(model) {np.mean([c['model_p'] for c in res]):.3f} "
-          f"market says {np.mean([c['market_p'] for c in res]):.3f} actual hit {hits/n:.3f}  "
-          f"mean odds {np.mean([c['odds'] for c in res]):5.2f}  return {ret.mean():+.3f}")
+    print(
+        f"  {name:48s} days {n:4d} claimed(model) {np.mean([c['model_p'] for c in res]):.3f} "
+        f"market says {np.mean([c['market_p'] for c in res]):.3f} actual hit {hits / n:.3f}  "
+        f"mean odds {np.mean([c['odds'] for c in res]):5.2f}  return {ret.mean():+.3f}"
+    )
+
 
 for label, seasons in (("validation 2020-23", VAL), ("follow-up 2023-26", FU)):
     print("\n==", label)
