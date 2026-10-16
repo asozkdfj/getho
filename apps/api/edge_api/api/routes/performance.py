@@ -13,9 +13,12 @@ from edge_api.schemas import (
     LeagueEvaluationOut,
     LeagueModelMetricOut,
     LiveEvaluationOut,
+    MarketBaselineOut,
+    MarketLeagueOut,
     ModelMetricOut,
     PerformanceOut,
     SeasonMetricOut,
+    ValueFlagOut,
 )
 from edge_api.services.evaluations import latest_evaluation, live_evaluation
 from edge_api.services.status import data_status
@@ -37,6 +40,34 @@ def _metrics(section: dict[str, Any]) -> list[ModelMetricOut]:
         )
         for name, m in section.get("models", {}).items()
     ]
+
+
+def _market(block: dict[str, Any] | None, names: dict[str, str]) -> MarketBaselineOut | None:
+    if not block:
+        return None
+    return MarketBaselineOut(
+        dataset=block["source"]["attribution"],
+        period=block["period"],
+        n_matches=block["n_matches"],
+        production=LeagueModelMetricOut(**block["production"]),
+        market=LeagueModelMetricOut(**block["market"]),
+        log_loss_diff=block["log_loss_diff"],
+        log_loss_diff_ci=block["log_loss_diff_ci"],
+        leagues=[
+            MarketLeagueOut(code=code, name=names.get(code, code), **x)
+            for code, x in block.get("per_league", {}).items()
+        ],
+        value_flags=[
+            ValueFlagOut(
+                threshold=v["threshold"],
+                flags=v["flags"],
+                hit_rate=v["hit_rate"],
+                mean_return=v["mean_return"],
+                mean_return_ci=v["mean_return_ci95_weekly"],
+            )
+            for v in block.get("value_flags", [])
+        ],
+    )
 
 
 def _league(entry: dict[str, Any]) -> LeagueEvaluationOut:
@@ -98,6 +129,7 @@ def performance(db: DbSession, settings: AppSettings) -> PerformanceOut:
                 for row in (r.get("daily_pick_timing_proxy") or {}).get("rows", [])
             ],
             leagues=[_league(lg) for lg in r.get("leagues") or []],
+            market_baseline=_market(r.get("market_baseline"), names),
             promotion_decisions={
                 k: r[k]["reasons"] for k in ("promotion", "promotion_calibrated") if k in r
             },

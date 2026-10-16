@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T04:27:57.591088+00:00",
+  "generated_at": "2026-10-16T05:01:42.710195+00:00",
   "data": {
     "name": "openfootball/football.json",
     "license": "public domain (CC0)",
@@ -5200,6 +5200,140 @@
           0.8819376166045982
         ],
         "mean_pick_probability": 0.8388543165326422
+      }
+    ]
+  },
+  "market_baseline": {
+    "source": {
+      "url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/Matches.csv",
+      "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221",
+      "attribution": "football-data.co.uk via xgabora/Club-Football-Match-Data (MIT)"
+    },
+    "leagues": [
+      "en.1",
+      "en.2",
+      "de.1",
+      "de.2",
+      "es.1",
+      "it.1",
+      "fr.1",
+      "nl.1",
+      "pt.1"
+    ],
+    "period": ">= 2023-24",
+    "n_matches": 9663,
+    "production": {
+      "log_loss": 0.9975764649213771,
+      "brier": 0.5955908882140436,
+      "accuracy": 0.5118493221566801,
+      "ece": 0.017548809302709547
+    },
+    "market": {
+      "log_loss": 0.9769128353466942,
+      "brier": 0.5820777725984484,
+      "accuracy": 0.5273724516195798,
+      "ece": 0.015178306640688519
+    },
+    "log_loss_diff": -0.020663629574683078,
+    "log_loss_diff_ci": [
+      -0.023509634040504733,
+      -0.017871111726364033
+    ],
+    "per_league": {
+      "en.1": {
+        "n_matches": 1140,
+        "production_log_loss": 0.9831942590741808,
+        "market_log_loss": 0.9661166070357989,
+        "production_accuracy": 0.5219298245614035,
+        "market_accuracy": 0.5403508771929825
+      },
+      "en.2": {
+        "n_matches": 1654,
+        "production_log_loss": 1.0510906087289835,
+        "market_log_loss": 1.0282801826647752,
+        "production_accuracy": 0.4540507859733978,
+        "market_accuracy": 0.4740024183796856
+      },
+      "de.1": {
+        "n_matches": 918,
+        "production_log_loss": 0.9925218594100922,
+        "market_log_loss": 0.9623223680190288,
+        "production_accuracy": 0.528322440087146,
+        "market_accuracy": 0.5370370370370371
+      },
+      "de.2": {
+        "n_matches": 918,
+        "production_log_loss": 1.0488145758496865,
+        "market_log_loss": 1.037525290228468,
+        "production_accuracy": 0.46949891067538124,
+        "market_accuracy": 0.4880174291938998
+      },
+      "es.1": {
+        "n_matches": 1140,
+        "production_log_loss": 0.9781008375095369,
+        "market_log_loss": 0.9553579610905724,
+        "production_accuracy": 0.5307017543859649,
+        "market_accuracy": 0.5517543859649123
+      },
+      "it.1": {
+        "n_matches": 1140,
+        "production_log_loss": 0.9882396790955958,
+        "market_log_loss": 0.9673777454658,
+        "production_accuracy": 0.5263157894736842,
+        "market_accuracy": 0.537719298245614
+      },
+      "fr.1": {
+        "n_matches": 917,
+        "production_log_loss": 1.0033956778500677,
+        "market_log_loss": 0.9820464651717681,
+        "production_accuracy": 0.5288985823336968,
+        "market_accuracy": 0.5288985823336968
+      },
+      "nl.1": {
+        "n_matches": 918,
+        "production_log_loss": 0.9621379024263418,
+        "market_log_loss": 0.9433710489651613,
+        "production_accuracy": 0.5381263616557734,
+        "market_accuracy": 0.5522875816993464
+      },
+      "pt.1": {
+        "n_matches": 918,
+        "production_log_loss": 0.9382402950313078,
+        "market_log_loss": 0.9187693753254467,
+        "production_accuracy": 0.5446623093681917,
+        "market_accuracy": 0.5675381263616558
+      }
+    },
+    "value_flags": [
+      {
+        "threshold": 0.03,
+        "flags": 6795,
+        "hit_rate": 0.2543046357615894,
+        "mean_return": -0.1695746872700515,
+        "mean_return_ci95_weekly": [
+          -0.2088092224063651,
+          -0.1312053980357426
+        ]
+      },
+      {
+        "threshold": 0.05,
+        "flags": 4235,
+        "hit_rate": 0.2668240850059032,
+        "mean_return": -0.17069893742621015,
+        "mean_return_ci95_weekly": [
+          -0.2154442175036146,
+          -0.1238214506266255
+        ]
+      },
+      {
+        "threshold": 0.1,
+        "flags": 979,
+        "hit_rate": 0.2839632277834525,
+        "mean_return": -0.1664862104187947,
+        "mean_return_ci95_weekly": [
+          -0.25353439764283026,
+          -0.07826978598643684
+        ]
       }
     ]
   },

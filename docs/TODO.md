@@ -9,7 +9,7 @@
 | 1a | 백테스트용 과거 배당 소스 | API-Football은 배당을 약 7일만 보관해서 과거 시즌 배당을 받을 수 없습니다. football-data.co.uk CSV 같은 별도 소스가 필요합니다(라이선스 확인 포함). | Phase 2 walk-forward 검증 전 |
 | 1b | provider 응답 캐시(Redis), circuit breaker, raw payload 원본 보관(S3) | 지금 요청량(약 60/일)에서는 캐시가 없어도 Free 한도 안에 들어갑니다. 재시도와 요청 간격은 이미 있습니다. | 수집 대상 리그나 빈도를 늘릴 때 |
 | 2 | Calibration 학습(isotonic) | temperature 보정은 구현·평가했지만 교체 기준 미달(ADR-011)입니다. isotonic은 표본이 더 필요합니다. | 실시간 예측 500경기 누적 후 재평가 |
-| 3 | 시장 확률과의 비교(과거 구간) / CLV | 백테스트 엔진과 지표는 구현했습니다([MODEL_EVALUATION](MODEL_EVALUATION.md)). 공개 과거 데이터(openfootball)에 배당이 없어서 시장 비교는 아직 측정하지 않았습니다. `--source football-data`로 CSV를 넣으면 측정할 수 있습니다. | 배당 포함 데이터 확보 시 |
+| 3 | CLV(종가 대비) 측정 | 과거 배당 비교는 완료했습니다(ADR-017). 수집 시각이 분명한 배당(서비스가 모은 스냅샷)으로 오전 9시 시점 비교와 종가 비교를 나눠야 합니다. | 실데이터 운영 후 |
 | 4 | 휴식일·일정 밀도, xG 특성 | 실험 하네스는 준비됐지만, 공개 데이터에 컵·유럽대항전 일정과 xG가 없어 평가할 수 없습니다. | 데이터 확보 시 |
 | 5 | Dixon-Coles | 실데이터 검증 결과 rho < 0이 오히려 나빠서 기각했습니다(기본 0). | 재평가 시 |
 | 6 | Shin / power de-vig | MVP는 설명하기 쉬운 proportional만 씁니다(ADR-008). | Phase 2 |
@@ -34,7 +34,7 @@
 | 25 | 큰 표본 명단 백테스트 | API-Football 과거 경기 출전 시간(`edge backfill-appearances`, 20경기/요청)으로 검증된 10개 리그 2시즌을 채우면 약 7,000경기로 다시 잴 수 있습니다. | 실데이터 운영 시작 후 |
 | 26 | 팀 뉴스 API 응답 실검증 | `/injuries?date=`, `/fixtures?ids=`의 형식은 문서 기준으로만 테스트했습니다. | 다음 `check-provider` 실행 때 |
 | 30 | 선수 수준 피로·결장 실험 | 팀 일정 피로는 미채택. 선수별 출전 시간(`edge backfill-appearances`)을 확보해야 선수 수준으로 잴 수 있습니다. | 과거 출전 시간 확보 후 |
-| 31 | 과거 배당으로 시장 기준선 | 순위·무승부 보정까지 미채택(팀 결과 기반 변수 소진). 시장 확률과 비교해야 남은 정확도 여지를 알 수 있습니다. football-data.co.uk CSV(무료)는 이 환경에서 접속되지 않았습니다. | 접속 가능한 환경에서 |
+| 31 | '차이 큼'·기대값·주목할 경기 표시 재검토 | 과거 배당 비교에서 시장이 더 정확했고 '차이 큼' 결과는 평균 −17%였습니다(ADR-017). 지금은 측정 결과를 알리는 문구만 추가했습니다. | 사용자 결정 |
 | 32 | xG 기반 전력 추정 | 득점 대신 슈팅 품질로 전력을 추정하는 후보. 공개 xG 데이터 확보가 먼저입니다. | 데이터 확보 후 |
 | 33 | 실데이터 파이프라인 실패 경로 실검증 | 일정 변경 경기 갱신, 팀 뉴스 오류 격리, 실패 실행 기록은 FakeApiFootball/Mock 테스트로만 확인했습니다([QA 기록](qa/2026-10-16-pipeline-reliability.md)). 실제 API 키로 `make check-provider`와 며칠간의 실행 기록(`fixtures_reconciled`, `overdue_unresolved`, `team_news.error`)을 확인해야 합니다. | API 키가 있는 환경에서 |
 | 34 | 수집 실패 알림 | 실패 실행은 `ingestion_runs`에 남고 `/status/data`에 보이지만, 연속 실패나 `overdue_unresolved` 증가를 알려주는 채널은 없습니다(#12와 같은 이유). | 배포 시 |

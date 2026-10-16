@@ -114,6 +114,10 @@ export default function GuidePage() {
         <li>
           <strong>승격팀</strong>(이번 시즌 새로 올라온 팀)은 데이터가 적어서 분석이 덜 정확해요.
         </li>
+        <li>
+          실제로 과거 시즌을 채점해 보면 <strong>시장(배당)이 분석보다 정확했어요.</strong>{" "}
+          <Link href="/performance#market">측정 결과 보기</Link>
+        </li>
       </ul>
 
       <h2 id="ev">{TERM.ev}은 무엇인가요?</h2>
@@ -127,7 +131,8 @@ export default function GuidePage() {
       <p>
         중요한 건 <strong>&ldquo;분석이 맞다면&rdquo;</strong>이라는 조건이에요. 분석이 틀리면{" "}
         {TERM.ev}도 틀립니다. 한 경기의 결과는 운에 크게 좌우되니, {TERM.ev}가 플러스여도 그 결과가
-        나온다는 뜻은 아닙니다.
+        나온다는 뜻은 아닙니다. 과거 시즌에서 {TERM.ev}가 플러스로 계산된 결과들은 실제로는 평균
+        손해였어요.
       </p>
       <p>
         <span className="badge">{TERM.flag}</span> 표시는 {TERM.gap}와 {TERM.ev}가 모두 3% 이상일

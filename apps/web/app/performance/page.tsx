@@ -1,10 +1,10 @@
-import type { DailyPickBacktestRow, ModelMetric } from "@edge/contracts";
+import type { DailyPickBacktestRow, MarketBaseline, ModelMetric } from "@edge/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CalibrationChart } from "@/components/CalibrationChart";
 import { fetchPerformance } from "@/lib/api";
-import { pct } from "@/lib/format";
+import { pct, signedPct, tone } from "@/lib/format";
 import { backtestTimingText, modelName, periodText, rateWithCi } from "@/lib/picks";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +51,95 @@ function MetricTable({ rows, production }: { rows: ModelMetric[]; production: st
         </tbody>
       </table>
     </div>
+  );
+}
+
+const maybePct = (x: number | null | undefined) => (x == null ? "–" : signedPct(x));
+const signed4 = (x: number) => f4(x).replace("-", "−");
+
+function MarketSection({ m }: { m: MarketBaseline }) {
+  const [lo, hi] = m.log_loss_diff_ci;
+  return (
+    <>
+      <h2 id="market">시장(배당)과 비교 ({periodText(m.period)})</h2>
+      <p className="small">
+        같은 기간 {m.n_matches.toLocaleString()}경기에서, 배당의 수수료를 뺀 시장 예상과 분석을 같은
+        기준으로 채점했어요. <strong>시장이 분석보다 정확했습니다</strong>(log loss 차이{" "}
+        {signed4(m.log_loss_diff)}, 95% 범위 {signed4(lo!)} ~ {signed4(hi!)}, 음수 = 시장이 나음).
+      </p>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">비교 대상</th>
+              <th scope="col">Log loss ↓</th>
+              <th scope="col">Brier ↓</th>
+              <th scope="col">최다 확률 적중</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                ["분석(현재 모델)", m.production],
+                ["시장(배당)", m.market],
+              ] as const
+            ).map(([label, x]) => (
+              <tr key={label}>
+                <td>{label}</td>
+                <td>{f4(x.log_loss)}</td>
+                <td>{f4(x.brier)}</td>
+                <td>{pct(x.accuracy, 1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(m.value_flags ?? []).length > 0 && (
+        <>
+          <h3>&lsquo;차이 큼&rsquo; 표시는 맞았을까요?</h3>
+          <p className="small">
+            분석이 시장보다 높게 보고 기대값도 기준 이상인 결과(서비스의 &lsquo;차이 큼&rsquo;
+            표시)를 모아, 그 배당으로 1씩 걸었다면 평균 얼마가 돌아왔는지 계산했어요. 서비스는
+            베팅을 하지 않으며, 표시에 실제 가치가 있었는지 확인하는 용도입니다.
+          </p>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">기준</th>
+                  <th scope="col">표시된 결과</th>
+                  <th scope="col">적중</th>
+                  <th scope="col">평균 수익률 (95% 범위)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(m.value_flags ?? []).map((v) => (
+                  <tr key={v.threshold}>
+                    <td>{pct(v.threshold, 0)} 이상</td>
+                    <td>{v.flags.toLocaleString()}</td>
+                    <td>{pct(v.hit_rate, 1)}</td>
+                    <td className={tone(v.mean_return ?? 0)}>
+                      {maybePct(v.mean_return)}{" "}
+                      <span className="muted small">
+                        ({maybePct(v.mean_return_ci[0])} ~ {maybePct(v.mean_return_ci[1])})
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small">
+            배당의 수수료(약 5%)보다 훨씬 큰 손해였어요. 분석과 시장이 크게 다를 때는 분석이 틀린
+            경우가 많았다는 뜻입니다.
+          </p>
+        </>
+      )}
+      <p className="muted small">
+        데이터: {m.dataset}. 배당을 수집한 정확한 시각은 공개되어 있지 않아 오전 9시보다 늦은 배당일
+        수 있습니다.
+      </p>
+    </>
   );
 }
 
@@ -131,7 +220,13 @@ export default async function PerformancePage() {
             </p>
             <p className="small muted" style={{ marginBottom: 0 }}>
               데이터: {ev.dataset} ({ev.license ?? "라이선스 정보 없음"}) · 시장(배당) 비교:{" "}
-              {ev.has_odds ? "포함" : "측정 안 됨 — 공개 데이터에 과거 배당이 없음"}
+              {ev.market_baseline ? (
+                <a href="#market">아래 &lsquo;시장(배당)과 비교&rsquo;</a>
+              ) : ev.has_odds ? (
+                "포함"
+              ) : (
+                "측정 안 됨 — 공개 데이터에 과거 배당이 없음"
+              )}
             </p>
           </section>
 
@@ -236,6 +331,8 @@ export default async function PerformancePage() {
               </p>
             </>
           )}
+
+          {ev.market_baseline && <MarketSection m={ev.market_baseline} />}
 
           <h2 id="daily">오늘의 픽 규칙 백테스트</h2>
           <p className="small">
