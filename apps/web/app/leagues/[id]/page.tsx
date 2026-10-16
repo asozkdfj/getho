@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Disclaimer } from "@/components/Disclaimer";
+import { ConfidenceLegend } from "@/components/ConfidenceLegend";
 import { FixtureCard } from "@/components/FixtureCard";
 import { Highlights } from "@/components/Highlights";
 import { LeagueBadge } from "@/components/LeagueBadge";
@@ -42,6 +43,7 @@ export default async function LeaguePage({ params }: { params: Params }) {
     days.set(key, [...(days.get(key) ?? []), f]);
   }
   const note = leagueNote(league);
+  const demo = data.data_provider === "mock";
 
   return (
     <>
@@ -78,6 +80,11 @@ export default async function LeaguePage({ params }: { params: Params }) {
       )}
 
       <h2>경기 일정</h2>
+      {(league.verified || demo) && (
+        <div className="legend">
+          <ConfidenceLegend />
+        </div>
+      )}
       {days.size === 0 ? (
         <p className="card">앞으로 14일 안에 예정된 경기가 없어요.</p>
       ) : (
@@ -86,7 +93,7 @@ export default async function LeaguePage({ params }: { params: Params }) {
             <h2>{formatInTz(fixtures[0]!.kickoff_at, tz, "date")}</h2>
             <div className="grid-2">
               {fixtures.map((f) => (
-                <FixtureCard key={f.id} fixture={f} tz={tz} />
+                <FixtureCard key={f.id} fixture={f} tz={tz} demo={demo} />
               ))}
             </div>
           </section>

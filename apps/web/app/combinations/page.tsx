@@ -51,7 +51,13 @@ export default async function CombinationsPage({
       <p className="muted small">
         분석과 배당이 모두 있는 경기만 나와요. 리그를 눌러 좁히거나 팀 이름으로 찾을 수 있어요.
       </p>
-      <CombinationBuilder key={scope} fixtures={fixtures} tz={tz} order={leagueOrder(leagues)} />
+      <CombinationBuilder
+        key={scope}
+        fixtures={fixtures}
+        tz={tz}
+        order={leagueOrder(leagues)}
+        demo={data.data_provider === "mock"}
+      />
       <Disclaimer />
     </>
   );

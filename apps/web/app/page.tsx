@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { DataStatusBadge } from "@/components/DataStatusBadge";
 import { Disclaimer } from "@/components/Disclaimer";
+import { ConfidenceLegend } from "@/components/ConfidenceLegend";
 import { FixtureCard } from "@/components/FixtureCard";
 import { Highlights } from "@/components/Highlights";
 import { LeagueChips } from "@/components/LeagueChips";
@@ -118,6 +119,7 @@ export default async function FixturesPage({
           <span className="positive">초록</span>/<span className="negative">빨강</span> = 분석과
           시장의 {TERM.gap}
         </span>
+        <ConfidenceLegend />
         <Link href="/guide">처음이세요? 3분 가이드 →</Link>
       </div>
       {scope === "all" && (
@@ -156,7 +158,12 @@ export default async function FixturesPage({
                 <LeagueHeader league={g.league} count={g.fixtures.length} />
                 <div className="grid-2">
                   {g.fixtures.map((f) => (
-                    <FixtureCard key={f.id} fixture={f} tz={tz} />
+                    <FixtureCard
+                      key={f.id}
+                      fixture={f}
+                      tz={tz}
+                      demo={data.data_provider === "mock"}
+                    />
                   ))}
                 </div>
               </div>

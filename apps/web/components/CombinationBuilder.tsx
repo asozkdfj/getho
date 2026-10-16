@@ -25,6 +25,7 @@ import { OUTCOME_SHORT, odds, pct, signedPct, signedPoints, tone } from "@/lib/f
 import { LatestRequest } from "@/lib/latestRequest";
 import { groupByLeague, leagueLabel } from "@/lib/leagues";
 
+import { AutoCombo } from "./AutoCombo";
 import { LeagueBadge } from "./LeagueBadge";
 import { LeagueMark } from "./LeagueMark";
 import { LocalTime } from "./LocalTime";
@@ -42,9 +43,12 @@ export function CombinationBuilder({
   fixtures,
   tz,
   order = [],
+  demo = false,
 }: {
   fixtures: FixtureSummary[];
   tz: string;
+  /** Demo data: every league takes part in the auto combination. */
+  demo?: boolean;
   /** League ids in display order (featured ranking first). */
   order?: number[];
 }) {
@@ -120,11 +124,11 @@ export function CombinationBuilder({
     });
   }
 
-  async function analyze() {
+  async function analyze(chosen: Selections = selections) {
     const ticket = request.start();
     setLoading(true);
     setError(null);
-    const outcome = await requestAnalysis(selections, ticket);
+    const outcome = await requestAnalysis(chosen, ticket);
     if (outcome.kind === "stale") return;
     setLoading(false);
     if (outcome.kind === "error") {
@@ -133,6 +137,12 @@ export function CombinationBuilder({
     } else {
       setResult(outcome.combination);
     }
+  }
+
+  // Auto combination: fill the tray and analyze it right away.
+  function applySuggestion(chosen: Selections) {
+    update(chosen);
+    void analyze(chosen);
   }
 
   if (fixtures.length === 0) {
@@ -181,6 +191,17 @@ export function CombinationBuilder({
           ))}
         </div>
       </div>
+
+      <AutoCombo
+        fixtures={league === null ? fixtures : fixtures.filter((f) => f.league.id === league)}
+        scopeLabel={
+          league === null
+            ? "보이는 기간의 경기"
+            : `${groups.find((g) => g.league.id === league)?.league.name ?? "이 리그"}`
+        }
+        demo={demo}
+        onApply={applySuggestion}
+      />
 
       {visible.length === 0 && (
         <p className="card small">
@@ -315,7 +336,12 @@ export function CombinationBuilder({
             >
               초기화
             </button>
-            <button type="button" className="btn" disabled={!ready || loading} onClick={analyze}>
+            <button
+              type="button"
+              className="btn"
+              disabled={!ready || loading}
+              onClick={() => analyze()}
+            >
               {loading ? "계산 중…" : "조합 분석"}
             </button>
           </span>

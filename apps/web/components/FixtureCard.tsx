@@ -1,6 +1,7 @@
 import type { FixtureSummary } from "@edge/contracts";
 import Link from "next/link";
 
+import { CONFIDENCE_TEXT, confidence } from "@/lib/confidence";
 import { OUTCOME_SHORT, pct, signedPoints, statusLabel, tone } from "@/lib/format";
 import { OUTCOMES } from "@edge/contracts";
 
@@ -8,16 +9,37 @@ import { LocalTime } from "./LocalTime";
 
 const KEY = { HOME: "home", DRAW: "draw", AWAY: "away" } as const;
 
-export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: string }) {
+export function FixtureCard({
+  fixture,
+  tz,
+  demo = false,
+}: {
+  fixture: FixtureSummary;
+  tz: string;
+  /** Demo data: synthetic leagues are never verified, so all of them are rated. */
+  demo?: boolean;
+}) {
   const model = fixture.model_probabilities;
   const fair = fixture.fair_market_probabilities;
   const finished = fixture.status === "finished";
+  const conf = confidence(fixture, demo);
   return (
-    <Link href={`/fixtures/${fixture.id}`} className="card fixture-card">
+    <Link
+      href={`/fixtures/${fixture.id}`}
+      className={`card fixture-card${conf ? ` conf-${conf.tier}` : ""}`}
+    >
       <div className="fixture-meta">
         {/* time only: keep it in the zone the day headings are grouped by (QA-04) */}
         <LocalTime iso={fixture.kickoff_at} fallbackTz={tz} format="time" fixed />
         <span className="fixture-tags">
+          {conf && (
+            <span
+              className={`status conf-tag conf-tag-${conf.tier}`}
+              title={CONFIDENCE_TEXT[conf.tier].detail}
+            >
+              {CONFIDENCE_TEXT[conf.tier].label}
+            </span>
+          )}
           {fixture.lineups_announced && fixture.status === "scheduled" && (
             <span className="status lineup-out">명단 발표</span>
           )}
@@ -37,7 +59,7 @@ export function FixtureCard({ fixture, tz }: { fixture: FixtureSummary; tz: stri
             const m = model[KEY[o]];
             const f = fair[KEY[o]];
             return (
-              <div key={o} className="mini-cell">
+              <div key={o} className={`mini-cell${conf?.outcome === o ? " conf-top" : ""}`}>
                 <span className="mini-head">{OUTCOME_SHORT[o]}</span>
                 <span className="mini-model">{pct(m, 0)}</span>
                 <span className="mini-fair">시장 {pct(f, 0)}</span>
