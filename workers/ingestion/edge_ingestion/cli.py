@@ -167,7 +167,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backtest-calibration":
         configure_logging(get_settings().log_level)
         report = calibration_backtest.run(args)
-        print(json.dumps({"chosen": report["chosen"], **report["gate"]}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": report["status"],
+                    "chosen": report["chosen"],
+                    **report["gate"],
+                    "standard_gate_passed": report["standard_gate"]["passed"],
+                },
+                indent=2,
+            )
+        )
         return 0
 
     if args.command == "backtest-goal-markets":

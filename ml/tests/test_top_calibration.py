@@ -50,3 +50,31 @@ def test_identity_when_already_calibrated_and_object_api():
     assert cal2.name == "top-logistic"
     with pytest.raises(ValueError):
         TopOutcomeCalibrator("magic")
+
+
+def test_logistic_map_never_decreases_even_on_an_inverse_signal():
+    """Codex QA M2: favourites losing more often must not flip the map."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # no overflow warnings either
+        cal = TopOutcomeCalibrator("logistic").fit_arrays(
+            [0.4, 0.5, 0.6, 0.7, 0.8] * 20, [1, 1, 0, 0, 0] * 20
+        )
+    a, b = cal.params
+    assert b >= 0 and np.isfinite(a)
+    mapped = cal.map_top(np.array([0.4, 0.6, 0.8]))
+    assert mapped[0] <= mapped[1] <= mapped[2]
+
+
+def test_isotonic_pools_equal_probabilities_in_any_order():
+    """Codex QA M3: identical x values are one observation group."""
+    assert float(TopOutcomeCalibrator("isotonic").fit_arrays([0.6, 0.6], [0, 1]).map_top(0.6)) == (
+        pytest.approx(0.5)
+    )
+    a = TopOutcomeCalibrator("isotonic").fit_arrays([0.6, 0.6, 0.7, 0.5], [1, 0, 1, 0])
+    b = TopOutcomeCalibrator("isotonic").fit_arrays([0.5, 0.7, 0.6, 0.6], [0, 1, 0, 1])
+    grid = np.linspace(0.4, 0.8, 9)
+    assert np.allclose(a.map_top(grid), b.map_top(grid))
+    xs, _ = a.knots
+    assert len(xs) == len(set(xs))

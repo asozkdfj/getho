@@ -82,11 +82,18 @@ class TemperatureCalibrator:
 
 
 def _pav(x: Sequence[float], y: Sequence[float]) -> tuple[list[float], list[float]]:
-    """Isotonic (non-decreasing) fit by pool-adjacent-violators on points sorted
-    by x. Returns knots (block mean x, block mean y)."""
+    """Isotonic (non-decreasing) fit by weighted pool-adjacent-violators.
+    Observations with the same x are pooled first, so the result does not depend
+    on their order and every knot x is distinct. Returns knots (block mean x,
+    block mean y)."""
+    pooled: dict[float, list[float]] = {}
+    for xi, yi in zip(x, y, strict=True):
+        acc = pooled.setdefault(float(xi), [0.0, 0.0])
+        acc[0] += float(yi)
+        acc[1] += 1.0
     blocks: list[list[float]] = []  # [sum_x, sum_y, count]
-    for xi, yi in sorted(zip(x, y, strict=True)):
-        blocks.append([xi, yi, 1.0])
+    for xi, (sy, n) in sorted(pooled.items()):
+        blocks.append([xi * n, sy, n])
         while len(blocks) > 1 and blocks[-2][1] / blocks[-2][2] >= blocks[-1][1] / blocks[-1][2]:
             sx, sy, n = blocks.pop()
             blocks[-1][0] += sx
@@ -102,7 +109,8 @@ class TopOutcomeCalibrator:
     calibrated forecast is the binary log loss of g on "top outcome happened"
     plus a constant, so fitting g by binary log loss is the right objective.
 
-    method "logistic": logit g(p) = a + b logit p (Platt scaling, 2 parameters).
+    method "logistic": logit g(p) = a + b logit p (Platt scaling, 2 parameters),
+    with b >= 0 so g never decreases; a failed or non-finite fit is rejected.
     method "isotonic": pool-adjacent-violators, linear between block means,
     flat beyond the fitted range.
     The top outcome always stays the top outcome (g is capped where it would
@@ -133,11 +141,18 @@ class TopOutcomeCalibrator:
             z = np.log(p / (1 - p))
 
             def loss(ab: np.ndarray) -> float:
-                q = 1 / (1 + np.exp(-(ab[0] + ab[1] * z)))
-                q = np.clip(q, self.eps, 1 - self.eps)
-                return float(-(y * np.log(q) + (1 - y) * np.log(1 - q)).mean())
+                t = ab[0] + ab[1] * z
+                # -log sigmoid(t) = logaddexp(0, -t); -log(1 - sigmoid(t)) = logaddexp(0, t)
+                return float((y * np.logaddexp(0, -t) + (1 - y) * np.logaddexp(0, t)).mean())
 
-            res = minimize(loss, np.array([0.0, 1.0]), method="Nelder-Mead")
+            res = minimize(
+                loss,
+                np.array([0.0, 1.0]),
+                method="L-BFGS-B",
+                bounds=[(-20.0, 20.0), (0.0, 20.0)],  # slope >= 0: monotone map
+            )
+            if not res.success or not np.all(np.isfinite(res.x)):
+                raise ValueError(f"logistic calibration did not converge: {res.message}")
             self.params = (float(res.x[0]), float(res.x[1]))
         else:
             self.knots = _pav(p.tolist(), y.tolist())
@@ -161,8 +176,10 @@ class TopOutcomeCalibrator:
 
         p = np.clip(np.asarray(top, dtype=float), self.eps, 1 - self.eps)
         if self.method == "logistic":
+            from scipy.special import expit
+
             a, b = self.params
-            q = 1 / (1 + np.exp(-(a + b * np.log(p / (1 - p)))))
+            q = expit(a + b * np.log(p / (1 - p)))
         else:
             xs, ys = self.knots
             q = np.interp(p, xs, ys) if xs else p

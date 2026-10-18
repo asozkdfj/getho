@@ -25,9 +25,10 @@ def _write(path, n_per_season=2500, bias=0.06):
                 others = [i for i in range(3) if i != k]
                 truth[others] = p[others] * (1 - truth[k]) / p[others].sum()
             y = int(rng.choice(3, p=truth / truth.sum()))
-            kickoff = t0 + timedelta(days=365 * s_i + j * 0.8)
+            kickoff = t0 + timedelta(days=365 * s_i + j * 300 / n_per_season)
             rows.append(
                 {
+                    "league": "xx.1" if j % 2 else "yy.1",
                     "season": season,
                     "kickoff_at": kickoff.isoformat(),
                     "outcome": y,
@@ -63,3 +64,42 @@ def test_walk_forward_never_uses_the_target_season():
     assert np.allclose(out[:3], probs[:3])  # first season untouched
     # season b is mapped with season a only (all home wins) -> home raised, not lowered
     assert out[3, 0] > 0.7
+
+
+def test_report_carries_manifest_history_and_breakdowns(tmp_path):
+    """Codex QA M1: the exploratory result is reproducible and point-in-time."""
+    path = tmp_path / "pred.jsonl.gz"
+    _write(path, n_per_season=600)
+    report = cb.run(Namespace(predictions=path, out=None))
+    assert report["status"] == "exploratory"
+    manifest = report["manifest"]
+    assert manifest["protocol_commit"] == cb.PROTOCOL_COMMIT
+    assert manifest["rows"] == 7 * 600 and manifest["excluded"]["rows"] == 600
+    assert manifest["evaluated_rows"] == 6 * 600
+    for method, history in report["parameter_history"].items():
+        assert [h["season"] for h in history] == [
+            "2020-21",
+            "2021-22",
+            "2022-23",
+            "2023-24",
+            "2024-25",
+            "2025-26",
+        ]
+        for h in history:
+            assert h["available_at"] <= h["decision_at"]
+            assert h["season"] not in h["trained_on"]
+            if method == "logistic":
+                assert h["b"] >= 0
+    assert set(report["by_season"]) == set(cb.VALIDATION + cb.FOLLOW_UP)
+    assert set(report["by_league_follow_up"]) == {"xx.1", "yy.1"}
+    assert (
+        sum(v["n"] for v in report["by_league_follow_up"].values())
+        == (report["follow_up"]["n_matches"])
+    )
+    std = report["standard_gate"]
+    assert std["passed"] == (
+        std["validation_gain"] >= 0.001
+        and std["follow_up_gain"] >= 0.002
+        and std["follow_up_ci95_weekly"][1] < 0
+    )
+    assert report["frozen_map_for_confirmation"]["n_train"] == manifest["rows"]

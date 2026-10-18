@@ -47,6 +47,7 @@ import gzip
 import hashlib
 import json
 import logging
+import subprocess
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -69,6 +70,16 @@ MAX_TIER_GAP = 0.015
 MAX_GAP_GROWTH = 0.005
 BANDS = ((0.3, 0.4), (0.4, 0.5), (0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 1.01))
 EPS = 1e-12
+# Status, added after the first results following Codex QA (M1, 2026-10-18); the
+# protocol above stays as it was. The follow-up seasons had already been looked
+# at (market baseline experiment, band exploration that motivated this one), so
+# they are not an independent holdout, and G1-G2 are weaker than the standard
+# promotion gate. The result is exploratory; the confirmatory test is
+# docs/experiments/calibration-confirmatory-2026-27.md.
+STATUS = "exploratory"
+PROTOCOL_COMMIT = "cd8846f"
+STANDARD_GATE = {"validation_gain": 0.001, "follow_up_gain": 0.002, "ci_upper_below": 0.0}
+RESULTS_DELAY = timedelta(hours=3)  # results enter training 3 h after kickoff
 
 
 def add_arguments(p: argparse.ArgumentParser) -> None:
@@ -95,9 +106,16 @@ def brier(probs: np.ndarray, y: np.ndarray) -> np.ndarray:
     return ((probs - onehot) ** 2).sum(axis=1)
 
 
-def walk_forward(method: str, probs: np.ndarray, y: np.ndarray, seasons: np.ndarray) -> np.ndarray:
+def walk_forward(
+    method: str,
+    probs: np.ndarray,
+    y: np.ndarray,
+    seasons: np.ndarray,
+    history: list[TopOutcomeCalibrator] | None = None,
+) -> np.ndarray:
     """Calibrated probabilities; each season mapped with earlier seasons only
-    (the first season is left as it is and never evaluated)."""
+    (the first season is left as it is and never evaluated). The fitted maps,
+    one per target season in order, are appended to ``history`` if given."""
     out = probs.copy()
     order = sorted(set(seasons.tolist()))
     k = top_index(probs)
@@ -108,7 +126,79 @@ def walk_forward(method: str, probs: np.ndarray, y: np.ndarray, seasons: np.ndar
         target = seasons == season
         cal = TopOutcomeCalibrator(method).fit_arrays(top[train], hit[train])
         out[target] = cal.calibrate_matrix(probs[target])
+        if history is not None:
+            history.append(cal)
     return out
+
+
+def _map_params(cal: TopOutcomeCalibrator) -> dict[str, Any]:
+    if cal.method == "logistic":
+        a, b = cal.params
+        return {"a": a, "b": b}
+    xs, ys = cal.knots
+    return {"knots": len(xs), "x": [float(v) for v in xs], "y": [float(v) for v in ys]}
+
+
+def parameter_history(
+    rows: list[dict[str, Any]], seasons: np.ndarray, maps: list[TopOutcomeCalibrator]
+) -> list[dict[str, Any]]:
+    """For each target season: which seasons the map saw, its parameters, when it
+    is first used (the season's first kickoff) and when its training data were
+    complete (last training kickoff + the results delay)."""
+    order = sorted(set(seasons.tolist()))
+    kickoffs = np.array([datetime.fromisoformat(r["kickoff_at"]) for r in rows])
+    out = []
+    for i, cal in enumerate(maps, start=1):
+        train = np.isin(seasons, order[:i])
+        available = kickoffs[train].max() + RESULTS_DELAY
+        decision = kickoffs[seasons == order[i]].min()
+        assert available <= decision, f"map for {order[i]} uses data after its first kickoff"
+        out.append(
+            {
+                "season": order[i],
+                "trained_on": order[:i],
+                "n_train": int(train.sum()),
+                "available_at": available.isoformat(),
+                "decision_at": decision.isoformat(),
+                **_map_params(cal),
+            }
+        )
+    return out
+
+
+def breakdown(
+    keys: np.ndarray,
+    probs: np.ndarray,
+    cal: np.ndarray,
+    y: np.ndarray,
+    mask: np.ndarray,
+) -> dict[str, Any]:
+    """Log loss and strong-favourite gap per group (descriptive, no decision)."""
+    k_ref = top_index(probs)
+    ref_top = probs[np.arange(len(y)), k_ref]
+    out = {}
+    for key in sorted(set(keys[mask].tolist())):
+        m = mask & (keys == key)
+        strong = m & (ref_top >= TIER)
+        out[key] = {
+            "n": int(m.sum()),
+            "log_loss_production": float(log_loss(probs[m], y[m]).mean()),
+            "log_loss_calibrated": float(log_loss(cal[m], y[m]).mean()),
+            "log_loss_gain": float(log_loss(probs[m], y[m]).mean() - log_loss(cal[m], y[m]).mean()),
+            "n_strong": int(strong.sum()),
+            "strong_gap_production": tier_gap(probs, y, strong) if strong.any() else None,
+            "strong_gap_calibrated": tier_gap(cal, y, strong) if strong.any() else None,
+        }
+    return out
+
+
+def _git_commit() -> str | None:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 def bands(
@@ -175,7 +265,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     weeks = [datetime.fromisoformat(r["kickoff_at"]).isocalendar()[:2] for r in rows]
     val, fu = np.isin(seasons, VALIDATION), np.isin(seasons, FOLLOW_UP)
 
-    candidates = {m: walk_forward(m, probs, y, seasons) for m in METHODS}
+    leagues = np.array([r.get("league", "unknown") for r in rows])
+    maps: dict[str, list[TopOutcomeCalibrator]] = {m: [] for m in METHODS}
+    candidates = {m: walk_forward(m, probs, y, seasons, maps[m]) for m in METHODS}
 
     def summary(p: np.ndarray, mask: np.ndarray) -> dict[str, float]:
         return {
@@ -223,6 +315,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and gates["g4_rest_gap"] <= gates["g4_rest_gap_production"] + MAX_GAP_GROWTH
     )
 
+    standard = {
+        "validation_gain": gates["g1_validation_gain"],
+        "follow_up_gain": gates["g2_follow_up_log_loss_gain"],
+        "follow_up_ci95_weekly": f[chosen]["vs_production"]["ci95_weekly"],
+    }
+    standard["passed"] = bool(
+        standard["validation_gain"] >= STANDARD_GATE["validation_gain"]
+        and standard["follow_up_gain"] >= STANDARD_GATE["follow_up_gain"]
+        and standard["follow_up_ci95_weekly"][1] < STANDARD_GATE["ci_upper_below"]
+    )
+    evaluated = val | fu
+    final = TopOutcomeCalibrator(chosen).fit_arrays(ref_top, (top_index(probs) == y).astype(float))
+    kickoffs = [datetime.fromisoformat(r["kickoff_at"]) for r in rows]
+
     def crossing(p: np.ndarray) -> dict[str, float]:
         top = p[fu][np.arange(fu.sum()), top_index(p[fu])]
         return {
@@ -233,7 +339,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "generated_at": datetime.now().astimezone().isoformat(),
         "experiment": "top_outcome_calibration_v1",
+        "status": STATUS,
         "protocol": __doc__,
+        "manifest": {
+            "protocol_commit": PROTOCOL_COMMIT,
+            "code_commit": _git_commit(),
+            "input": str(args.predictions),
+            "input_sha256": hashlib.sha256(args.predictions.read_bytes()).hexdigest(),
+            "rows": len(rows),
+            "evaluated_rows": int(evaluated.sum()),
+            "excluded": {
+                "rows": int((~evaluated).sum()),
+                "reason": "seasons outside validation and follow-up (the first season has "
+                "no earlier season to fit a map on)",
+            },
+            "seasons": sorted(set(seasons.tolist())),
+            "leagues": sorted(set(leagues.tolist())),
+        },
         "source": {
             "path": str(args.predictions),
             "sha256": hashlib.sha256(args.predictions.read_bytes()).hexdigest(),
@@ -243,6 +365,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "validation": v,
         "follow_up": f,
         "gate": gates,
+        "standard_gate": {"thresholds": STANDARD_GATE, **standard},
+        "parameter_history": {m: parameter_history(rows, seasons, maps[m]) for m in METHODS},
+        "frozen_map_for_confirmation": {
+            "method": chosen,
+            "trained_on": sorted(set(seasons.tolist())),
+            "n_train": len(rows),
+            "available_at": (max(kickoffs) + RESULTS_DELAY).isoformat(),
+            **_map_params(final),
+        },
+        "by_season": breakdown(seasons, probs, cal, y, evaluated),
+        "by_league_follow_up": breakdown(leagues, probs, cal, y, fu),
         "descriptive": {
             "bands_follow_up": {
                 "production": bands(probs, y, probs, fu),
