@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/leagues", label: "리그" },
   { href: "/combinations", label: "조합" },
   { href: "/picks", label: "지난 픽" },
+  { href: "/review", label: "복기" },
   { href: "/performance", label: "모델 성과" },
   { href: "/guide", label: "가이드" },
   { href: "/methodology", label: "방법론" },

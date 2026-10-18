@@ -95,6 +95,41 @@ def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
     return report
 
 
+def review_text(settings: Settings, day: str | None, tz: str | None) -> str:
+    """Plain-text day review (read-only)."""
+    from datetime import date, timedelta
+    from zoneinfo import ZoneInfo
+
+    from edge_api.services.review import review_day
+
+    tz = tz or settings.pick_tz
+    target = (
+        date.fromisoformat(day)
+        if day
+        else utcnow().astimezone(ZoneInfo(tz)).date() - timedelta(days=1)
+    )
+    short = {"HOME": "홈승", "DRAW": "무", "AWAY": "원정승"}
+    with session_scope() as session:
+        data = review_day(session, settings, target, tz)
+        s = data.summaries["verified" if not data.demo else "all"]
+        lines = [
+            f"{target} ({tz}) 경기 복기 · provider={settings.data_provider}",
+            f"분석 적중 {s['hits']}/{s['matches']} (기대 {s['expected_hits']:.1f}) · "
+            f"시장 적중 {s['market_hits']}/{s['matches']} (기대 {s['market_expected_hits']:.1f})",
+        ]
+        for i in data.items:
+            f = i.fixture
+            score = f"{f.home_score}:{f.away_score}" if f.home_score is not None else f.status
+            if i.top:
+                mark = {True: "O", False: "X", None: "-"}[i.hit]
+                pred = f"{short[i.top[0].value]} {i.top[1]:.0%}"
+            else:
+                mark, pred = "-", "분석 없음"
+            match = f"{f.home_team.name} {score} {f.away_team.name}"
+            lines.append(f"  [{mark}] {f.league.name}: {match} · {pred}")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="edge", description="EPL Edge Lab data jobs")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -102,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
         sp = sub.add_parser(name)
         sp.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     backtest_cli.add_arguments(sub.add_parser("backtest", help="walk-forward model evaluation"))
+    rv = sub.add_parser("review", help="a past day: pre-kickoff predictions vs results")
+    rv.add_argument("--date", help="local date YYYY-MM-DD (default: yesterday)")
+    rv.add_argument("--tz", help="IANA timezone (default: the pick timezone)")
     lineup_backtest.add_arguments(
         sub.add_parser("backtest-lineups", help="does line-up strength improve the model?")
     )
@@ -146,6 +184,10 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(get_settings().log_level)
         report = standings_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "review":
+        print(review_text(get_settings(), args.date, args.tz))
         return 0
 
     if args.command == "backtest-draws":

@@ -133,6 +133,7 @@ lint/typecheck/test/build, API contract drift, `docker compose up` smoke 및 see
 | GET | `/highlights?days=7&limit=3` | 분석이 시장보다 가장 높게 보는 결과(주의 표시 포함, 추천 아님) |
 | GET | `/picks/today` | 오늘(KST)의 픽: 선정 시각에 한 번 고정된 결과, 근거·데이터 점검·백테스트 요약 |
 | GET | `/picks/history?limit=60` | 지난 픽(선정 당시 값 보존) + 적중률·Wilson 범위·평균 확률·표본 수 |
+| GET | `/review?date=YYYY-MM-DD` | 지난 하루 복기: 경기 전 분석·시장 1순위·결과, 기대 적중 수 대 실제 적중 수 (기본: 어제, KST) |
 | GET | `/performance` | 실데이터 walk-forward 백테스트 지표 + 저장된 예측의 실시간 모델 vs 시장 채점 |
 | GET | `/status/data` | 마지막 수집 성공/실패, 데이터 신선도 |
 
@@ -165,6 +166,7 @@ curl -s -X POST localhost:8000/combinations/analyze -H 'Content-Type: applicatio
 | `/` | 맨 위에 오늘의 픽 카드, 데이터 신선도 배지, 리그별로 묶은 경기 목록(주요 리그/전체 리그) |
 | `/leagues`, `/leagues/[id]` | 지역·나라별 리그 목록과 검색, 리그별 일정 |
 | `/picks` | 지난 픽 이력과 요약 |
+| `/review` | 경기 복기: 날짜별 경기 전 분석과 결과 (`edge review --date` 로 터미널에서도) |
 | `/performance` | 모델 성과(지표·보정 그래프·시즌별·픽 규칙 백테스트) |
 
 ## 선발 명단과 결장 정보

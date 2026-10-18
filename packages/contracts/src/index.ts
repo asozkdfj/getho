@@ -52,6 +52,9 @@ export type ModelMetric = Schemas["ModelMetricOut"];
 export type CalibrationBin = Schemas["CalibrationBinOut"];
 export type DailyPickBacktestRow = Schemas["DailyPickBacktestRowOut"];
 export type MarketBaseline = Schemas["MarketBaselineOut"];
+export type Review = Schemas["ReviewOut"];
+export type ReviewItem = Schemas["ReviewItemOut"];
+export type ReviewSummary = Schemas["ReviewSummaryOut"];
 
 export type Outcome = Schemas["Outcome"];
 export const OUTCOMES = ["HOME", "DRAW", "AWAY"] as const satisfies readonly Outcome[];
