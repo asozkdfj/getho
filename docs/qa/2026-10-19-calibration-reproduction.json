@@ -1,0 +1,306 @@
+{
+  "generated_at": "2026-10-19T00:37:36.780444+09:00",
+  "experiment": "top_outcome_calibration_v1",
+  "protocol": "`edge backtest-calibration` - are clear favourites under-stated, and can a\ncalibration of the top outcome fix it?\n\nPre-registered protocol (committed before the first run; do not edit after results):\n\nQuestion  On 2023-26 the production model's most likely outcome won 3.5-4.4\n          points more often than it said when it said 60% or more, while the\n          40-60% range was close (user feedback: \"the probabilities look low\").\n          Does a monotone recalibration of the top outcome fix the favourites\n          without making anything else worse?\nData      Per-match walk-forward production probabilities of the market\n          baseline experiment (ml/reports/backtest-market.predictions.jsonl.gz:\n          9 leagues, football-data.co.uk results, weekly refit, results enter\n          training 3 h after kickoff), seasons 2019-20..2025-26; file SHA-256\n          in the report. The production model itself is not refitted.\nMethod    TopOutcomeCalibrator (edge_ml.calibration): g maps the top outcome's\n          probability; the other two keep their ratio and share 1 - g; the top\n          outcome stays on top. Candidates: \"logistic\" (Platt, 2 parameters)\n          and \"isotonic\" (pool-adjacent-violators).\nTiming    Season walk-forward: the map applied to season S is fitted only on the\n          seasons before S in the file (2020-21 uses 2019-20; 2025-26 uses\n          2019-20..2024-25). No season is ever calibrated with its own results.\nChoice    The candidate with the lowest pooled log loss on validation\n          (2020-21..2022-23).\nGate      All, for the chosen candidate against production:\n          G1 validation: pooled log loss gain > 0.\n          G2 follow-up (2023-24..2025-26): pooled log loss gain >= 0 and Brier\n             gain >= 0 (weekly paired 95% CI reported).\n          G3 follow-up, matches whose production top probability is >= 0.60:\n             |hit rate - mean calibrated top probability| <= 0.015.\n          G4 follow-up, matches below 0.60: that gap does not grow by more\n             than 0.005 versus production.\n          Passing is a research result only. Using the calibrator in the\n          service is a model change (new model version, Codex QA, the user's\n          approval) and changes which matches clear the pick and tier\n          thresholds; it is not done automatically.\nDescriptive (no decision): calibration by top-probability band; the share of\n          matches that cross the 55% / 65% tiers; the daily top-3 combination\n          (most likely outcomes of a KST 09:00-09:00 day) predicted vs actual\n          hit rate, before and after.\n",
+  "source": {
+    "path": "ml\\reports\\backtest-market.predictions.jsonl.gz",
+    "sha256": "cb944ef9f0bf6ec38cfa5f27ee91e81b57853a5105444c8d38a0bd9456e321f9"
+  },
+  "n_matches": 22671,
+  "chosen": "logistic",
+  "validation": {
+    "n_matches": 9887,
+    "production": {
+      "log_loss": 1.0027474176261078,
+      "brier": 0.5984885881708246,
+      "accuracy": 0.5100637200364114
+    },
+    "logistic": {
+      "log_loss": 1.0022640061603658,
+      "brier": 0.5982069766601148,
+      "accuracy": 0.5100637200364114,
+      "vs_production": {
+        "log_loss_diff": -0.0004834114657419653,
+        "ci95_weekly": [
+          -0.0011926968230916374,
+          0.0002812895743500308
+        ]
+      }
+    },
+    "isotonic": {
+      "log_loss": 1.0043943062584157,
+      "brier": 0.5988056307291392,
+      "accuracy": 0.5100637200364114,
+      "vs_production": {
+        "log_loss_diff": 0.0016468886323080488,
+        "ci95_weekly": [
+          -0.0002533627261563809,
+          0.004024234972856686
+        ]
+      }
+    }
+  },
+  "follow_up": {
+    "n_matches": 9663,
+    "production": {
+      "log_loss": 0.9975764540288853,
+      "brier": 0.5955908877010758,
+      "accuracy": 0.5118493221566801
+    },
+    "logistic": {
+      "log_loss": 0.9969439729405711,
+      "brier": 0.5952721101712687,
+      "accuracy": 0.5118493221566801,
+      "vs_production": {
+        "log_loss_diff": -0.0006324810883142594,
+        "ci95_weekly": [
+          -0.0013897109508896148,
+          0.00010512093276471109
+        ]
+      }
+    },
+    "isotonic": {
+      "log_loss": 0.997889977014408,
+      "brier": 0.5956733669619649,
+      "accuracy": 0.5118493221566801,
+      "vs_production": {
+        "log_loss_diff": 0.00031352298552289907,
+        "ci95_weekly": [
+          -0.000958142717094507,
+          0.0017262930152700832
+        ]
+      }
+    }
+  },
+  "gate": {
+    "g1_validation_gain": 0.00048341146574193417,
+    "g2_follow_up_log_loss_gain": 0.0006324810883141518,
+    "g2_follow_up_brier_gain": 0.0003187775298071349,
+    "g3_strong_tier_gap": 0.0069329134863559405,
+    "g3_strong_tier_gap_production": 0.037412877368420916,
+    "g4_rest_gap": 0.005646326152526471,
+    "g4_rest_gap_production": 0.0055174539482159,
+    "passed": true
+  },
+  "descriptive": {
+    "bands_follow_up": {
+      "production": [
+        {
+          "band": [
+            0.3,
+            0.4
+          ],
+          "n": 1447,
+          "mean_predicted": 0.38184849481686256,
+          "hit_rate": 0.3704215618521078,
+          "gap": -0.011426932964754777
+        },
+        {
+          "band": [
+            0.4,
+            0.5
+          ],
+          "n": 3815,
+          "mean_predicted": 0.4467418193971167,
+          "hit_rate": 0.4411533420707733,
+          "gap": -0.005588477326343433
+        },
+        {
+          "band": [
+            0.5,
+            0.6
+          ],
+          "n": 2501,
+          "mean_predicted": 0.5449728836465414,
+          "hit_rate": 0.5429828068772491,
+          "gap": -0.001990076769292304
+        },
+        {
+          "band": [
+            0.6,
+            0.7
+          ],
+          "n": 1244,
+          "mean_predicted": 0.6436752154340837,
+          "hit_rate": 0.6784565916398714,
+          "gap": 0.034781376205787695
+        },
+        {
+          "band": [
+            0.7,
+            0.8
+          ],
+          "n": 535,
+          "mean_predicted": 0.7409790859813085,
+          "hit_rate": 0.7850467289719626,
+          "gap": 0.04406764299065413
+        },
+        {
+          "band": [
+            0.8,
+            1.0
+          ],
+          "n": 121,
+          "mean_predicted": 0.8327252396694215,
+          "hit_rate": 0.8677685950413223,
+          "gap": 0.03504335537190084
+        }
+      ],
+      "logistic": [
+        {
+          "band": [
+            0.3,
+            0.4
+          ],
+          "n": 1447,
+          "mean_predicted": 0.37061626253126195,
+          "hit_rate": 0.3704215618521078,
+          "gap": -0.00019470067915416944
+        },
+        {
+          "band": [
+            0.4,
+            0.5
+          ],
+          "n": 3815,
+          "mean_predicted": 0.4429143299142088,
+          "hit_rate": 0.4411533420707733,
+          "gap": -0.0017609878434355353
+        },
+        {
+          "band": [
+            0.5,
+            0.6
+          ],
+          "n": 2501,
+          "mean_predicted": 0.5577099277955301,
+          "hit_rate": 0.5429828068772491,
+          "gap": -0.01472712091828099
+        },
+        {
+          "band": [
+            0.6,
+            0.7
+          ],
+          "n": 1244,
+          "mean_predicted": 0.6710368612726366,
+          "hit_rate": 0.6784565916398714,
+          "gap": 0.007419730367234756
+        },
+        {
+          "band": [
+            0.7,
+            0.8
+          ],
+          "n": 535,
+          "mean_predicted": 0.7772586637333607,
+          "hit_rate": 0.7850467289719626,
+          "gap": 0.007788065238601871
+        },
+        {
+          "band": [
+            0.8,
+            1.0
+          ],
+          "n": 121,
+          "mean_predicted": 0.8696216847555021,
+          "hit_rate": 0.8677685950413223,
+          "gap": -0.0018530897141797453
+        }
+      ],
+      "isotonic": [
+        {
+          "band": [
+            0.3,
+            0.4
+          ],
+          "n": 1447,
+          "mean_predicted": 0.37705674620593504,
+          "hit_rate": 0.3704215618521078,
+          "gap": -0.0066351843538272615
+        },
+        {
+          "band": [
+            0.4,
+            0.5
+          ],
+          "n": 3815,
+          "mean_predicted": 0.44164350904595223,
+          "hit_rate": 0.4411533420707733,
+          "gap": -0.0004901669751789517
+        },
+        {
+          "band": [
+            0.5,
+            0.6
+          ],
+          "n": 2501,
+          "mean_predicted": 0.548577120206868,
+          "hit_rate": 0.5429828068772491,
+          "gap": -0.005594313329618905
+        },
+        {
+          "band": [
+            0.6,
+            0.7
+          ],
+          "n": 1244,
+          "mean_predicted": 0.6811022928019222,
+          "hit_rate": 0.6784565916398714,
+          "gap": -0.002645701162050873
+        },
+        {
+          "band": [
+            0.7,
+            0.8
+          ],
+          "n": 535,
+          "mean_predicted": 0.7848105295118001,
+          "hit_rate": 0.7850467289719626,
+          "gap": 0.0002361994601625117
+        },
+        {
+          "band": [
+            0.8,
+            1.0
+          ],
+          "n": 121,
+          "mean_predicted": 0.9140402672069251,
+          "hit_rate": 0.8677685950413223,
+          "gap": -0.046271672165602795
+        }
+      ]
+    },
+    "tier_shares_follow_up": {
+      "production": {
+        "share_ge_55": 0.30559867535961915,
+        "share_ge_65": 0.1184932215668012
+      },
+      "logistic": {
+        "share_ge_55": 0.33736934699368726,
+        "share_ge_65": 0.1576115078133085
+      },
+      "isotonic": {
+        "share_ge_55": 0.31822415398944426,
+        "share_ge_65": 0.16806374831832765
+      }
+    },
+    "daily_top3_follow_up": {
+      "production": {
+        "days": 554,
+        "mean_predicted": 0.27202751852861157,
+        "hit_rate": 0.33212996389891697
+      },
+      "logistic": {
+        "days": 554,
+        "mean_predicted": 0.3054756643614712,
+        "hit_rate": 0.33212996389891697
+      },
+      "isotonic": {
+        "days": 554,
+        "mean_predicted": 0.3165054343592242,
+        "hit_rate": 0.33212996389891697
+      }
+    }
+  }
+}

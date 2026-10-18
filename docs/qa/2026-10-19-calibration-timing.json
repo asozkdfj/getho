@@ -1,0 +1,63 @@
+{
+  "calendar_audit": [
+    {
+      "season": "2020-21",
+      "train_n": 3121,
+      "target_n": 3296,
+      "latest_training_result_proxy": "2020-08-02T21:45:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    },
+    {
+      "season": "2021-22",
+      "train_n": 6417,
+      "target_n": 3295,
+      "latest_training_result_proxy": "2021-05-23T22:00:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    },
+    {
+      "season": "2022-23",
+      "train_n": 9712,
+      "target_n": 3296,
+      "latest_training_result_proxy": "2022-05-22T23:00:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    },
+    {
+      "season": "2023-24",
+      "train_n": 13008,
+      "target_n": 3222,
+      "latest_training_result_proxy": "2023-06-04T22:00:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    },
+    {
+      "season": "2024-25",
+      "train_n": 16230,
+      "target_n": 3219,
+      "latest_training_result_proxy": "2024-06-02T19:00:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    },
+    {
+      "season": "2025-26",
+      "train_n": 19449,
+      "target_n": 3222,
+      "latest_training_result_proxy": "2025-05-25T22:00:00+00:00",
+      "target_before_training_available": 0,
+      "examples": []
+    }
+  ],
+  "monotonic_counterexample": {
+    "params": [
+      11.111885874658846,
+      -14151.672603011182
+    ],
+    "map_0.4_0.8": [
+      0.9999,
+      0.0001
+    ],
+    "nondecreasing": false
+  }
+}

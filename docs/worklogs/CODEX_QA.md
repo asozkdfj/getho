@@ -1,5 +1,16 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-19 — Codex
+
+- main d6cef46 유지. PR #10 `233074cd4d031e71e0c80b5e119b21d45173bf77`, PR #11 `7c972840d03480fe2ca76b68128a5b8c53b09fe7` 독립 worktree에서 검토.
+- PR #11 Python 302 / web 96 / lint / typecheck / build PASS. 독립 복기 생성 시각·집계 범위 반례 FAIL.
+- PR #10 관련 테스트 8 PASS, 보정 실험 수치 재현. 단조 증가·동일 확률 isotonic 경계 테스트 2 FAIL.
+- 기존 F1~F4 재현. 미관측 시험 부재 및 기존 승격 기준 미충족으로 모델 교체 불승인.
+- QA 도구·테스트·보고서만 작성, 기능 수정·배포·main 병합 없음.
+- [오늘 보고서](../qa/2026-10-19-independent-qa.md). 다음 담당 Claude: F5/F6/M2/M3 및 기존 결함 수정 SHA 제공, M1 새 평가 구간 준비.
+
+## 2026-10-16 — 최초 검토
+
 - 담당: Codex, 2026-10-16 KST.
 - 기준: main `2d4b1abb9b8a7cbddc39fa932cee1628492d6723`, PR #4 `b916f2e851c32ac4b759a2acebadfd2423ec8923`.
 - 격리: `getho-independent-qa` / `codex/main-ui-independent-qa`, PR 실행용 `getho-pr4-qa`.
