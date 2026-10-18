@@ -171,11 +171,21 @@ def main(argv: list[str] | None = None) -> int:
     )
     sr.add_argument("--end", type=date.fromisoformat, help="last decision day (default: protocol)")
     sr.add_argument("--out", type=Path, help="write the JSON report here")
+    tc = sub.add_parser(
+        "team-news-coverage", help="player information known at each 09:00 decision"
+    )
+    tc.add_argument("--start", type=date.fromisoformat, required=True, help="first pick day")
+    tc.add_argument("--end", type=date.fromisoformat, required=True, help="last pick day")
+    tc.add_argument("--out", type=Path, help="write the JSON report here")
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
     bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     args = parser.parse_args(argv)
+
+    if args.command == "team-news-coverage":
+        configure_logging(get_settings().log_level)
+        return _team_news_coverage(args)
 
     if args.command == "shadow-report":
         configure_logging(get_settings().log_level)
@@ -278,6 +288,18 @@ def main(argv: list[str] | None = None) -> int:
             ensure_ascii=False,
         )
     )
+    return 0
+
+
+def _team_news_coverage(args: argparse.Namespace) -> int:
+    from edge_api.services.team_news_coverage import coverage_report
+
+    with session_scope() as session:
+        report = coverage_report(session, get_settings(), args.start, args.end)
+    text = json.dumps(report, indent=2, ensure_ascii=False)
+    if args.out:
+        args.out.write_text(text + "\n")
+    print(text)
     return 0
 
 

@@ -3405,6 +3405,17 @@
             ],
             "title": "Absences Captured At"
           },
+          "absences_status": {
+            "default": "unknown",
+            "description": "none_reported: the provider checked and listed nobody; unknown: not checked (never means no absences)",
+            "enum": [
+              "reported",
+              "none_reported",
+              "unknown"
+            ],
+            "title": "Absences Status",
+            "type": "string"
+          },
           "formation": {
             "anyOf": [
               {

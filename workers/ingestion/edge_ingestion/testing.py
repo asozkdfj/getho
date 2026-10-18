@@ -175,7 +175,11 @@ def leagues_payload() -> list[dict]:
                         "start": start,
                         "end": end,
                         "current": True,
-                        "coverage": {"fixtures": {"events": True}, "odds": lg["odds"]},
+                        "coverage": {
+                            "fixtures": {"events": True},
+                            "odds": lg["odds"],
+                            "injuries": lg.get("injuries", True),
+                        },
                     }
                 ],
             }

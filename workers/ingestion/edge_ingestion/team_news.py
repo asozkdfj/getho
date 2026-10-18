@@ -4,8 +4,14 @@
 - official line-ups for fixtures about to start (polled until both are stored)
 - player minutes of finished fixtures (tells regular starters from squad players)
 
-Snapshots are append-only and keyed by a content hash, so polling the same
-report again writes nothing; a changed report becomes a new row.
+Snapshots are append-only. A report identical to the latest stored one for
+that team writes nothing; a changed report becomes a new row, including a
+return to an earlier state (absent -> fit -> absent).
+
+Absences have three states per team: players reported, "checked, none
+reported" (an empty snapshot, only for fixtures the provider says it covered
+in a league with injury coverage) and unknown (no snapshot). Not having data
+never reads as "no absences".
 """
 
 from __future__ import annotations
@@ -66,16 +72,45 @@ def _team_ids(session: Session, provider: str) -> dict[str, int]:
     return {pid: tid for pid, tid in rows}
 
 
+def _latest_hashes(
+    session: Session, fixture_ids: set[int], kind: str
+) -> dict[tuple[int, int], str]:
+    ranked = (
+        select(
+            TeamNewsSnapshot.fixture_id,
+            TeamNewsSnapshot.team_id,
+            TeamNewsSnapshot.content_hash,
+            func.row_number()
+            .over(
+                partition_by=(TeamNewsSnapshot.fixture_id, TeamNewsSnapshot.team_id),
+                order_by=(TeamNewsSnapshot.captured_at.desc(), TeamNewsSnapshot.id.desc()),
+            )
+            .label("rn"),
+        )
+        .where(TeamNewsSnapshot.fixture_id.in_(fixture_ids), TeamNewsSnapshot.kind == kind)
+        .subquery()
+    )
+    rows = session.execute(
+        select(ranked.c.fixture_id, ranked.c.team_id, ranked.c.content_hash).where(ranked.c.rn == 1)
+    )
+    return {(fid, tid): h for fid, tid, h in rows}
+
+
 def _insert_snapshots(session: Session, rows: list[dict[str, Any]]) -> int:
+    """Insert the snapshots that differ from the latest stored one of their team."""
     if not rows:
         return 0
-    stmt = (
-        insert(TeamNewsSnapshot)
-        .values(rows)
-        .on_conflict_do_nothing(constraint="uq_team_news_snapshots_content_key")
-        .returning(TeamNewsSnapshot.id)
-    )
-    return len(session.execute(stmt).all())
+    written = 0
+    for kind in {r["kind"] for r in rows}:
+        of_kind = [r for r in rows if r["kind"] == kind]
+        latest = _latest_hashes(session, {r["fixture_id"] for r in of_kind}, kind)
+        new = [
+            r for r in of_kind if latest.get((r["fixture_id"], r["team_id"])) != r["content_hash"]
+        ]
+        if new:
+            session.execute(insert(TeamNewsSnapshot).values(new))
+            written += len(new)
+    return written
 
 
 def _snapshot_row(
@@ -101,7 +136,17 @@ def ingest_absences(
     horizon: timedelta,
 ) -> int:
     rows = session.execute(
-        _scoped(select(Fixture.provider_id, Fixture.id, Fixture.kickoff_at), scope).where(
+        _scoped(
+            select(
+                Fixture.provider_id,
+                Fixture.id,
+                Fixture.kickoff_at,
+                Fixture.home_team_id,
+                Fixture.away_team_id,
+                League.has_injuries,
+            ),
+            scope,
+        ).where(
             Fixture.provider == provider.name,
             Fixture.status == FixtureStatus.SCHEDULED.value,
             Fixture.kickoff_at > now,
@@ -110,10 +155,16 @@ def ingest_absences(
     ).all()
     if not rows:
         return 0
-    fixture_ids = {pid: fid for pid, fid, _ in rows}
+    fixture_ids = {r.provider_id: r.id for r in rows}
     teams = _team_ids(session, provider.name)
+    report = provider.get_absence_report({r.provider_id: r.kickoff_at for r in rows})
     grouped: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
-    for a in provider.get_absences({pid: kickoff for pid, _, kickoff in rows}):
+    # checked and covered: both teams get a snapshot, empty = none reported
+    for r in rows:
+        if r.provider_id in report.covered and r.has_injuries:
+            grouped.setdefault((r.id, r.home_team_id), [])
+            grouped.setdefault((r.id, r.away_team_id), [])
+    for a in report.absences:
         fid, tid = fixture_ids.get(a.fixture_provider_id), teams.get(a.team_provider_id)
         if fid is None or tid is None:
             continue

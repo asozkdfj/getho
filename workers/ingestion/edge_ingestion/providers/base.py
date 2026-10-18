@@ -30,6 +30,7 @@ class LeagueData:
     season_year: int | None = None  # provider's key for the current season
     country_code: str | None = None
     has_odds: bool = False
+    has_injuries: bool = False  # the provider reports injuries/suspensions for it
     logo_url: str | None = None
     flag_url: str | None = None
 
@@ -96,6 +97,16 @@ class LineupData:
 
 
 @dataclass(frozen=True, slots=True)
+class AbsenceReport:
+    """Absences plus the fixtures the provider actually answered for. A covered
+    fixture with no absence for a team means "checked, none reported"; a
+    fixture outside ``covered`` means "not checked" (unknown), never "none"."""
+
+    absences: list[AbsenceData]
+    covered: frozenset[str]
+
+
+@dataclass(frozen=True, slots=True)
 class AbsenceData:
     """A player reported unavailable or doubtful for a fixture."""
 
@@ -153,6 +164,11 @@ class FootballDataProvider(ABC):
     def get_absences(self, fixtures: Mapping[str, datetime]) -> list[AbsenceData]:
         """Injured / suspended / doubtful players for these upcoming fixtures."""
         return []
+
+    def get_absence_report(self, fixtures: Mapping[str, datetime]) -> AbsenceReport:
+        """Absences and the fixtures they cover. The default claims no coverage,
+        so a provider that cannot say what it checked never yields "none"."""
+        return AbsenceReport(self.get_absences(fixtures), frozenset())
 
     def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
         """Official line-ups already published for these fixtures."""

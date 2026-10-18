@@ -24,6 +24,7 @@ import numpy as np
 
 from edge_ingestion.providers.base import (
     AbsenceData,
+    AbsenceReport,
     AppearanceData,
     FixtureData,
     FootballDataProvider,
@@ -264,6 +265,7 @@ class MockProvider(FootballDataProvider):
                     season=_season_label(year, lg.calendar_year),
                     season_year=year,
                     has_odds=True,
+                    has_injuries=True,
                 )
             )
         return out
@@ -412,14 +414,21 @@ class MockProvider(FootballDataProvider):
         return starters, absences, bench
 
     def get_absences(self, fixtures: Mapping[str, datetime] | Sequence[str]) -> list[AbsenceData]:
+        return self.get_absence_report(fixtures).absences
+
+    def get_absence_report(self, fixtures: Mapping[str, datetime] | Sequence[str]) -> AbsenceReport:
+        """Absences are "published" two days before kickoff; earlier fixtures are
+        not covered yet (unknown), later ones are, with or without absences."""
         out: list[AbsenceData] = []
+        covered: set[str] = set()
         for pid in fixtures:
             f = self._by_id.get(pid)
             if f is None or self.reference_time < f.kickoff_at - ABSENCES_KNOWN:
                 continue
+            covered.add(pid)
             for code in (f.home_team_provider_id, f.away_team_provider_id):
                 out.extend(self._team_sheet(f, code)[1])
-        return out
+        return AbsenceReport(out, frozenset(covered))
 
     def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
         out: list[LineupData] = []

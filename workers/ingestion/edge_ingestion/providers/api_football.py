@@ -36,6 +36,7 @@ from typing import Any
 
 from edge_ingestion.providers.base import (
     AbsenceData,
+    AbsenceReport,
     AppearanceData,
     FixtureData,
     FootballDataProvider,
@@ -226,7 +227,8 @@ class ApiFootballProvider(FootballDataProvider):
             year = current.get("year")
             start, end = current.get("start") or "", current.get("end") or ""
             calendar_year = bool(start[:4]) and start[:4] == end[:4]
-            odds = ((current.get("coverage") or {}).get("odds")) is True
+            coverage = current.get("coverage") or {}
+            odds = coverage.get("odds") is True
             return LeagueData(
                 provider_id=str(lg["id"]),
                 name=str(lg["name"]),
@@ -236,6 +238,7 @@ class ApiFootballProvider(FootballDataProvider):
                 season=season_label(int(year), calendar_year) if year else None,
                 season_year=int(year) if year else None,
                 has_odds=odds,
+                has_injuries=coverage.get("injuries") is True,
                 logo_url=lg.get("logo"),
                 flag_url=country.get("flag"),
             )
@@ -388,10 +391,16 @@ class ApiFootballProvider(FootballDataProvider):
 
     # -------------------------------------------------------------- team news
     def get_absences(self, fixtures: Mapping[str, datetime]) -> list[AbsenceData]:
+        return self.get_absence_report(fixtures).absences
+
+    def get_absence_report(self, fixtures: Mapping[str, datetime]) -> AbsenceReport:
+        """One /injuries request per kickoff day. Only days actually fetched are
+        covered: a day skipped for the request budget stays unknown."""
         by_day: dict[date, set[str]] = {}
         for pid, kickoff in fixtures.items():
             by_day.setdefault(kickoff.astimezone(UTC).date(), set()).add(pid)
         out: list[AbsenceData] = []
+        covered: set[str] = set()
         for day, wanted in sorted(by_day.items()):
             if not self.budget_ok():
                 break
@@ -400,7 +409,8 @@ class ApiFootballProvider(FootballDataProvider):
                 absence = self._parse_absence(item, wanted)
                 if absence:
                     out.append(absence)
-        return out
+            covered |= wanted
+        return AbsenceReport(out, frozenset(covered))
 
     @staticmethod
     def _parse_absence(item: Mapping[str, Any], wanted: set[str]) -> AbsenceData | None:
