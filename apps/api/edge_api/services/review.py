@@ -2,9 +2,9 @@
 
 For every fixture of a local calendar day: the newest prediction that existed
 before kickoff (pre-kickoff data, stored before kickoff), the market's fair
-probabilities from the odds that prediction used, and the result. The summary compares the hits with the
-number the probabilities expected (their sum): over a day both are small
-numbers, so a gap is usually luck, and the page says so.
+probabilities from the odds that prediction used, and the result. The summary
+compares the hits with the number the probabilities expected (their sum): over
+a day both are small numbers, so a gap is usually luck, and the page says so.
 """
 
 from __future__ import annotations
