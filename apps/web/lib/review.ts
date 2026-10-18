@@ -13,14 +13,12 @@ export function reviewSummaryText(s: ReviewSummary): string {
 
 /**
  * Was the day unusual? Compares hits with the expected number, scaled by the
- * spread a day of independent outcomes has (sum of p(1 - p)).
+ * spread of the same matches (the summary's sum of p(1 - p)), so matches
+ * outside the summary never change the verdict.
  */
-export function luckNote(items: ReviewItem[], s: ReviewSummary): string {
+export function luckNote(s: ReviewSummary): string {
   if (s.matches === 0) return "";
-  const variance = items
-    .filter((i) => i.hit !== null && i.top_probability !== null)
-    .reduce((acc, i) => acc + i.top_probability! * (1 - i.top_probability!), 0);
-  const sd = Math.sqrt(variance);
+  const sd = Math.sqrt(s.hit_variance);
   const gap = s.hits - s.expected_hits;
   if (Math.abs(gap) <= Math.max(1, 1.5 * sd)) {
     return "확률로 보면 흔히 나오는 범위예요. 하루 결과로 모델이 맞다 틀리다를 판단하기는 어려워요.";

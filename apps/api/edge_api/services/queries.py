@@ -100,8 +100,9 @@ def latest_prediction(session: Session, fixture_id: int) -> Prediction | None:
 def predictions_before_kickoff(
     session: Session, fixture_ids: Sequence[int]
 ) -> dict[int, Prediction]:
-    """Newest prediction per fixture built only from data before its kickoff
-    (what the service showed going into the match)."""
+    """Newest prediction per fixture that existed before its kickoff: built only
+    from pre-kickoff data AND stored before kickoff (what the service could show
+    going into the match). A re-analysis made after kickoff is never picked."""
     if not fixture_ids:
         return {}
     ranked = (
@@ -118,6 +119,7 @@ def predictions_before_kickoff(
         .where(
             Prediction.fixture_id.in_(fixture_ids),
             Prediction.input_data_as_of <= Fixture.kickoff_at,
+            Prediction.created_at <= Fixture.kickoff_at,
         )
         .subquery()
     )

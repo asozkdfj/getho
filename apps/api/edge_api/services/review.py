@@ -1,7 +1,7 @@
 """Match review: what the service said before a day's matches, and what happened.
 
-For every fixture of a local calendar day: the newest prediction built only
-from pre-kickoff data, the market's fair probabilities from the odds that
+For every fixture of a local calendar day: the newest prediction that existed
+before kickoff (pre-kickoff data, stored before kickoff), the market's fair probabilities from the odds that
 prediction used, and the result. The summary compares the hits with the
 number the probabilities expected (their sum): over a day both are small
 numbers, so a gap is usually luck, and the page says so.
@@ -103,6 +103,8 @@ def summarize(items: list[ReviewItem]) -> dict[str, Any]:
         "matches": len(done),
         "hits": hits,
         "expected_hits": sum(p for _, p in tops),
+        # spread of the hit count over these same matches (independent outcomes)
+        "hit_variance": sum(p * (1 - p) for _, p in tops),
         "market_hits": sum(1 for i in market if i.market_hit),
         "market_expected_hits": sum(i.market_top[1] for i in market if i.market_top),
         "tiers": tiers,

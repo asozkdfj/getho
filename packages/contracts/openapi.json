@@ -2872,7 +2872,7 @@
                 "type": "null"
               }
             ],
-            "description": "Newest prediction built only from data before kickoff",
+            "description": "Newest prediction built from pre-kickoff data and stored before kickoff",
             "title": "Prediction Id"
           },
           "status": {
@@ -3080,6 +3080,11 @@
             "title": "Expected Hits",
             "type": "number"
           },
+          "hit_variance": {
+            "description": "Sum of p(1 - p) over the same matches: the spread of the hit count",
+            "title": "Hit Variance",
+            "type": "number"
+          },
           "hits": {
             "title": "Hits",
             "type": "integer"
@@ -3109,6 +3114,7 @@
           "matches",
           "hits",
           "expected_hits",
+          "hit_variance",
           "market_hits",
           "market_expected_hits",
           "tiers"

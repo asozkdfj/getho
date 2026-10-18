@@ -1295,7 +1295,7 @@ export interface components {
             model_probabilities: components["schemas"]["ProbabilitiesOut"] | null;
             /**
              * Prediction Id
-             * @description Newest prediction built only from data before kickoff
+             * @description Newest prediction built from pre-kickoff data and stored before kickoff
              */
             prediction_id?: number | null;
             /** Status */
@@ -1358,6 +1358,11 @@ export interface components {
              * @description Sum of the predicted top-outcome probabilities
              */
             expected_hits: number;
+            /**
+             * Hit Variance
+             * @description Sum of p(1 - p) over the same matches: the spread of the hit count
+             */
+            hit_variance: number;
             /** Hits */
             hits: number;
             /** Market Expected Hits */

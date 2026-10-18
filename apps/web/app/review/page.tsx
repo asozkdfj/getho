@@ -59,7 +59,6 @@ export default async function ReviewPage({
   const data = await fetchReview(requested && DATE.test(requested) ? requested : undefined);
   const s = data.summary;
   const high = s.tiers.high;
-  const scored = data.items.filter((i) => i.hit !== null);
 
   return (
     <>
@@ -116,7 +115,7 @@ export default async function ReviewPage({
         {reviewSummaryText(s)} {marketText(s)}
       </p>
       <p className="muted small">
-        {luckNote(scored, s)} {data.note}
+        {luckNote(s)} {data.note}
         {!data.is_demo && " 위 숫자는 정확도를 검증한 리그 경기만 셉니다."}
       </p>
 

@@ -681,7 +681,7 @@ class ReviewItemOut(ApiModel):
     home_score: int | None
     away_score: int | None
     prediction_id: int | None = Field(
-        None, description="Newest prediction built only from data before kickoff"
+        None, description="Newest prediction built from pre-kickoff data and stored before kickoff"
     )
     model_probabilities: ProbabilitiesOut | None
     market_probabilities: ProbabilitiesOut | None = Field(
@@ -706,6 +706,9 @@ class ReviewSummaryOut(ApiModel):
     matches: int = Field(description="Finished matches with a pre-kickoff prediction")
     hits: int
     expected_hits: float = Field(description="Sum of the predicted top-outcome probabilities")
+    hit_variance: float = Field(
+        description="Sum of p(1 - p) over the same matches: the spread of the hit count"
+    )
     market_hits: int
     market_expected_hits: float
     tiers: dict[str, ReviewTierOut]
