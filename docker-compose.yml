@@ -58,7 +58,9 @@ services:
       context: .
       dockerfile: infra/docker/python.Dockerfile
       args:
-        GIT_SHA: ${GIT_SHA:-local}
+        # `make up` passes the commit; without it the build records "unknown"
+        # (the code fingerprint still identifies the exact source)
+        GIT_SHA: ${GIT_SHA:-unknown}
     environment:
       <<: *python-env
       RUN_MIGRATIONS_ON_STARTUP: "true"
@@ -84,7 +86,7 @@ services:
       context: .
       dockerfile: infra/docker/python.Dockerfile
       args:
-        GIT_SHA: ${GIT_SHA:-local}
+        GIT_SHA: ${GIT_SHA:-unknown}
     environment:
       <<: *python-env
       PIPELINE_INTERVAL_SECONDS: ${PIPELINE_INTERVAL_SECONDS:-1800}

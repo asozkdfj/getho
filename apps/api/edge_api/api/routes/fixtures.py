@@ -165,7 +165,7 @@ def get_prediction(
         prediction,
         now=now,
         settings=settings,
-        last_run=last_successful_run(db, settings.data_provider),
+        last_run=last_successful_run(db, settings.data_provider, as_of=now),
     )
     out.quality = QualityOut(
         ok=report.ok,

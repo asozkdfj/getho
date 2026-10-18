@@ -1423,3 +1423,13 @@ table.glossary th[scope="row"] {
 .status.muted {
   color: var(--muted);
 }
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

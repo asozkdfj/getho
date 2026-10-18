@@ -18,6 +18,8 @@ from edge_api.services.picks import (
     publish_daily_pick,
     settle_daily_picks,
 )
+from edge_ingestion.jobs import run_pipeline
+from edge_ingestion.providers import MockProvider
 
 
 def settings(**kw) -> Settings:
@@ -186,6 +188,52 @@ def test_decision_time_and_policy_version_are_recorded(session_factory, seeded, 
         assert pick.input_data_as_of <= pick_now
 
 
+def test_pick_manifest_records_build_settings_and_candidate_inputs(session_factory, seeded, now):
+    """Codex readiness audit: a decision must be traceable to its code, settings,
+    collection and the exact rows each candidate used."""
+    import hashlib
+    import json
+
+    from edge_api.versioning import build_info
+
+    def sha(value):
+        canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+        return hashlib.sha256(canonical.encode()).hexdigest()
+
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        manifest = pick.evidence["manifest"]
+        assert manifest["version"] == 1
+        assert manifest["build"] == build_info()
+        assert manifest["settings_sha256"] == sha(manifest["settings"])
+        assert manifest["settings"]["min_probability"] == pick.policy["min_probability"]
+        assert manifest["candidates_sha256"] == sha(pick.evidence["candidates"])
+        run = s.get(IngestionRun, manifest["collection"]["run_id"])
+        assert run.finished_at.isoformat() == manifest["collection"]["finished_at"]
+        assert run.finished_at <= pick_now
+        predicted = [c for c in pick.evidence["candidates"] if "inputs" in c]
+        assert predicted
+        for c in predicted:
+            p = s.get(Prediction, c["inputs"]["prediction_id"])
+            assert p.fixture_id == c["fixture_id"]
+            assert c["inputs"]["prediction_created_at"] == p.created_at.isoformat()
+            assert c["inputs"]["odds_snapshot_id"] == p.market_odds_snapshot_id
+            assert c["inputs"]["odds_captured_at"] <= pick_now.isoformat()
+            assert {q["name"] for q in c["quality"]} >= {"prediction_timely", "odds_fresh"}
+        chosen = next(c for c in predicted if c["fixture_id"] == pick.fixture_id)
+        assert chosen["inputs"]["prediction_id"] == pick.prediction_id
+
+
+def test_a_day_without_a_pick_has_a_manifest_too(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(pick_min_probability=0.999), pick_now)
+        assert pick.status == "no_qualifying_match"
+        assert pick.evidence["manifest"]["settings"]["min_probability"] == 0.999
+        assert pick.evidence["manifest"]["candidates_sha256"]
+
+
 def test_live_record_counts_only_picks_written_before_kickoff(session_factory, seeded, now):
     real = settings(data_provider="api_football")
     with session_factory() as s:
@@ -269,6 +317,44 @@ def test_pick_on_a_rescheduled_match_is_voided(session_factory, seeded, now):
         assert settle_daily_picks(s, settings(), pick_now)["voided"] == 0  # appended once
         # the original pick row is kept as published
         assert s.scalars(select(DailyPick)).one().fixture_id == f.id
+
+
+@pytest.mark.parametrize("first_seen", ["scheduled", "live", "finished"])
+def test_moved_pick_is_voided_whatever_state_the_match_is_first_seen_in(
+    session_factory, seeded, now, first_seen
+):
+    """Codex QA F3: a match moved off the pick day is voided before settlement, even
+    when the next collection already sees it live or finished."""
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(days=3)
+        f.status = first_seen
+        if first_seen == "finished":
+            f.home_score, f.away_score = 2, 1
+        s.flush()
+        later = f.kickoff_at + timedelta(hours=3)
+        assert settle_daily_picks(s, settings(), later) == {
+            "settled": 0,
+            "voided": 1,
+            "republished": 0,
+        }
+        assert settle_daily_picks(s, settings(), later)["voided"] == 0  # appended once
+        event = s.scalars(select(DailyPickEvent)).one()
+        assert event.event == "voided" and event.reason == "fixture rescheduled"
+
+
+def test_match_finished_inside_the_pick_day_is_settled(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(minutes=30)  # still inside the window
+        f.status, f.home_score, f.away_score = "finished", 1, 1
+        s.flush()
+        result = settle_daily_picks(s, settings(), f.kickoff_at + timedelta(hours=3))
+        assert (result["settled"], result["voided"]) == (1, 0)
 
 
 def test_replace_on_void_publishes_a_new_revision(session_factory, seeded, now):
@@ -358,3 +444,47 @@ def test_verified_leagues_come_from_the_backtest_report(session_factory):
         assert verified_league_ids(s, "mock") == frozenset()  # synthetic data is never verified
         real = settings(data_provider="api_football", pick_leagues="verified")
         assert eligible_league_ids(s, real) == verified
+
+
+# ------------------------------------------------- decision time (Codex QA F2)
+def test_live_pipeline_decides_after_its_own_writes(session_factory, now, monkeypatch):
+    """Production: the run's rows are stamped just after the ``now`` it started
+    with, and the pick must still be published from them."""
+    from conftest import set_test_wall_clock
+    from edge_ingestion import jobs
+
+    monkeypatch.setattr(jobs, "utcnow", lambda: now + timedelta(seconds=40))
+    with session_factory() as s:
+        set_test_wall_clock(s, now + timedelta(seconds=5))  # DB clock: transaction start
+        result = run_pipeline(
+            s, MockProvider(now), now=now, bookmaker="mockbook", settings=settings()
+        )
+        assert result.picks["published"] == "published"
+        pick = s.scalars(select(DailyPick)).one()
+        assert pick.evidence["decided_at"] == (now + timedelta(seconds=40)).isoformat()
+
+
+def test_pipeline_pinned_to_an_earlier_time_publishes_nothing_from_later_rows(
+    session_factory, now, monkeypatch
+):
+    """A replay at a past ``now`` whose rows are recorded later cannot claim a pick."""
+    from conftest import set_test_wall_clock
+    from edge_ingestion import jobs
+
+    monkeypatch.setattr(jobs, "utcnow", lambda: now + timedelta(hours=1))
+    with session_factory() as s:
+        set_test_wall_clock(s, now + timedelta(hours=1))
+        result = run_pipeline(
+            s,
+            MockProvider(now),
+            now=now,
+            bookmaker="mockbook",
+            settings=settings(),
+            decision_at=now,
+        )
+        assert result.picks["published"] == "no_qualifying_match"
+        candidates = s.scalars(select(DailyPick)).one().evidence["candidates"]
+        predicted = [row for row in candidates if "best_outcome" in row]
+        assert predicted
+        for row in predicted:
+            assert {"prediction_timely", "ingestion_recent"} <= set(row["excluded_reasons"])

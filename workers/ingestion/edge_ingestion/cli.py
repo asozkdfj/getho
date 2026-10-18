@@ -25,6 +25,7 @@ from edge_api.logging_setup import configure_logging
 from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
+from edge_api.versioning import build_info
 from edge_ingestion import (
     backtest_cli,
     draw_backtest,
@@ -158,11 +159,17 @@ def main(argv: list[str] | None = None) -> int:
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
+    sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
     bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     args = parser.parse_args(argv)
+
+    if args.command == "code-fingerprint":
+        # matches model_versions.code_fingerprint / pick evidence manifest.build
+        print(json.dumps(build_info(), indent=2))
+        return 0
 
     if args.command == "backtest-lineups":
         configure_logging(get_settings().log_level)
@@ -227,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "backfill-appearances":
             result = _backfill_appearances(settings, now, args.days, args.limit)
         else:
-            result = _run(args.command, settings, now)
+            result = _run(args.command, settings, now, pinned=args.now is not None)
     except (ProviderError, ValueError) as exc:
         # Clean, secret-free failure message instead of a traceback.
         print(json.dumps({"command": args.command, "error": str(exc)}), file=sys.stderr)
@@ -260,7 +267,9 @@ def _backfill_appearances(settings: Settings, now: datetime, days: int, limit: i
     return {"appearances_inserted": inserted, "requests_used": provider.requests_made}
 
 
-def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
+def _run(
+    command: str, settings: Settings, now: datetime, *, pinned: bool = False
+) -> dict[str, Any]:
     if command == "check-provider":
         result: dict[str, Any] = check_provider(settings, now)
     else:
@@ -289,6 +298,8 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                             now=now,
                             bookmaker=settings.bookmaker,
                             settings=settings,
+                            # a pinned clock decides at that time (see run_pipeline)
+                            decision_at=now if pinned else None,
                         )
                     except Exception as exc:
                         session.rollback()

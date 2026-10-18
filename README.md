@@ -90,8 +90,13 @@ make web-dev                         # http://localhost:3000 (API_INTERNAL_URL=h
 ```bash
 # .env 에 DATA_PROVIDER=api_football, API_FOOTBALL_KEY=... 설정 후
 make check-provider     # DB에 쓰지 않고 키와 응답 형식 검증 (약 6~8 요청)
-docker compose up -d --build
+make up                 # = GIT_SHA=<현재 커밋> docker compose up -d --build
 ```
+
+실데이터 운영은 `make up`(또는 `GIT_SHA=$(git rev-parse --short=12 HEAD) docker compose up -d --build`)으로
+띄웁니다. 그래야 예측의 모델 버전과 오늘의 픽 기록에 빌드 커밋이 남습니다. 커밋 없이 띄우면 `unknown`으로
+기록되지만, 코드 지문(`/health`의 `code_fingerprint`)은 항상 남습니다. 어느 커밋인지는 체크아웃에서
+`uv run edge code-fingerprint`로 같은 지문을 찾아 맞춥니다(ADR-023).
 
 ## 품질 명령
 

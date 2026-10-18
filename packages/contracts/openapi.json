@@ -1081,6 +1081,10 @@
             "title": "App Env",
             "type": "string"
           },
+          "code_fingerprint": {
+            "title": "Code Fingerprint",
+            "type": "string"
+          },
           "database": {
             "enum": [
               "ok",
@@ -1115,7 +1119,8 @@
           "database",
           "redis",
           "app_env",
-          "git_sha"
+          "git_sha",
+          "code_fingerprint"
         ],
         "title": "HealthOut",
         "type": "object"
@@ -1867,6 +1872,17 @@
           "calibration": {
             "title": "Calibration",
             "type": "string"
+          },
+          "code_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Fingerprint"
           },
           "feature_set": {
             "title": "Feature Set",
@@ -3216,11 +3232,16 @@
           },
           "outcome": {
             "$ref": "#/components/schemas/Outcome"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
           }
         },
         "required": [
           "fixture_id",
-          "outcome"
+          "outcome",
+          "prediction_id"
         ],
         "title": "SelectionIn",
         "type": "object"
@@ -3865,7 +3886,7 @@
   "paths": {
     "/combinations/analyze": {
       "post": {
-        "description": "Analyse 2-3 selections from *different* fixtures (independence approximation).",
+        "description": "Analyse 2-3 selections from *different* fixtures (independence approximation).\nA selection whose ``prediction_id`` is no longer the latest is refused (409).",
         "operationId": "analyze_combinations_analyze_post",
         "requestBody": {
           "content": {
@@ -3887,6 +3908,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
           },
           "422": {
             "content": {

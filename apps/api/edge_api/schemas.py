@@ -27,6 +27,7 @@ class HealthOut(ApiModel):
     redis: Literal["ok", "unavailable"]
     app_env: str
     git_sha: str
+    code_fingerprint: str
 
 
 class TeamOut(ApiModel):
@@ -246,6 +247,7 @@ class ModelVersionOut(ApiModel):
     name: str
     version: str
     git_sha: str
+    code_fingerprint: str | None = None
     feature_set: str
     calibration: str
 
@@ -290,6 +292,10 @@ class PredictionOut(ApiModel):
 class SelectionIn(ApiModel):
     fixture_id: int
     outcome: Outcome
+    # The prediction the user saw when choosing (its odds are the shown price). If a
+    # newer prediction exists the request is refused (409) instead of being priced
+    # on odds the user never saw.
+    prediction_id: int
 
 
 class CombinationRequest(ApiModel):

@@ -8,6 +8,7 @@ from sqlalchemy.exc import DBAPIError
 
 from edge_api.db.models import Fixture, ModelVersion, OddsSnapshot, Prediction
 from edge_api.services.prediction_job import run_prediction_job
+from edge_api.versioning import code_fingerprint
 from edge_ingestion.jobs import run_ingestion, run_pipeline
 from edge_ingestion.providers import MockProvider
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
@@ -71,7 +72,37 @@ def test_prediction_rows_have_required_audit_fields(db_session, seeded, now):
     mv = db_session.scalars(select(ModelVersion)).one()
     assert mv.version == MODEL_VERSION and mv.feature_set == FEATURE_SET
     assert mv.git_sha and mv.calibration == "identity"
+    assert mv.git_sha not in {"local", ""}
+    assert mv.code_fingerprint == code_fingerprint()
     assert "poisson_weight" in mv.params
+
+
+def test_changed_code_gets_its_own_model_version(db_session, seeded, now, monkeypatch):
+    """Same semver and commit label, different source: never filed under the old row."""
+    from edge_api.services import model_registry
+
+    before = db_session.scalars(select(ModelVersion)).one()
+    monkeypatch.setattr(model_registry, "code_fingerprint", lambda: "f" * 64)
+    db_session.add(
+        OddsSnapshot(
+            fixture_id=db_session.scalars(
+                select(Prediction.fixture_id).order_by(Prediction.id).limit(1)
+            ).one(),
+            provider="mock",
+            bookmaker=BOOKMAKER,
+            market="1X2",
+            captured_at=now,
+            odds_home=2.5,
+            odds_draw=3.3,
+            odds_away=2.9,
+            raw_payload={},
+        )
+    )
+    db_session.flush()
+    run_prediction_job(db_session, now=now, bookmaker=BOOKMAKER, provider="mock")
+    versions = db_session.scalars(select(ModelVersion).order_by(ModelVersion.id)).all()
+    assert [v.code_fingerprint for v in versions] == [before.code_fingerprint, "f" * 64]
+    assert versions[1].git_sha == before.git_sha
 
 
 def test_no_predictions_for_started_or_finished_fixtures(db_session, seeded, now):
