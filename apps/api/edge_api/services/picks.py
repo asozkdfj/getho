@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -48,11 +49,13 @@ from edge_api.db.models import (
 from edge_api.services import queries
 from edge_api.services.leagues import scoped_league_ids
 from edge_api.services.quality import assess, last_successful_run
+from edge_api.services.shadow import record_shadow_forecasts
 from edge_api.versioning import build_info
 from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
 from edge_ml.picks import PickCandidate, best_outcome, select_pick
+from edge_ml.shadow import PROTOCOL as SHADOW_PROTOCOL
 
 # Version of the selection policy recorded with every pick.
 # 1: candidates from the publish hour to local midnight (picks before ADR-016,
@@ -103,6 +106,8 @@ def _policy(settings: Settings) -> dict[str, Any]:
         "min_team_matches": settings.min_team_matches,
     }
 
+
+logger = logging.getLogger(__name__)
 
 MANIFEST_VERSION = 1
 
@@ -162,6 +167,37 @@ def _manifest(
         "out_of_scope_fixture_ids": sorted(f.id for f in all_fixtures if f.id not in scope_ids),
         "candidates_sha256": _sha256(evidence["candidates"]),
     }
+
+
+def _record_shadow(
+    session: Session,
+    settings: Settings,
+    day: date,
+    now: datetime,
+    all_fixtures: list[Fixture],
+    in_scope: list[Fixture],
+    preds: dict[int, Prediction],
+) -> dict[str, Any]:
+    """Private candidate forecasts at this decision (services/shadow.py). They
+    never affect the pick; a failure is logged in the evidence, not raised."""
+    scope_ids = {f.id for f in in_scope}
+    others = [f.id for f in all_fixtures if f.id not in scope_ids]
+    all_preds = preds | queries.latest_predictions_by_fixture(session, others, as_of=now)
+    try:
+        with session.begin_nested():
+            counts = record_shadow_forecasts(
+                session,
+                settings,
+                decision_date=day,
+                decided_at=now,
+                fixtures=all_fixtures,
+                in_scope=scope_ids,
+                predictions=all_preds,
+            )
+    except Exception as exc:  # the pick must not depend on the shadow record
+        logger.exception("shadow forecasts not recorded")
+        return {"protocol": SHADOW_PROTOCOL, "error": f"{type(exc).__name__}: {exc}"[:300]}
+    return {"protocol": SHADOW_PROTOCOL, **counts}
 
 
 def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | None:
@@ -295,6 +331,9 @@ def publish_daily_pick(
         "model": {"version": MODEL_VERSION, "feature_set": FEATURE_SET},
         "factors_used": MODEL_FACTORS,
     }
+    evidence["shadow"] = _record_shadow(
+        session, settings, ld.day, now, all_fixtures, fixtures, preds
+    )
     evidence["manifest"] = _manifest(settings, evidence, all_fixtures, fixtures, last_run)
     values: dict[str, Any] = {
         "provider": provider,

@@ -16,7 +16,8 @@ import json
 import sys
 from collections import Counter
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from edge_api.config import Settings, get_settings
@@ -164,11 +165,21 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
     sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
+    sr = sub.add_parser("shadow-report", help="private shadow forecasts: production vs market")
+    sr.add_argument(
+        "--start", type=date.fromisoformat, help="first decision day (default: protocol)"
+    )
+    sr.add_argument("--end", type=date.fromisoformat, help="last decision day (default: protocol)")
+    sr.add_argument("--out", type=Path, help="write the JSON report here")
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
     bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     args = parser.parse_args(argv)
+
+    if args.command == "shadow-report":
+        configure_logging(get_settings().log_level)
+        return _shadow_report(args)
 
     if args.command == "code-fingerprint":
         # matches model_versions.code_fingerprint / pick evidence manifest.build
@@ -267,6 +278,25 @@ def main(argv: list[str] | None = None) -> int:
             ensure_ascii=False,
         )
     )
+    return 0
+
+
+def _shadow_report(args: argparse.Namespace) -> int:
+    from edge_api.services.shadow import shadow_report
+    from edge_ml.shadow import EVALUATION_END, EVALUATION_START
+
+    with session_scope() as session:
+        report = shadow_report(
+            session,
+            get_settings().data_provider,
+            now=utcnow(),
+            start=args.start or EVALUATION_START,
+            end=args.end or EVALUATION_END,
+        )
+    text = json.dumps(report, indent=2, ensure_ascii=False)
+    if args.out:
+        args.out.write_text(text + "\n")
+    print(text)
     return 0
 
 

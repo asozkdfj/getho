@@ -376,3 +376,46 @@ class PlayerAppearance(Base):
     started: Mapped[bool] = mapped_column(Boolean)
     minutes: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class ShadowForecast(Base):
+    """One fixture's candidate forecasts at a day's pick decision time, recorded
+    next to the production prediction and never shown (append-only).
+
+    Every fixture of the pick window gets a row: ``recorded`` with all
+    candidates, or ``excluded`` with the reason (no prediction, no market odds,
+    stale odds, ...), so the comparison set and its exclusions stay auditable.
+    The candidate definitions are fixed by ``protocol`` (edge_ml.shadow).
+    """
+
+    __tablename__ = "shadow_forecasts"
+    __table_args__ = (
+        UniqueConstraint("provider", "decision_date", "protocol", "fixture_id", name="one_per_day"),
+        Index("ix_shadow_forecasts_decision", "provider", "protocol", "decision_date"),
+        CheckConstraint("status IN ('recorded', 'excluded')", name="status_known"),
+        CheckConstraint(
+            "(status = 'recorded') = (forecasts IS NOT NULL AND excluded_reason IS NULL)",
+            name="recorded_has_forecasts",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    protocol: Mapped[str] = mapped_column(String(32))
+    decision_date: Mapped[date] = mapped_column(Date)
+    decided_at: Mapped[datetime] = _ts()
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    kickoff_at: Mapped[datetime] = _ts()  # as known at the decision
+    in_pick_scope: Mapped[bool] = mapped_column(Boolean)
+    status: Mapped[str] = mapped_column(String(16))
+    excluded_reason: Mapped[str | None] = mapped_column(String(64))
+    prediction_id: Mapped[int | None] = mapped_column(ForeignKey("predictions.id"))
+    prediction_created_at: Mapped[datetime | None] = _ts()
+    input_data_as_of: Mapped[datetime | None] = _ts()
+    odds_snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("odds_snapshots.id"))
+    bookmaker: Mapped[str | None] = mapped_column(String(64))
+    odds_captured_at: Mapped[datetime | None] = _ts()
+    odds_stored_at: Mapped[datetime | None] = _ts()
+    forecasts: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    build: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
