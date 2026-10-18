@@ -27,6 +27,7 @@ class HealthOut(ApiModel):
     redis: Literal["ok", "unavailable"]
     app_env: str
     git_sha: str
+    code_fingerprint: str
 
 
 class TeamOut(ApiModel):
@@ -246,6 +247,7 @@ class ModelVersionOut(ApiModel):
     name: str
     version: str
     git_sha: str
+    code_fingerprint: str | None = None
     feature_set: str
     calibration: str
 

@@ -1081,6 +1081,10 @@
             "title": "App Env",
             "type": "string"
           },
+          "code_fingerprint": {
+            "title": "Code Fingerprint",
+            "type": "string"
+          },
           "database": {
             "enum": [
               "ok",
@@ -1115,7 +1119,8 @@
           "database",
           "redis",
           "app_env",
-          "git_sha"
+          "git_sha",
+          "code_fingerprint"
         ],
         "title": "HealthOut",
         "type": "object"
@@ -1867,6 +1872,17 @@
           "calibration": {
             "title": "Calibration",
             "type": "string"
+          },
+          "code_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Fingerprint"
           },
           "feature_set": {
             "title": "Feature Set",

@@ -23,6 +23,8 @@ their match kicked off.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -39,11 +41,14 @@ from edge_api.db.models import (
     DailyPickStatus,
     Fixture,
     FixtureStatus,
+    IngestionRun,
     ModelEvaluation,
+    Prediction,
 )
 from edge_api.services import queries
 from edge_api.services.leagues import scoped_league_ids
 from edge_api.services.quality import assess, last_successful_run
+from edge_api.versioning import build_info
 from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
@@ -96,6 +101,66 @@ def _policy(settings: Settings) -> dict[str, Any]:
         "odds_max_age_hours": settings.odds_max_age,
         "ingest_max_age_hours": settings.ingest_max_age_hours,
         "min_team_matches": settings.min_team_matches,
+    }
+
+
+MANIFEST_VERSION = 1
+
+
+def _iso(dt: datetime | None) -> str | None:
+    return dt.isoformat() if dt is not None else None
+
+
+def _sha256(value: Any) -> str:
+    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _input_times(p: Prediction) -> dict[str, Any]:
+    """Which rows a candidate's analysis came from, and when each was observed
+    (provider time) and stored (database time)."""
+    odds = p.odds_snapshot
+    return {
+        "prediction_id": p.id,
+        "model_version_id": p.model_version_id,
+        "prediction_created_at": _iso(p.created_at),
+        "input_data_as_of": _iso(p.input_data_as_of),
+        "odds_snapshot_id": odds.id if odds is not None else None,
+        "odds_bookmaker": odds.bookmaker if odds is not None else None,
+        "odds_captured_at": _iso(odds.captured_at) if odds is not None else None,
+        "odds_stored_at": _iso(odds.created_at) if odds is not None else None,
+    }
+
+
+def _manifest(
+    settings: Settings,
+    evidence: dict[str, Any],
+    all_fixtures: list[Fixture],
+    in_scope: list[Fixture],
+    last_run: IngestionRun | None,
+) -> dict[str, Any]:
+    """What a later audit needs to reproduce the decision: the code that made
+    it, the settings, the collection it relied on and a hash of the candidate
+    list (frozen with the pick; daily picks are append-only)."""
+    pick_settings = {
+        **_policy(settings),
+        "league_scope": settings.pick_leagues,
+        "data_provider": settings.data_provider,
+        "bookmaker": settings.bookmaker,
+    }
+    scope_ids = {f.id for f in in_scope}
+    return {
+        "version": MANIFEST_VERSION,
+        "build": build_info(),
+        "model": {"version": MODEL_VERSION, "feature_set": FEATURE_SET},
+        "settings": pick_settings,
+        "settings_sha256": _sha256(pick_settings),
+        "collection": {
+            "run_id": last_run.id if last_run else None,
+            "finished_at": _iso(last_run.finished_at) if last_run else None,
+        },
+        "out_of_scope_fixture_ids": sorted(f.id for f in all_fixtures if f.id not in scope_ids),
+        "candidates_sha256": _sha256(evidence["candidates"]),
     }
 
 
@@ -208,6 +273,9 @@ def publish_daily_pick(
                     candidates.append(PickCandidate(str(f.id), f.kickoff_at, probs))
                 else:
                     entry["excluded_reasons"].append("below_min_probability")
+        if p is not None:
+            entry["inputs"] = _input_times(p)
+        entry["quality"] = checks
         entry["eligible"] = not entry["excluded_reasons"]
         considered.append(entry)
 
@@ -227,6 +295,7 @@ def publish_daily_pick(
         "model": {"version": MODEL_VERSION, "feature_set": FEATURE_SET},
         "factors_used": MODEL_FACTORS,
     }
+    evidence["manifest"] = _manifest(settings, evidence, all_fixtures, fixtures, last_run)
     values: dict[str, Any] = {
         "provider": provider,
         "pick_date": ld.day,

@@ -612,6 +612,8 @@ export interface components {
         HealthOut: {
             /** App Env */
             app_env: string;
+            /** Code Fingerprint */
+            code_fingerprint: string;
             /**
              * Database
              * @enum {string}
@@ -936,6 +938,8 @@ export interface components {
         ModelVersionOut: {
             /** Calibration */
             calibration: string;
+            /** Code Fingerprint */
+            code_fingerprint?: string | null;
             /** Feature Set */
             feature_set: string;
             /** Git Sha */

@@ -25,6 +25,7 @@ def test_health(client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok" and body["database"] == "ok"
+    assert len(body["code_fingerprint"]) == 64
 
 
 def test_list_fixtures_defaults_to_today_utc(client, now):
