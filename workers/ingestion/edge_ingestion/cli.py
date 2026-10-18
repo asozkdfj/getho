@@ -27,6 +27,7 @@ from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_ingestion import (
     backtest_cli,
+    calibration_backtest,
     draw_backtest,
     fatigue_backtest,
     goal_markets_backtest,
@@ -117,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
     market_backtest.add_arguments(
         sub.add_parser("backtest-market", help="model vs market, and blending with the market")
     )
+    calibration_backtest.add_arguments(
+        sub.add_parser("backtest-calibration", help="recalibrate the most likely outcome?")
+    )
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
@@ -158,6 +162,12 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(get_settings().log_level)
         report = market_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "backtest-calibration":
+        configure_logging(get_settings().log_level)
+        report = calibration_backtest.run(args)
+        print(json.dumps({"chosen": report["chosen"], **report["gate"]}, indent=2))
         return 0
 
     if args.command == "backtest-goal-markets":
