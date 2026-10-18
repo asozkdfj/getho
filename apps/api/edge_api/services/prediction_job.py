@@ -25,6 +25,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from edge_api.db.models import Fixture, FixtureStatus, League, LeagueType, OddsSnapshot, Prediction
+from edge_api.services import queries
 from edge_api.services.model_registry import get_or_create_model_version
 from edge_api.timeutil import ensure_utc
 from edge_ml.core import MatchResult
@@ -49,7 +50,10 @@ class PredictionJobResult:
     skipped_no_history: int = 0
 
 
-def _training_matches(session: Session, now: datetime, league_id: int) -> list[MatchResult]:
+def _training_matches(
+    session: Session, now: datetime, league_id: int
+) -> tuple[list[MatchResult], list[int]]:
+    """Finished matches before ``now`` and their fixture ids."""
     stmt = select(Fixture).where(
         Fixture.league_id == league_id,
         Fixture.status == FixtureStatus.FINISHED.value,
@@ -57,7 +61,8 @@ def _training_matches(session: Session, now: datetime, league_id: int) -> list[M
         Fixture.home_score.is_not(None),
         Fixture.away_score.is_not(None),
     )
-    return [
+    fixtures = session.scalars(stmt).unique().all()
+    matches = [
         MatchResult(
             home=str(f.home_team_id),
             away=str(f.away_team_id),
@@ -66,8 +71,24 @@ def _training_matches(session: Session, now: datetime, league_id: int) -> list[M
             kickoff_at=f.kickoff_at,
             season=f.season,
         )
-        for f in session.scalars(stmt).unique()
+        for f in fixtures
     ]
+    return matches, [f.id for f in fixtures]
+
+
+def _results_provenance(
+    session: Session, matches: list[MatchResult], fixture_ids: list[int]
+) -> dict[str, object]:
+    """When the training results became known: the latest kickoff (what
+    ``input_data_as_of`` uses) and the latest time a result was first stored
+    (fixture_observations), plus how many results have no observation."""
+    observed = queries.result_first_observed(session, fixture_ids)
+    return {
+        "results_count": len(matches),
+        "results_kickoff_until": max(m.kickoff_at for m in matches).isoformat(),
+        "results_observed_until": max(observed.values()).isoformat() if observed else None,
+        "results_without_observation": len(fixture_ids) - len(observed),
+    }
 
 
 def _latest_snapshot(
@@ -126,7 +147,9 @@ def run_prediction_job(
         skipped_no_odds += len(fixtures) - len(with_odds)
         if not with_odds:
             continue
-        matches = _training_matches(session, now, league_id) if league.results_synced_at else []
+        matches, match_ids = (
+            _training_matches(session, now, league_id) if league.results_synced_at else ([], [])
+        )
         if len(matches) < MIN_TRAINING_MATCHES:
             skipped_history += len(with_odds)
             continue
@@ -134,6 +157,7 @@ def run_prediction_job(
             params=replace(template.params), calibrator=template.calibrator
         ).fit(matches, as_of=now)
         results_as_of = max(m.kickoff_at for m in matches)
+        provenance = _results_provenance(session, matches, match_ids)
         leagues += 1
         for fixture in with_odds:
             snapshot = snapshots[fixture.id]
@@ -154,7 +178,7 @@ def run_prediction_job(
                     probability_away=out.probabilities.away,
                     expected_goals_home=out.expected_goals_home,
                     expected_goals_away=out.expected_goals_away,
-                    features=out.features,
+                    features={**out.features, **provenance},
                 )
                 .on_conflict_do_nothing(constraint="uq_predictions_idempotency_key")
                 .returning(Prediction.id)

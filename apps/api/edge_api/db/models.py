@@ -419,3 +419,28 @@ class ShadowForecast(Base):
     forecasts: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     build: Mapped[dict[str, Any]] = mapped_column(JSONB)
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class FixtureObservation(Base):
+    """What we knew about a fixture's state, and when (append-only).
+
+    A row is written whenever ingestion stores a change to the status, kickoff
+    or score, so the first time a result was available and any later correction
+    stay on record (``fixtures`` itself only holds the latest state).
+    ``created_at`` is when the state was stored: the earliest moment a decision
+    could have seen it. Rows from migration 0008 (``source="backfill"``) use the
+    fixture's ``updated_at`` then, an upper bound of the true first observation.
+    """
+
+    __tablename__ = "fixture_observations"
+    __table_args__ = (Index("ix_fixture_observations_fixture", "fixture_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(16))
+    kickoff_at: Mapped[datetime] = _ts()
+    home_score: Mapped[int | None] = mapped_column(Integer)
+    away_score: Mapped[int | None] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(16), default="ingest")
+    created_at: Mapped[datetime] = _ts(server_default=func.now())

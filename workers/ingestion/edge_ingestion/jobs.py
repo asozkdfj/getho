@@ -218,7 +218,41 @@ def ingest_fixtures(
             where=or_(*(getattr(Fixture, c).is_distinct_from(getattr(ex, c)) for c in mutable)),
         ).returning(Fixture.id)
 
-    return teams_changed, _returning_count(session, stmt, rows)
+    changed_ids: list[int] = []
+    for i in range(0, len(rows), CHUNK):
+        changed_ids += session.scalars(stmt(rows[i : i + CHUNK])).all()
+    record_observations(session, changed_ids)
+    return teams_changed, len(changed_ids)
+
+
+RECORD_OBSERVATIONS = text(
+    """
+    INSERT INTO fixture_observations
+        (fixture_id, provider, status, kickoff_at, home_score, away_score, source)
+    SELECT f.id, f.provider, f.status, f.kickoff_at, f.home_score, f.away_score, 'ingest'
+    FROM fixtures f
+    LEFT JOIN LATERAL (
+        SELECT o.status, o.kickoff_at, o.home_score, o.away_score
+        FROM fixture_observations o
+        WHERE o.fixture_id = f.id
+        ORDER BY o.created_at DESC, o.id DESC
+        LIMIT 1
+    ) last ON true
+    WHERE f.id = ANY(:ids)
+      AND (last.status IS NULL
+           OR (last.status, last.kickoff_at, last.home_score, last.away_score)
+              IS DISTINCT FROM (f.status, f.kickoff_at, f.home_score, f.away_score))
+    """
+)
+
+
+def record_observations(session: Session, fixture_ids: list[int]) -> int:
+    """Append the current state of these fixtures to ``fixture_observations``
+    where it differs from the last observation (a change to round or season
+    alone is not a new observation). Returns rows written."""
+    if not fixture_ids:
+        return 0
+    return session.execute(RECORD_OBSERVATIONS, {"ids": fixture_ids}).rowcount
 
 
 def mark_results_synced(session: Session, provider: str, now: datetime) -> None:

@@ -8,7 +8,14 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from edge_api.db.models import Fixture, League, OddsSnapshot, Prediction
+from edge_api.db.models import (
+    Fixture,
+    FixtureObservation,
+    FixtureStatus,
+    League,
+    OddsSnapshot,
+    Prediction,
+)
 
 
 def fixtures_between(
@@ -125,3 +132,76 @@ def predictions_before_kickoff(
     )
     stmt = select(Prediction).join(ranked, ranked.c.id == Prediction.id).where(ranked.c.rn == 1)
     return {p.fixture_id: p for p in session.scalars(stmt).unique()}
+
+
+def latest_observations(
+    session: Session, fixture_ids: Sequence[int]
+) -> Sequence[FixtureObservation]:
+    """The newest stored observation of each fixture."""
+    if not fixture_ids:
+        return []
+    ranked = (
+        select(
+            FixtureObservation.id,
+            func.row_number()
+            .over(
+                partition_by=FixtureObservation.fixture_id,
+                order_by=(FixtureObservation.created_at.desc(), FixtureObservation.id.desc()),
+            )
+            .label("rn"),
+        )
+        .where(FixtureObservation.fixture_id.in_(fixture_ids))
+        .subquery()
+    )
+    return session.scalars(
+        select(FixtureObservation)
+        .join(ranked, ranked.c.id == FixtureObservation.id)
+        .where(ranked.c.rn == 1)
+    ).all()
+
+
+def result_first_observed(session: Session, fixture_ids: Sequence[int]) -> dict[int, datetime]:
+    """When a final result was first stored for each fixture (the earliest
+    moment any decision could have used it). Fixtures without one are absent."""
+    if not fixture_ids:
+        return {}
+    rows = session.execute(
+        select(FixtureObservation.fixture_id, func.min(FixtureObservation.created_at))
+        .where(
+            FixtureObservation.fixture_id.in_(fixture_ids),
+            FixtureObservation.status == FixtureStatus.FINISHED.value,
+            FixtureObservation.home_score.is_not(None),
+            FixtureObservation.away_score.is_not(None),
+        )
+        .group_by(FixtureObservation.fixture_id)
+    ).all()
+    return {fid: at for fid, at in rows}
+
+
+def result_history(session: Session, fixture_id: int) -> list[dict[str, object]]:
+    """Every stored state of a fixture in order, with whether the final score
+    differs from the first one that was recorded (a correction)."""
+    rows = session.scalars(
+        select(FixtureObservation)
+        .where(FixtureObservation.fixture_id == fixture_id)
+        .order_by(FixtureObservation.created_at, FixtureObservation.id)
+    ).all()
+    first_final: tuple[int | None, int | None] | None = None
+    out: list[dict[str, object]] = []
+    for o in rows:
+        score = (o.home_score, o.away_score)
+        final = o.status == FixtureStatus.FINISHED.value and None not in score
+        if final and first_final is None:
+            first_final = score
+        out.append(
+            {
+                "observed_at": o.created_at,
+                "source": o.source,
+                "status": o.status,
+                "kickoff_at": o.kickoff_at,
+                "home_score": o.home_score,
+                "away_score": o.away_score,
+                "corrects_result": final and first_final is not None and score != first_final,
+            }
+        )
+    return out
