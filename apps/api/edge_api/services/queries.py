@@ -95,3 +95,33 @@ def latest_predictions_by_fixture(
 
 def latest_prediction(session: Session, fixture_id: int) -> Prediction | None:
     return latest_predictions_by_fixture(session, [fixture_id]).get(fixture_id)
+
+
+def predictions_before_kickoff(
+    session: Session, fixture_ids: Sequence[int]
+) -> dict[int, Prediction]:
+    """Newest prediction per fixture that existed before its kickoff: built only
+    from pre-kickoff data AND stored before kickoff (what the service could show
+    going into the match). A re-analysis made after kickoff is never picked."""
+    if not fixture_ids:
+        return {}
+    ranked = (
+        select(
+            Prediction.id,
+            func.row_number()
+            .over(
+                partition_by=Prediction.fixture_id,
+                order_by=(Prediction.created_at.desc(), Prediction.id.desc()),
+            )
+            .label("rn"),
+        )
+        .join(Fixture, Fixture.id == Prediction.fixture_id)
+        .where(
+            Prediction.fixture_id.in_(fixture_ids),
+            Prediction.input_data_as_of <= Fixture.kickoff_at,
+            Prediction.created_at <= Fixture.kickoff_at,
+        )
+        .subquery()
+    )
+    stmt = select(Prediction).join(ranked, ranked.c.id == Prediction.id).where(ranked.c.rn == 1)
+    return {p.fixture_id: p for p in session.scalars(stmt).unique()}

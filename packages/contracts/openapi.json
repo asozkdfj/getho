@@ -2774,6 +2774,393 @@
         "title": "ReplayOut",
         "type": "object"
       },
+      "ReviewItemOut": {
+        "properties": {
+          "actual_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "hit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit"
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "league": {
+            "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "market_hit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Hit"
+          },
+          "market_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fair market probabilities of the odds that prediction used"
+          },
+          "market_top_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_probabilities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbabilitiesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prediction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Newest prediction built from pre-kickoff data and stored before kickoff",
+            "title": "Prediction Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "enum": [
+                  "high",
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "top_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "top_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Probability"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "league",
+          "kickoff_at",
+          "status",
+          "home_team",
+          "away_team",
+          "home_score",
+          "away_score",
+          "model_probabilities",
+          "top_outcome",
+          "top_probability",
+          "tier",
+          "market_top_outcome",
+          "actual_outcome",
+          "hit",
+          "market_hit"
+        ],
+        "title": "ReviewItemOut",
+        "type": "object"
+      },
+      "ReviewOut": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "default": "하루치 결과는 표본이 작아 운의 영향이 큽니다. 기대 적중 수(확률의 합)와 실제 적중 수를 여러 날에 걸쳐 비교해야 확률이 맞는지 알 수 있어요.",
+            "title": "Note",
+            "type": "string"
+          },
+          "pick": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewPickOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "range_end_utc": {
+            "format": "date-time",
+            "title": "Range End Utc",
+            "type": "string"
+          },
+          "range_start_utc": {
+            "format": "date-time",
+            "title": "Range Start Utc",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ReviewSummaryOut",
+            "description": "Verified leagues (all leagues on demo data)"
+          },
+          "summary_all": {
+            "$ref": "#/components/schemas/ReviewSummaryOut"
+          },
+          "tz": {
+            "title": "Tz",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "tz",
+          "is_demo",
+          "range_start_utc",
+          "range_end_utc",
+          "summary",
+          "summary_all",
+          "pick",
+          "items"
+        ],
+        "title": "ReviewOut",
+        "type": "object"
+      },
+      "ReviewPickOut": {
+        "properties": {
+          "fixture_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixture Id"
+          },
+          "hit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "published",
+              "no_qualifying_match",
+              "no_matches",
+              "voided",
+              "settled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "outcome",
+          "probability",
+          "fixture_id",
+          "hit"
+        ],
+        "title": "ReviewPickOut",
+        "type": "object"
+      },
+      "ReviewSummaryOut": {
+        "properties": {
+          "expected_hits": {
+            "description": "Sum of the predicted top-outcome probabilities",
+            "title": "Expected Hits",
+            "type": "number"
+          },
+          "hit_variance": {
+            "description": "Sum of p(1 - p) over the same matches: the spread of the hit count",
+            "title": "Hit Variance",
+            "type": "number"
+          },
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "market_expected_hits": {
+            "title": "Market Expected Hits",
+            "type": "number"
+          },
+          "market_hits": {
+            "title": "Market Hits",
+            "type": "integer"
+          },
+          "matches": {
+            "description": "Finished matches with a pre-kickoff prediction",
+            "title": "Matches",
+            "type": "integer"
+          },
+          "tiers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReviewTierOut"
+            },
+            "title": "Tiers",
+            "type": "object"
+          }
+        },
+        "required": [
+          "matches",
+          "hits",
+          "expected_hits",
+          "hit_variance",
+          "market_hits",
+          "market_expected_hits",
+          "tiers"
+        ],
+        "title": "ReviewSummaryOut",
+        "type": "object"
+      },
+      "ReviewTierOut": {
+        "properties": {
+          "expected_hits": {
+            "title": "Expected Hits",
+            "type": "number"
+          },
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "matches": {
+            "title": "Matches",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matches",
+          "hits",
+          "expected_hits"
+        ],
+        "title": "ReviewTierOut",
+        "type": "object"
+      },
       "ScoreFrequencyOut": {
         "properties": {
           "away": {
@@ -4227,6 +4614,70 @@
         "summary": "Today",
         "tags": [
           "picks"
+        ]
+      }
+    },
+    "/review": {
+      "get": {
+        "operationId": "review_review_get",
+        "parameters": [
+          {
+            "description": "Local date (YYYY-MM-DD) in `tz`. Default: yesterday",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Local date (YYYY-MM-DD) in `tz`. Default: yesterday",
+              "title": "Date"
+            }
+          },
+          {
+            "description": "IANA timezone; default: the pick timezone",
+            "in": "query",
+            "name": "tz",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "IANA timezone; default: the pick timezone",
+              "title": "Tz",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review",
+        "tags": [
+          "review"
         ]
       }
     },

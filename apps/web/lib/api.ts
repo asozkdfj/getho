@@ -10,6 +10,7 @@ import type {
   Performance,
   PickHistory,
   Prediction,
+  Review,
   TodayPick,
 } from "@edge/contracts";
 
@@ -93,6 +94,10 @@ export function fetchHighlights(params: { days?: number; limit?: number; leagueI
 
 export function fetchTodayPick() {
   return getJson<TodayPick>("/picks/today");
+}
+
+export function fetchReview(date?: string) {
+  return getJson<Review>(date ? `/review?date=${encodeURIComponent(date)}` : "/review");
 }
 
 export function fetchPickHistory(limit = 60) {

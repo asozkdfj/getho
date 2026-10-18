@@ -229,6 +229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review */
+        get: operations["review_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/status/data": {
         parameters: {
             query?: never;
@@ -1256,6 +1273,126 @@ export interface components {
             /** Home Goals */
             home_goals: number;
         };
+        /** ReviewItemOut */
+        ReviewItemOut: {
+            actual_outcome: components["schemas"]["Outcome"] | null;
+            /** Away Score */
+            away_score: number | null;
+            away_team: components["schemas"]["TeamOut"];
+            /** Fixture Id */
+            fixture_id: number;
+            /** Hit */
+            hit: boolean | null;
+            /** Home Score */
+            home_score: number | null;
+            home_team: components["schemas"]["TeamOut"];
+            /**
+             * Kickoff At
+             * Format: date-time
+             */
+            kickoff_at: string;
+            league: components["schemas"]["LeagueRefOut"];
+            /** Market Hit */
+            market_hit: boolean | null;
+            /** @description Fair market probabilities of the odds that prediction used */
+            market_probabilities?: components["schemas"]["ProbabilitiesOut"] | null;
+            market_top_outcome: components["schemas"]["Outcome"] | null;
+            model_probabilities: components["schemas"]["ProbabilitiesOut"] | null;
+            /**
+             * Prediction Id
+             * @description Newest prediction built from pre-kickoff data and stored before kickoff
+             */
+            prediction_id?: number | null;
+            /** Status */
+            status: string;
+            /** Tier */
+            tier: ("high" | "medium") | null;
+            top_outcome: components["schemas"]["Outcome"] | null;
+            /** Top Probability */
+            top_probability: number | null;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /** Date */
+            date: string;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Items */
+            items: components["schemas"]["ReviewItemOut"][];
+            /**
+             * Note
+             * @default 하루치 결과는 표본이 작아 운의 영향이 큽니다. 기대 적중 수(확률의 합)와 실제 적중 수를 여러 날에 걸쳐 비교해야 확률이 맞는지 알 수 있어요.
+             */
+            note: string;
+            pick: components["schemas"]["ReviewPickOut"] | null;
+            /**
+             * Range End Utc
+             * Format: date-time
+             */
+            range_end_utc: string;
+            /**
+             * Range Start Utc
+             * Format: date-time
+             */
+            range_start_utc: string;
+            /** @description Verified leagues (all leagues on demo data) */
+            summary: components["schemas"]["ReviewSummaryOut"];
+            summary_all: components["schemas"]["ReviewSummaryOut"];
+            /** Tz */
+            tz: string;
+        };
+        /** ReviewPickOut */
+        ReviewPickOut: {
+            /** Fixture Id */
+            fixture_id: number | null;
+            /** Hit */
+            hit: boolean | null;
+            outcome: components["schemas"]["Outcome"] | null;
+            /** Probability */
+            probability: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "published" | "no_qualifying_match" | "no_matches" | "voided" | "settled";
+        };
+        /** ReviewSummaryOut */
+        ReviewSummaryOut: {
+            /**
+             * Expected Hits
+             * @description Sum of the predicted top-outcome probabilities
+             */
+            expected_hits: number;
+            /**
+             * Hit Variance
+             * @description Sum of p(1 - p) over the same matches: the spread of the hit count
+             */
+            hit_variance: number;
+            /** Hits */
+            hits: number;
+            /** Market Expected Hits */
+            market_expected_hits: number;
+            /** Market Hits */
+            market_hits: number;
+            /**
+             * Matches
+             * @description Finished matches with a pre-kickoff prediction
+             */
+            matches: number;
+            /** Tiers */
+            tiers: {
+                [key: string]: components["schemas"]["ReviewTierOut"];
+            };
+        };
+        /** ReviewTierOut */
+        ReviewTierOut: {
+            /** Expected Hits */
+            expected_hits: number;
+            /** Hits */
+            hits: number;
+            /** Matches */
+            matches: number;
+        };
         /** ScoreFrequencyOut */
         ScoreFrequencyOut: {
             /** Away */
@@ -1923,6 +2060,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodayPickOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    review_review_get: {
+        parameters: {
+            query?: {
+                /** @description Local date (YYYY-MM-DD) in `tz`. Default: yesterday */
+                date?: string | null;
+                /** @description IANA timezone; default: the pick timezone */
+                tz?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
                 };
             };
             /** @description Unprocessable Entity */

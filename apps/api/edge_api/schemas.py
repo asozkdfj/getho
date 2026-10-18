@@ -674,3 +674,71 @@ class PerformanceOut(ApiModel):
 
 
 PredictionOut.model_rebuild()
+
+
+# ---------------------------------------------------------------- review
+class ReviewItemOut(ApiModel):
+    fixture_id: int
+    league: LeagueRefOut
+    kickoff_at: datetime
+    status: str
+    home_team: TeamOut
+    away_team: TeamOut
+    home_score: int | None
+    away_score: int | None
+    prediction_id: int | None = Field(
+        None, description="Newest prediction built from pre-kickoff data and stored before kickoff"
+    )
+    model_probabilities: ProbabilitiesOut | None
+    market_probabilities: ProbabilitiesOut | None = Field(
+        None, description="Fair market probabilities of the odds that prediction used"
+    )
+    top_outcome: Outcome | None
+    top_probability: float | None
+    tier: Literal["high", "medium"] | None
+    market_top_outcome: Outcome | None
+    actual_outcome: Outcome | None
+    hit: bool | None
+    market_hit: bool | None
+
+
+class ReviewTierOut(ApiModel):
+    matches: int
+    hits: int
+    expected_hits: float
+
+
+class ReviewSummaryOut(ApiModel):
+    matches: int = Field(description="Finished matches with a pre-kickoff prediction")
+    hits: int
+    expected_hits: float = Field(description="Sum of the predicted top-outcome probabilities")
+    hit_variance: float = Field(
+        description="Sum of p(1 - p) over the same matches: the spread of the hit count"
+    )
+    market_hits: int
+    market_expected_hits: float
+    tiers: dict[str, ReviewTierOut]
+
+
+class ReviewPickOut(ApiModel):
+    status: TodayPickStatus
+    outcome: Outcome | None
+    probability: float | None
+    fixture_id: int | None
+    hit: bool | None
+
+
+class ReviewOut(ApiModel):
+    date: str
+    tz: str
+    is_demo: bool
+    range_start_utc: datetime
+    range_end_utc: datetime
+    summary: ReviewSummaryOut = Field(description="Verified leagues (all leagues on demo data)")
+    summary_all: ReviewSummaryOut
+    pick: ReviewPickOut | None
+    items: list[ReviewItemOut]
+    note: str = (
+        "하루치 결과는 표본이 작아 운의 영향이 큽니다. 기대 적중 수(확률의 합)와 실제 적중 수를 "
+        "여러 날에 걸쳐 비교해야 확률이 맞는지 알 수 있어요."
+    )
