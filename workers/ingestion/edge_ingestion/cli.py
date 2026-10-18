@@ -185,7 +185,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "backfill-appearances":
             result = _backfill_appearances(settings, now, args.days, args.limit)
         else:
-            result = _run(args.command, settings, now)
+            result = _run(args.command, settings, now, pinned=args.now is not None)
     except (ProviderError, ValueError) as exc:
         # Clean, secret-free failure message instead of a traceback.
         print(json.dumps({"command": args.command, "error": str(exc)}), file=sys.stderr)
@@ -218,7 +218,9 @@ def _backfill_appearances(settings: Settings, now: datetime, days: int, limit: i
     return {"appearances_inserted": inserted, "requests_used": provider.requests_made}
 
 
-def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
+def _run(
+    command: str, settings: Settings, now: datetime, *, pinned: bool = False
+) -> dict[str, Any]:
     if command == "check-provider":
         result: dict[str, Any] = check_provider(settings, now)
     else:
@@ -247,6 +249,8 @@ def _run(command: str, settings: Settings, now: datetime) -> dict[str, Any]:
                             now=now,
                             bookmaker=settings.bookmaker,
                             settings=settings,
+                            # a pinned clock decides at that time (see run_pipeline)
+                            decision_at=now if pinned else None,
                         )
                     except Exception as exc:
                         session.rollback()

@@ -126,6 +126,8 @@ class Fixture(Base):
     status: Mapped[str] = mapped_column(String(16), default=FixtureStatus.SCHEDULED.value)
     home_score: Mapped[int | None] = mapped_column(Integer)
     away_score: Mapped[int | None] = mapped_column(Integer)
+    # last time an overdue lookup asked the provider for this fixture (rotation)
+    reconcile_checked_at: Mapped[datetime | None] = _ts()
     created_at: Mapped[datetime] = _ts(server_default=func.now())
     updated_at: Mapped[datetime] = _ts(server_default=func.now())
 

@@ -55,6 +55,7 @@ export function CombinationBuilder({
   const [selections, setSelections] = useState<Selections>({});
   const [result, setResult] = useState<Combination | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [outdated, setOutdated] = useState(false); // error is a 409: the shown odds changed
   const [loading, setLoading] = useState(false);
   const [league, setLeague] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -128,10 +129,11 @@ export function CombinationBuilder({
     const ticket = request.start();
     setLoading(true);
     setError(null);
-    const outcome = await requestAnalysis(chosen, ticket);
+    const outcome = await requestAnalysis(chosen, ticket, fixtures);
     if (outcome.kind === "stale") return;
     setLoading(false);
-    if (outcome.kind === "error") {
+    setOutdated(outcome.kind === "outdated");
+    if (outcome.kind === "error" || outcome.kind === "outdated") {
       setError(outcome.message);
       setResult(null);
     } else {
@@ -351,6 +353,14 @@ export function CombinationBuilder({
       {error && (
         <p className="error" role="alert" ref={errorRef} tabIndex={-1}>
           {error}
+          {outdated && (
+            <>
+              {" "}
+              <button type="button" className="link-button" onClick={() => location.reload()}>
+                새로고침
+              </button>
+            </>
+          )}
         </p>
       )}
       {result && <CombinationResult result={result} tz={tz} ref={resultRef} />}

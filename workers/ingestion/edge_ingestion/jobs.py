@@ -303,7 +303,11 @@ def reconcile_overdue_fixtures(
     window did not return: a match moved to another date (postponed and
     rescheduled) or dropped by the provider. Without this they would stay
     "scheduled" with a past kickoff, and a pick on them would never settle.
-    Returns (fixtures_changed, still_unresolved)."""
+
+    Batches rotate: fixtures never asked about come first, then the ones asked
+    about longest ago, so fixtures the provider keeps not returning cannot hold
+    the batch and starve the rest. Returns (fixtures_changed, still_unresolved)
+    for this batch; the log also reports the whole backlog."""
     overdue = session.scalars(
         select(Fixture.provider_id)
         .where(
@@ -312,19 +316,33 @@ def reconcile_overdue_fixtures(
             Fixture.kickoff_at < now - OVERDUE_AFTER,
             Fixture.kickoff_at >= now - OVERDUE_LOOKBACK,
         )
-        .order_by(Fixture.kickoff_at.desc())
+        .order_by(
+            Fixture.reconcile_checked_at.asc().nulls_first(),
+            Fixture.kickoff_at.desc(),
+            Fixture.id,
+        )
     ).all()
-    missing = [pid for pid in overdue if pid not in seen][: max(limit, 0)]
+    backlog = [pid for pid in overdue if pid not in seen]
+    missing = backlog[: max(limit, 0)]
     if not missing:
         return 0, 0
     if not provider.budget_ok():
-        logger.warning("request budget low: %d overdue fixtures checked next run", len(missing))
+        logger.warning("request budget low: %d overdue fixtures checked next run", len(backlog))
         return 0, len(missing)
+    session.execute(
+        update(Fixture)
+        .where(Fixture.provider == provider.name, Fixture.provider_id.in_(missing))
+        .values(reconcile_checked_at=now)
+    )
     found = provider.get_fixtures_by_ids(missing)
     _, changed = ingest_fixtures(session, provider.name, found)
     unresolved = len(set(missing) - {f.provider_id for f in found})
-    if unresolved:
-        logger.warning("%d overdue fixtures not returned by the provider", unresolved)
+    if unresolved or len(backlog) > len(missing):
+        logger.warning(
+            "overdue fixtures: %d not returned by the provider, %d left for later runs",
+            unresolved,
+            len(backlog) - len(missing),
+        )
     return changed, unresolved
 
 
@@ -432,9 +450,16 @@ def run_pipeline(
     now: datetime,
     bookmaker: str,
     settings: Settings | None = None,
+    decision_at: datetime | None = None,
 ) -> PipelineResult:
     """Ingest, predict, settle and (when due) publish Today's Pick in one
-    transaction, guarded by an advisory lock. Each run is logged."""
+    transaction, guarded by an advisory lock. Each run is logged.
+
+    The pick is decided after this run's writes: by default at the later of
+    ``now`` and the wall clock, so the predictions and run just recorded count as
+    known. A run pinned to a past ``now`` passes ``decision_at=now``; inputs
+    recorded after it then fail the quality gate, so a replay cannot publish a
+    pick it could not have made at that time."""
     started = utcnow()
     session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": PIPELINE_LOCK_KEY})
     ingestion = run_ingestion(session, provider, now=now, settings=settings)
@@ -457,8 +482,9 @@ def run_pipeline(
     picks: dict[str, Any] = {}
     if settings is not None:
         picks["settled"] = settle_daily_picks(session, settings, now)
-        if now >= local_day(now, settings).publish_at:
-            picks["published"] = publish_daily_pick(session, settings, now).status
+        decided = decision_at or max(now, utcnow())
+        if decided >= local_day(decided, settings).publish_at:
+            picks["published"] = publish_daily_pick(session, settings, decided).status
     return PipelineResult(ingestion, predictions, picks, team_news)
 
 

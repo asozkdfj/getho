@@ -73,11 +73,22 @@ export function blockReason(
   return null;
 }
 
-export function toRequest(selections: Selections) {
+/**
+ * The API request body. Each selection carries the prediction the user saw (its odds
+ * are the shown price), so the API refuses instead of pricing it on newer odds.
+ */
+export function toRequest(
+  selections: Selections,
+  fixtures: Pick<FixtureSummary, "id" | "prediction_id">[],
+) {
+  const seen = new Map(fixtures.map((f) => [f.id, f.prediction_id]));
   return {
     selections: Object.entries(selections).map(([id, outcome]) => ({
       fixture_id: Number(id),
       outcome,
+      // only selectable fixtures (with a prediction) can be chosen; a missing id is
+      // left out and the API refuses the request rather than guessing
+      ...(seen.get(Number(id)) != null ? { prediction_id: seen.get(Number(id)) } : {}),
     })),
   };
 }
@@ -128,19 +139,21 @@ export function selectedPerLeague(
 export type AnalysisOutcome =
   | { kind: "result"; combination: Combination }
   | { kind: "error"; message: string }
+  | { kind: "outdated"; message: string } // the shown odds were replaced: reload first
   | { kind: "stale" }; // answer for a request the user has since replaced or cancelled
 
 /** POST the selection; a stale answer (ticket no longer current) is never applied. */
 export async function requestAnalysis(
   selections: Selections,
   ticket: Ticket,
+  fixtures: Pick<FixtureSummary, "id" | "prediction_id">[],
   fetchImpl: typeof fetch = fetch,
 ): Promise<AnalysisOutcome> {
   try {
     const res = await fetchImpl("/api/combinations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(toRequest(selections)),
+      body: JSON.stringify(toRequest(selections, fixtures)),
       signal: ticket.signal,
     });
     const body = await res.json();
@@ -148,7 +161,7 @@ export async function requestAnalysis(
     if (!res.ok) {
       const message =
         typeof body?.detail === "string" ? body.detail : "분석 요청이 거부되었습니다.";
-      return { kind: "error", message };
+      return { kind: res.status === 409 ? "outdated" : "error", message };
     }
     return { kind: "result", combination: body as Combination };
   } catch {

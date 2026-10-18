@@ -118,6 +118,56 @@ def test_old_and_finished_fixtures_are_not_reconciled(db_session):
     assert fake.calls == []
 
 
+@pytest.mark.parametrize("capacity", [1, 100])
+def test_unresolved_fixtures_do_not_starve_the_rest_of_the_backlog(db_session, now, capacity):
+    """Codex QA F4: batches rotate, so fixtures the provider keeps not returning
+    cannot take every batch (more overdue fixtures than one batch holds)."""
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    base = _first_upcoming(db_session, now)
+    overdue = []
+    for i in range(capacity + 1):
+        f = Fixture(
+            provider="mock",
+            provider_id=f"overdue-{i}",
+            league_id=base.league_id,
+            season=base.season,
+            round=base.round,
+            home_team_id=base.home_team_id,
+            away_team_id=base.away_team_id,
+            kickoff_at=now - timedelta(hours=5 + i),  # overdue-0 is the most recent
+            status="scheduled",
+        )
+        db_session.add(f)
+        overdue.append(f)
+    db_session.flush()
+    asked: list[list[str]] = []
+
+    def unresolved(ids):
+        asked.append(list(ids))
+        return []
+
+    provider.get_fixtures_by_ids = unresolved
+    first = reconcile_overdue_fixtures(db_session, provider, now=now, seen=set(), limit=capacity)
+    second = reconcile_overdue_fixtures(db_session, provider, now=now, seen=set(), limit=capacity)
+    assert first == (0, capacity) and second[0] == 0
+    assert len(asked[0]) == capacity and asked[0][0] == "overdue-0"  # newest first
+    assert overdue[-1].provider_id in asked[1]  # the one left out comes next
+    assert {pid for batch in asked for pid in batch} == {f.provider_id for f in overdue}
+    for f in overdue:
+        db_session.refresh(f)
+    assert all(f.reconcile_checked_at == now for f in overdue)
+
+
+def _first_upcoming(session, now):
+    return session.scalars(
+        select(Fixture)
+        .where(Fixture.status == "scheduled", Fixture.kickoff_at > now)
+        .order_by(Fixture.kickoff_at, Fixture.id)
+        .limit(1)
+    ).one()
+
+
 def test_ingestion_run_reconciles_and_reports(db_session):
     first = run_ingestion(db_session, _provider(FakeApiFootball()), now=REF)
     assert (first.fixtures_reconciled, first.overdue_unresolved) == (0, 0)

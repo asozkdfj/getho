@@ -90,9 +90,22 @@ describe("combination selection", () => {
   });
 
   it("builds the API request body", () => {
-    expect(toRequest({ 1: "HOME", 2: "AWAY" })).toEqual({
+    expect(toRequest({ 1: "HOME", 2: "AWAY" }, [])).toEqual({
       selections: [
         { fixture_id: 1, outcome: "HOME" },
+        { fixture_id: 2, outcome: "AWAY" },
+      ],
+    });
+  });
+
+  it("sends the prediction the user saw, so a replaced price is refused (Codex F1)", () => {
+    const shown = [
+      { id: 1, prediction_id: 41 },
+      { id: 2, prediction_id: null },
+    ];
+    expect(toRequest({ 1: "HOME", 2: "AWAY" }, shown)).toEqual({
+      selections: [
+        { fixture_id: 1, outcome: "HOME", prediction_id: 41 },
         { fixture_id: 2, outcome: "AWAY" },
       ],
     });
@@ -161,8 +174,8 @@ describe("analysis requests racing (QA-01)", () => {
   it("ignores the older answer when a newer request was started", async () => {
     const guard = new LatestRequest();
     const { impl, answer } = controllableFetch();
-    const first = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
-    const second = requestAnalysis({ 1: "DRAW", 3: "AWAY" }, guard.start(), impl);
+    const first = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), [], impl);
+    const second = requestAnalysis({ 1: "DRAW", 3: "AWAY" }, guard.start(), [], impl);
     answer(1, { model_probability: 0.2 });
     answer(0, { model_probability: 0.9 }); // too late, and already aborted
     expect(await second).toEqual({ kind: "result", combination: { model_probability: 0.2 } });
@@ -172,7 +185,7 @@ describe("analysis requests racing (QA-01)", () => {
   it("drops an answer that arrives after the selection was reset", async () => {
     const guard = new LatestRequest();
     const { impl, answer } = controllableFetch();
-    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), [], impl);
     guard.cancel(); // the user changed or cleared the selection
     answer(0, { model_probability: 0.5 });
     expect(await running).toEqual({ kind: "stale" }); // no result, no error, no scroll
@@ -183,7 +196,7 @@ describe("analysis requests racing (QA-01)", () => {
     // it, so only the ticket check keeps the old result off the screen.
     const guard = new LatestRequest();
     const { impl, answer } = controllableFetch();
-    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    const running = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), [], impl);
     answer(0, { model_probability: 0.5 });
     guard.cancel();
     expect(await running).toEqual({ kind: "stale" });
@@ -192,14 +205,20 @@ describe("analysis requests racing (QA-01)", () => {
   it("reports API errors and network failures for the current request only", async () => {
     const guard = new LatestRequest();
     const { impl, answer } = controllableFetch();
-    const rejected = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), impl);
+    const rejected = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), [], impl);
     answer(0, { detail: "같은 경기를 두 번 고를 수 없습니다" }, 422);
     expect(await rejected).toEqual({
       kind: "error",
       message: "같은 경기를 두 번 고를 수 없습니다",
     });
+    const outdated = requestAnalysis({ 1: "HOME", 2: "AWAY" }, guard.start(), [], impl);
+    answer(1, { detail: "선택한 뒤 분석(배당)이 갱신된 경기가 있습니다." }, 409);
+    expect(await outdated).toEqual({
+      kind: "outdated",
+      message: "선택한 뒤 분석(배당)이 갱신된 경기가 있습니다.",
+    });
     const failing = (() => Promise.reject(new TypeError("network"))) as unknown as typeof fetch;
-    expect(await requestAnalysis({ 1: "HOME" }, guard.start(), failing)).toEqual({
+    expect(await requestAnalysis({ 1: "HOME" }, guard.start(), [], failing)).toEqual({
       kind: "error",
       message: "API에 연결할 수 없습니다. 잠시 후 다시 시도하세요.",
     });

@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from edge_api.api.deps import get_now
+from edge_api.db.models import OddsSnapshot
+from edge_api.services.prediction_job import run_prediction_job
 from edge_ml.value import expected_value
 
 
@@ -110,7 +113,8 @@ def test_combination_analyze(client, n_legs):
     outcomes = ["HOME", "DRAW", "AWAY"]
     payload = {
         "selections": [
-            {"fixture_id": f["id"], "outcome": outcomes[i]} for i, f in enumerate(fixtures)
+            {"fixture_id": f["id"], "outcome": outcomes[i], "prediction_id": f["prediction_id"]}
+            for i, f in enumerate(fixtures)
         ]
     }
     r = client.post("/combinations/analyze", json=payload)
@@ -137,11 +141,11 @@ def test_combination_analyze(client, n_legs):
 
 
 def test_combination_rejects_same_fixture(client):
-    fid = _upcoming_with_prediction(client, 1)[0]["id"]
+    fid = _upcoming_with_prediction(client, 1)[0]
     payload = {
         "selections": [
-            {"fixture_id": fid, "outcome": "HOME"},
-            {"fixture_id": fid, "outcome": "AWAY"},
+            {"fixture_id": fid["id"], "outcome": "HOME", "prediction_id": fid["prediction_id"]},
+            {"fixture_id": fid["id"], "outcome": "AWAY", "prediction_id": fid["prediction_id"]},
         ]
     }
     r = client.post("/combinations/analyze", json=payload)
@@ -151,7 +155,12 @@ def test_combination_rejects_same_fixture(client):
 @pytest.mark.parametrize("n", [1, 4])
 def test_combination_leg_count_validation(client, n):
     fixtures = client.get("/fixtures", params={"days": 7}).json()["fixtures"]
-    payload = {"selections": [{"fixture_id": f["id"], "outcome": "HOME"} for f in fixtures[:n]]}
+    payload = {
+        "selections": [
+            {"fixture_id": f["id"], "outcome": "HOME", "prediction_id": f["prediction_id"] or 0}
+            for f in fixtures[:n]
+        ]
+    }
     assert client.post("/combinations/analyze", json=payload).status_code == 422
 
 
@@ -166,8 +175,16 @@ def test_combination_rejects_shared_team(client):
             }:
                 payload = {
                     "selections": [
-                        {"fixture_id": a["id"], "outcome": "HOME"},
-                        {"fixture_id": b["id"], "outcome": "HOME"},
+                        {
+                            "fixture_id": a["id"],
+                            "outcome": "HOME",
+                            "prediction_id": a["prediction_id"],
+                        },
+                        {
+                            "fixture_id": b["id"],
+                            "outcome": "HOME",
+                            "prediction_id": b["prediction_id"],
+                        },
                     ]
                 }
                 r = client.post("/combinations/analyze", json=payload)
@@ -191,12 +208,57 @@ def test_combination_rejects_finished_fixture(client):
     )
     payload = {
         "selections": [
-            {"fixture_id": finished[0]["id"], "outcome": "HOME"},
-            {"fixture_id": other["id"], "outcome": "HOME"},
+            {"fixture_id": finished[0]["id"], "outcome": "HOME", "prediction_id": 0},
+            {"fixture_id": other["id"], "outcome": "HOME", "prediction_id": other["prediction_id"]},
         ]
     }
     r = client.post("/combinations/analyze", json=payload)
     assert r.status_code == 422 and "upcoming" in r.json()["detail"]
+
+
+def test_combination_is_refused_when_the_shown_price_was_replaced(client, session_factory, now):
+    """Codex QA F1: odds 2.06 on screen must not silently become 9.0 on analysis."""
+    fixtures = _upcoming_with_prediction(client, 2)
+    shown = fixtures[0]["prediction_odds"]
+    with session_factory() as session:
+        session.add(
+            OddsSnapshot(
+                fixture_id=fixtures[0]["id"],
+                provider="mock",
+                bookmaker="mockbook",
+                market="1X2",
+                captured_at=now + timedelta(seconds=1),
+                odds_home=9.0,
+                odds_draw=shown["odds_draw"],
+                odds_away=shown["odds_away"],
+                raw_payload={},
+            )
+        )
+        session.flush()
+        run_prediction_job(
+            session, now=now + timedelta(seconds=2), bookmaker="mockbook", provider="mock"
+        )
+        session.commit()
+    client.app.dependency_overrides[get_now] = lambda: now + timedelta(seconds=3)
+
+    def post(fs):
+        selections = [
+            {"fixture_id": f["id"], "outcome": "HOME", "prediction_id": f["prediction_id"]}
+            for f in fs
+        ]
+        return client.post("/combinations/analyze", json={"selections": selections})
+
+    refused = post(fixtures)
+    assert refused.status_code == 409
+    assert "갱신" in refused.json()["detail"] and str(fixtures[0]["id"]) in refused.json()["detail"]
+    # without the prediction the user saw, nothing is priced either
+    bare = [{"fixture_id": f["id"], "outcome": "HOME"} for f in fixtures]
+    assert client.post("/combinations/analyze", json={"selections": bare}).status_code == 422
+    # after a refresh the user sees the new prediction and its price
+    refreshed = _upcoming_with_prediction(client, 2)
+    assert refreshed[0]["prediction_odds"]["odds_home"] == 9.0
+    ok = post(refreshed)
+    assert ok.status_code == 200 and ok.json()["legs"][0]["decimal_odds"] == 9.0
 
 
 def test_openapi_schema_is_served(client):

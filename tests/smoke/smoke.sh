@@ -51,7 +51,11 @@ assert len(picked) >= 2, "need two predicted fixtures"
 pred = get(f"/fixtures/{picked[0]['id']}/prediction")
 assert abs(sum(pred["probabilities"].values()) - 1) < 1e-6
 assert abs(sum(pred["fair_market_probabilities"].values()) - 1) < 1e-9
-body = json.dumps({"selections": [{"fixture_id": f["id"], "outcome": "HOME"} for f in picked[:2]]})
+# each selection names the prediction whose odds were shown (ADR-022)
+body = json.dumps({"selections": [
+    {"fixture_id": f["id"], "outcome": "HOME", "prediction_id": f["prediction_id"]}
+    for f in picked[:2]
+]})
 req = urllib.request.Request(api + "/combinations/analyze", data=body.encode(),
                              headers={"Content-Type": "application/json"})
 with urllib.request.urlopen(req, timeout=10) as r:

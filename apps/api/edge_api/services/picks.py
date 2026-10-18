@@ -177,11 +177,11 @@ def publish_daily_pick(
     all_fixtures = queries.fixtures_between(session, ld.start_utc, ld.end_utc, provider)
     scope = eligible_league_ids(session, settings)
     fixtures = [f for f in all_fixtures if scope is None or f.league.provider_id in scope]
-    # decision-time inputs only: no prediction built from data newer than ``now``.
-    # (The collection log is not filtered: a run records its finish with the wall
-    # clock, just after the ``now`` it collected for.)
+    # decision-time inputs only: no prediction built from data newer than ``now``
+    # and no collection that finished after it (the quality gate also rejects
+    # predictions created after ``now``).
     preds = queries.latest_predictions_by_fixture(session, [f.id for f in fixtures], as_of=now)
-    last_run = last_successful_run(session, provider)
+    last_run = last_successful_run(session, provider, as_of=now)
 
     considered: list[dict[str, Any]] = []
     candidates: list[PickCandidate] = []
@@ -361,8 +361,10 @@ def settle_daily_picks(session: Session, settings: Settings, now: datetime) -> d
         f = pick.fixture
         if f.status in (FixtureStatus.CANCELLED.value, FixtureStatus.POSTPONED.value):
             values = {"event": "voided", "reason": f"fixture {f.status}"}
-        elif f.status == FixtureStatus.SCHEDULED.value and _moved_out_of_window(pick, f):
+        elif _moved_out_of_window(pick, f):
             # rescheduled to a time outside the pick day: the pick's match did not happen
+            # then, whatever state the moved match is first seen in (scheduled, live or
+            # already finished), so it is voided before any settlement
             values = {"event": "voided", "reason": "fixture rescheduled"}
         elif f.status == FixtureStatus.FINISHED.value and (actual := _outcome_of(f)):
             values = {

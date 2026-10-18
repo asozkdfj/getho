@@ -20,8 +20,9 @@
 | 경기가 다른 날로 옮겨짐(날짜 조회 범위 밖) | 예전 킥오프 시각의 "예정"으로 남음. 그 경기의 픽은 정산·무효가 안 됨 | 킥오프 4시간 뒤에도 예정/진행 중이면 `/fixtures?ids=`로 다시 받아 갱신 | `test_overdue_fixture_moved_out_of_the_window_is_looked_up_by_id`, `test_ingestion_run_reconciles_and_reports` |
 | provider가 그 경기를 더 이상 돌려주지 않음 | 위와 같음 | 상태를 추측하지 않고 그대로 두며 `overdue_unresolved`로 기록 | `test_overdue_fixture_the_provider_no_longer_returns_is_reported` |
 | 요청 한도가 거의 소진됨 | (해당 없음) | 밀린 경기 조회를 다음 실행으로 미룸(요청 0) | `test_overdue_lookup_waits_when_the_budget_is_low`, `test_fixtures_by_ids_stop_when_the_budget_is_low` |
+| 밀린 경기가 한 번 조회 한도(100)보다 많고 일부가 계속 응답 없음 | (Codex QA F4) 같은 최근 경기만 반복 조회, 나머지는 영영 안 물음 | 마지막 조회 시각 순으로 순환(`reconcile_checked_at`, ADR-022) | `test_unresolved_fixtures_do_not_starve_the_rest_of_the_backlog` |
 | 30일보다 오래된 미해결 경기 | (해당 없음) | 다시 묻지 않음(요청 낭비 방지) | `test_old_and_finished_fixtures_are_not_reconciled` |
-| 픽의 경기가 픽 시간대 밖으로 옮겨짐 | 정산 안 됨 | "fixture rescheduled" 무효 이벤트 1회 추가, 원래 픽 행 보존. 같은 날 안에서 시각만 바뀌면 그대로 유효 | `tests/integration/test_picks.py::test_pick_on_a_rescheduled_match_is_voided`, 웹 `voidReasonText` |
+| 픽의 경기가 픽 시간대 밖으로 옮겨짐 | 정산 안 됨 | "fixture rescheduled" 무효 이벤트 1회 추가, 원래 픽 행 보존. 같은 날 안에서 시각만 바뀌면 그대로 유효. 다음 수집에서 이미 진행 중·종료로 보여도 무효가 먼저(Codex QA F3, ADR-022) | `tests/integration/test_picks.py::test_pick_on_a_rescheduled_match_is_voided`, 웹 `voidReasonText` |
 | 연기·취소 | 무효 처리 | 그대로 | 기존 `test_settlement_and_voiding_are_appended_once` |
 | 몰수(AWD)·부전승(WO) | 취소로 매핑, 스코어 없음 | 그대로(WO 테스트 추가) | `test_history_parsing_and_status_mapping`, `test_walkover_is_cancelled_without_a_score` |
 | 팀 뉴스(결장·명단) 수집 중 provider 오류 | 실행 전체가 되돌려짐(경기·배당·예측·픽까지) | 팀 뉴스만 되돌리고 나머지 진행, 오류는 `counts.team_news.error`에 기록 | `test_team_news_provider_error_keeps_the_rest_of_the_run` |

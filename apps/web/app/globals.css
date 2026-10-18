@@ -1376,3 +1376,13 @@ table.glossary th[scope="row"] {
   background: var(--surface);
   color: var(--text);
 }
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

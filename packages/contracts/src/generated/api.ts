@@ -16,6 +16,7 @@ export interface paths {
         /**
          * Analyze
          * @description Analyse 2-3 selections from *different* fixtures (independence approximation).
+         *     A selection whose ``prediction_id`` is no longer the latest is refused (409).
          */
         post: operations["analyze_combinations_analyze_post"];
         delete?: never;
@@ -1286,6 +1287,8 @@ export interface components {
             /** Fixture Id */
             fixture_id: number;
             outcome: components["schemas"]["Outcome"];
+            /** Prediction Id */
+            prediction_id: number;
         };
         /** SimulationOut */
         SimulationOut: {
@@ -1525,6 +1528,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CombinationOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
             /** @description Unprocessable Entity */
