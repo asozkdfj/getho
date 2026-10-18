@@ -290,6 +290,10 @@ class PredictionOut(ApiModel):
 class SelectionIn(ApiModel):
     fixture_id: int
     outcome: Outcome
+    # The prediction the user saw when choosing (its odds are the shown price). If a
+    # newer prediction exists the request is refused (409) instead of being priced
+    # on odds the user never saw.
+    prediction_id: int
 
 
 class CombinationRequest(ApiModel):

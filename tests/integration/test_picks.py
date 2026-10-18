@@ -18,6 +18,8 @@ from edge_api.services.picks import (
     publish_daily_pick,
     settle_daily_picks,
 )
+from edge_ingestion.jobs import run_pipeline
+from edge_ingestion.providers import MockProvider
 
 
 def settings(**kw) -> Settings:
@@ -271,6 +273,44 @@ def test_pick_on_a_rescheduled_match_is_voided(session_factory, seeded, now):
         assert s.scalars(select(DailyPick)).one().fixture_id == f.id
 
 
+@pytest.mark.parametrize("first_seen", ["scheduled", "live", "finished"])
+def test_moved_pick_is_voided_whatever_state_the_match_is_first_seen_in(
+    session_factory, seeded, now, first_seen
+):
+    """Codex QA F3: a match moved off the pick day is voided before settlement, even
+    when the next collection already sees it live or finished."""
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(days=3)
+        f.status = first_seen
+        if first_seen == "finished":
+            f.home_score, f.away_score = 2, 1
+        s.flush()
+        later = f.kickoff_at + timedelta(hours=3)
+        assert settle_daily_picks(s, settings(), later) == {
+            "settled": 0,
+            "voided": 1,
+            "republished": 0,
+        }
+        assert settle_daily_picks(s, settings(), later)["voided"] == 0  # appended once
+        event = s.scalars(select(DailyPickEvent)).one()
+        assert event.event == "voided" and event.reason == "fixture rescheduled"
+
+
+def test_match_finished_inside_the_pick_day_is_settled(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        f = pick.fixture
+        f.kickoff_at += timedelta(minutes=30)  # still inside the window
+        f.status, f.home_score, f.away_score = "finished", 1, 1
+        s.flush()
+        result = settle_daily_picks(s, settings(), f.kickoff_at + timedelta(hours=3))
+        assert (result["settled"], result["voided"]) == (1, 0)
+
+
 def test_replace_on_void_publishes_a_new_revision(session_factory, seeded, now):
     with session_factory() as s:
         pick_now, _ = _pick_time(s, now)
@@ -358,3 +398,47 @@ def test_verified_leagues_come_from_the_backtest_report(session_factory):
         assert verified_league_ids(s, "mock") == frozenset()  # synthetic data is never verified
         real = settings(data_provider="api_football", pick_leagues="verified")
         assert eligible_league_ids(s, real) == verified
+
+
+# ------------------------------------------------- decision time (Codex QA F2)
+def test_live_pipeline_decides_after_its_own_writes(session_factory, now, monkeypatch):
+    """Production: the run's rows are stamped just after the ``now`` it started
+    with, and the pick must still be published from them."""
+    from conftest import set_test_wall_clock
+    from edge_ingestion import jobs
+
+    monkeypatch.setattr(jobs, "utcnow", lambda: now + timedelta(seconds=40))
+    with session_factory() as s:
+        set_test_wall_clock(s, now + timedelta(seconds=5))  # DB clock: transaction start
+        result = run_pipeline(
+            s, MockProvider(now), now=now, bookmaker="mockbook", settings=settings()
+        )
+        assert result.picks["published"] == "published"
+        pick = s.scalars(select(DailyPick)).one()
+        assert pick.evidence["decided_at"] == (now + timedelta(seconds=40)).isoformat()
+
+
+def test_pipeline_pinned_to_an_earlier_time_publishes_nothing_from_later_rows(
+    session_factory, now, monkeypatch
+):
+    """A replay at a past ``now`` whose rows are recorded later cannot claim a pick."""
+    from conftest import set_test_wall_clock
+    from edge_ingestion import jobs
+
+    monkeypatch.setattr(jobs, "utcnow", lambda: now + timedelta(hours=1))
+    with session_factory() as s:
+        set_test_wall_clock(s, now + timedelta(hours=1))
+        result = run_pipeline(
+            s,
+            MockProvider(now),
+            now=now,
+            bookmaker="mockbook",
+            settings=settings(),
+            decision_at=now,
+        )
+        assert result.picks["published"] == "no_qualifying_match"
+        candidates = s.scalars(select(DailyPick)).one().evidence["candidates"]
+        predicted = [row for row in candidates if "best_outcome" in row]
+        assert predicted
+        for row in predicted:
+            assert {"prediction_timely", "ingestion_recent"} <= set(row["excluded_reasons"])

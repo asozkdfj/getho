@@ -22,6 +22,10 @@ class CombinationError(ValueError):
     """Invalid combination request (maps to HTTP 422)."""
 
 
+class OutdatedSelectionError(CombinationError):
+    """A selection was made on a prediction that has since been replaced (HTTP 409)."""
+
+
 def analyse_combination(
     session: Session, request: CombinationRequest, *, now: datetime, threshold: float
 ) -> CombinationOut:
@@ -30,6 +34,7 @@ def analyse_combination(
         raise CombinationError("각 selection은 서로 다른 경기여야 합니다 (same-fixture 조합 불가).")
 
     seen_teams: set[int] = set()
+    stale: list[int] = []
     legs_out: list[CombinationLegOut] = []
     legs: list[Leg] = []
     for sel in request.selections:
@@ -46,6 +51,9 @@ def analyse_combination(
         prediction = latest_prediction(session, fixture.id)
         if prediction is None:
             raise CombinationError(f"fixture {sel.fixture_id} has no prediction yet")
+        if sel.prediction_id != prediction.id:
+            stale.append(fixture.id)
+            continue
         snapshot = prediction.odds_snapshot
         p_model = model_probabilities(prediction).get(sel.outcome)
         p_fair = market_view(snapshot).fair.get(sel.outcome)
@@ -69,6 +77,11 @@ def analyse_combination(
             )
         )
 
+    if stale:
+        raise OutdatedSelectionError(
+            "선택한 뒤 분석(배당)이 갱신된 경기가 있습니다. 새로고침해서 최신 배당을 확인한 뒤 "
+            f"다시 분석하세요. (경기 {', '.join(map(str, stale))})"
+        )
     res = combine(legs)
     return CombinationOut(
         legs=legs_out,
