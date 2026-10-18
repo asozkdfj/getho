@@ -2,6 +2,12 @@
 
 ## 2026-10-19 — Codex
 
+- 후속 실행: 같은 09:00 시장 비교 read-only 도구 구현, 테스트 2 PASS, 실데이터 DB 감사.
+  3,364경기 manifest / 943비교 가능 / 676완료; 시장 LL .985904, 운영 1.011212.
+  평가 2일·여러 리그·모델 SHA local·과거 후보 집합 부재 때문에 승격 증거로 인정하지 않음.
+- 선수 실데이터 726경기 출전 기록, 아침 양 팀 결장 정보 54경기, 공식 선발 0경기, 관측 xG 수집 경로 없음 확인.
+- [후속 결과와 Claude 구현 요청](../qa/2026-10-19-next-experiment-readiness.md). 운영 기능은 수정하지 않음.
+
 - main d6cef46 유지. PR #10 `233074cd4d031e71e0c80b5e119b21d45173bf77`, PR #11 `7c972840d03480fe2ca76b68128a5b8c53b09fe7` 독립 worktree에서 검토.
 - PR #11 Python 302 / web 96 / lint / typecheck / build PASS. 독립 복기 생성 시각·집계 범위 반례 FAIL.
 - PR #10 관련 테스트 8 PASS, 보정 실험 수치 재현. 단조 증가·동일 확률 isotonic 경계 테스트 2 FAIL.
