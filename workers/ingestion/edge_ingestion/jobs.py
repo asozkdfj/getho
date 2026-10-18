@@ -109,6 +109,7 @@ def ingest_leagues(
             "current_season": lg.season,
             "season_year": lg.season_year,
             "has_odds": lg.has_odds,
+            "has_injuries": lg.has_injuries,
             "logo_url": lg.logo_url,
             "flag_url": lg.flag_url,
         }
@@ -122,6 +123,7 @@ def ingest_leagues(
         "current_season",
         "season_year",
         "has_odds",
+        "has_injuries",
         "logo_url",
         "flag_url",
     )

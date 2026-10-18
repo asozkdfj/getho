@@ -1,4 +1,9 @@
-"""Team news read side: line-ups, absences and which regular starters are missing."""
+"""Team news read side: line-ups, absences and which regular starters are missing.
+
+Every read can be limited to what was known at a moment (``as_of``): snapshots
+captured and stored by then, and player minutes stored by then (a match played
+in July but first collected in October was not known in August).
+"""
 
 from __future__ import annotations
 
@@ -25,13 +30,17 @@ MIN_MATCHES = 3  # fewer than this and "regular" means little
 
 
 def regular_players(
-    session: Session, team_id: int, before: datetime
+    session: Session, team_id: int, before: datetime, known_by: datetime | None = None
 ) -> tuple[list[tuple[str, str]], int]:
-    """(player_id, name) of the team's most used players in its recent matches."""
+    """(player_id, name) of the team's most used players in its recent matches
+    before ``before``, counting only minutes stored by ``known_by``."""
+    where = [PlayerAppearance.team_id == team_id, Fixture.kickoff_at < before]
+    if known_by is not None:
+        where.append(PlayerAppearance.created_at <= known_by)
     recent = (
         select(Fixture.id)
         .join(PlayerAppearance, PlayerAppearance.fixture_id == Fixture.id)
-        .where(PlayerAppearance.team_id == team_id, Fixture.kickoff_at < before)
+        .where(*where)
         .group_by(Fixture.id, Fixture.kickoff_at)
         .order_by(Fixture.kickoff_at.desc())
         .limit(RECENT_MATCHES)
@@ -52,10 +61,16 @@ def regular_players(
     return [(pid, name) for pid, name, _ in rows], n_matches
 
 
-def _latest(session: Session, fixture_id: int, kind: TeamNewsKind) -> dict[int, TeamNewsSnapshot]:
+def latest_snapshots(
+    session: Session, fixture_id: int, kind: TeamNewsKind, as_of: datetime | None = None
+) -> dict[int, TeamNewsSnapshot]:
+    """Latest snapshot per team; with ``as_of`` only those captured and stored by then."""
+    where = [TeamNewsSnapshot.fixture_id == fixture_id, TeamNewsSnapshot.kind == kind.value]
+    if as_of is not None:
+        where += [TeamNewsSnapshot.captured_at <= as_of, TeamNewsSnapshot.created_at <= as_of]
     snaps = session.scalars(
         select(TeamNewsSnapshot)
-        .where(TeamNewsSnapshot.fixture_id == fixture_id, TeamNewsSnapshot.kind == kind.value)
+        .where(*where)
         .order_by(TeamNewsSnapshot.captured_at, TeamNewsSnapshot.id)
     ).all()
     latest: dict[int, TeamNewsSnapshot] = {}
@@ -64,14 +79,22 @@ def _latest(session: Session, fixture_id: int, kind: TeamNewsKind) -> dict[int, 
     return latest
 
 
+def absences_status(snapshot: TeamNewsSnapshot | None) -> str:
+    """reported | none_reported (checked, empty) | unknown (never checked)."""
+    if snapshot is None:
+        return "unknown"
+    return "reported" if snapshot.payload.get("players") else "none_reported"
+
+
 def _side(
     session: Session,
     fixture: Fixture,
     team: Team,
     lineup: TeamNewsSnapshot | None,
     absences: TeamNewsSnapshot | None,
+    as_of: datetime | None,
 ) -> TeamNewsSideOut:
-    regulars, n_matches = regular_players(session, team.id, fixture.kickoff_at)
+    regulars, n_matches = regular_players(session, team.id, fixture.kickoff_at, as_of)
     known = n_matches >= MIN_MATCHES
     regular_ids = {pid for pid, _ in regulars} if known else set()
     absent: list[dict[str, Any]] = list((absences.payload if absences else {}).get("players", []))
@@ -109,6 +132,7 @@ def _side(
             for a in absent
         ],
         absences_captured_at=absences.captured_at if absences else None,
+        absences_status=absences_status(absences),
         missing_regulars=[
             MissingRegularOut(player_id=pid, name=name, reason=reasons.get(pid))
             for pid, name in missing
@@ -118,18 +142,19 @@ def _side(
     )
 
 
-def team_news(session: Session, fixture: Fixture) -> TeamNewsOut | None:
-    lineups = _latest(session, fixture.id, TeamNewsKind.LINEUP)
-    absences = _latest(session, fixture.id, TeamNewsKind.ABSENCES)
-    has_minutes = session.scalar(
-        select(func.count())
-        .select_from(PlayerAppearance)
-        .where(PlayerAppearance.team_id.in_([fixture.home_team_id, fixture.away_team_id]))
-    )
+def team_news(
+    session: Session, fixture: Fixture, as_of: datetime | None = None
+) -> TeamNewsOut | None:
+    lineups = latest_snapshots(session, fixture.id, TeamNewsKind.LINEUP, as_of)
+    absences = latest_snapshots(session, fixture.id, TeamNewsKind.ABSENCES, as_of)
+    minutes = [PlayerAppearance.team_id.in_([fixture.home_team_id, fixture.away_team_id])]
+    if as_of is not None:
+        minutes.append(PlayerAppearance.created_at <= as_of)
+    has_minutes = session.scalar(select(func.count()).select_from(PlayerAppearance).where(*minutes))
     if not lineups and not absences and not has_minutes:
         return None
     sides = [
-        _side(session, fixture, team, lineups.get(team.id), absences.get(team.id))
+        _side(session, fixture, team, lineups.get(team.id), absences.get(team.id), as_of)
         for team in (fixture.home_team, fixture.away_team)
     ]
     return TeamNewsOut(

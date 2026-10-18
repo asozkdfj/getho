@@ -8,6 +8,7 @@ const side = (over: Partial<TeamNewsSide> = {}): TeamNewsSide => ({
   team_name: "Arsenal",
   starters: [],
   absences: [],
+  absences_status: "unknown",
   missing_regulars: [],
   regulars_known: true,
   recent_matches: 10,
@@ -31,7 +32,13 @@ describe("team news wording", () => {
   });
 
   it("summarises absences before the line-up", () => {
-    expect(sideSummary(side())).toBe("아직 알려진 결장 선수가 없어요.");
+    expect(sideSummary(side())).toBe(
+      "결장 정보를 아직 받지 못했어요. 결장 선수가 없다는 뜻은 아니에요.",
+    );
+    expect(sideSummary(side({ absences_status: "unknown" }))).toMatch(/아직 받지 못했어요/);
+    expect(sideSummary(side({ absences_status: "none_reported" }))).toBe(
+      "결장 정보를 확인했는데, 결장 선수가 없어요.",
+    );
     const absences = [
       { player_id: "9", name: "Saka", status: "out" as const, reason: "Suspended", regular: true },
     ];

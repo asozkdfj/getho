@@ -1499,6 +1499,13 @@ export interface components {
             absences?: components["schemas"]["AbsenceOut"][];
             /** Absences Captured At */
             absences_captured_at?: string | null;
+            /**
+             * Absences Status
+             * @description none_reported: the provider checked and listed nobody; unknown: not checked (never means no absences)
+             * @default unknown
+             * @enum {string}
+             */
+            absences_status: "reported" | "none_reported" | "unknown";
             /** Formation */
             formation?: string | null;
             /** Lineup Captured At */

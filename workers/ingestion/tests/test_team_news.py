@@ -7,7 +7,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import DBAPIError
 
 from edge_api.config import Settings
-from edge_api.db.models import Fixture, PlayerAppearance, TeamNewsSnapshot
+from edge_api.db.models import Fixture, PlayerAppearance, Team, TeamNewsSnapshot
 from edge_ingestion.jobs import run_ingestion
 from edge_ingestion.providers import ApiFootballProvider, MockProvider
 from edge_ingestion.providers.mock import LINEUPS_KNOWN
@@ -163,3 +163,108 @@ def test_lineup_backtest_runs_on_collected_player_minutes(db_session, now):
     res = evaluate_split({"eng-1": data["eng-1"]}, names, ModelParams(), 0.6)
     assert set(res["test"]["models"]) == {"base_rate", "production", "production_lineup"}
     assert res["test"]["n_matches"] > 50
+
+
+# ------------------------------------------- absences: reported / none / unknown
+def _absence_states(session):
+    snaps = session.scalars(
+        select(TeamNewsSnapshot).where(TeamNewsSnapshot.kind == "absences")
+    ).all()
+    return {(s.fixture_id, s.team_id): s.payload["players"] for s in snaps}
+
+
+def test_checked_teams_without_absences_get_an_empty_snapshot(db_session, now):
+    from edge_ingestion.providers.mock import ABSENCES_KNOWN
+
+    wide = Settings(team_news_leagues="all", absences_horizon_hours=24 * 5)
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    ingest_team_news(db_session, provider, now=now, settings=wide)
+    states = _absence_states(db_session)
+    covered = db_session.scalars(
+        select(Fixture).where(
+            Fixture.status == "scheduled",
+            Fixture.kickoff_at > now,
+            Fixture.kickoff_at <= now + ABSENCES_KNOWN,
+        )
+    ).all()
+    assert covered
+    for f in covered:  # both teams checked: players listed, or an empty list
+        assert (f.id, f.home_team_id) in states and (f.id, f.away_team_id) in states
+    assert any(players == [] for players in states.values())
+    later = db_session.scalars(
+        select(Fixture.id).where(
+            Fixture.kickoff_at > now + ABSENCES_KNOWN + timedelta(hours=1),
+            Fixture.kickoff_at <= now + timedelta(hours=wide.absences_horizon_hours),
+        )
+    ).all()
+    # not yet covered by the provider: no snapshot at all (unknown), never "none"
+    assert later and not any(fid in later for fid, _ in states)
+
+
+def test_no_empty_snapshot_for_a_league_without_injury_coverage(db_session, now):
+    from edge_api.db.models import League
+
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    db_session.execute(League.__table__.update().values(has_injuries=False))
+    ingest_team_news(db_session, provider, now=now, settings=ALL)
+    states = _absence_states(db_session)
+    assert states and all(players for players in states.values())
+
+
+def test_api_football_covers_only_the_days_it_fetched():
+    fake = FakeApiFootball()
+    p = _api(fake)
+    leagues = p.get_leagues()
+    assert all(lg.has_injuries for lg in leagues)
+    upcoming = {
+        f.provider_id: f.kickoff_at
+        for f in p.get_fixtures(REF, REF + timedelta(days=5))
+        if f.status == "scheduled"
+    }
+    days = {k.date() for k in upcoming.values()}
+    assert len(days) >= 2
+    report = p.get_absence_report(upcoming)
+    assert report.covered == frozenset(upcoming)
+    p.budget_ok = lambda: False  # budget used up: nothing fetched, nothing covered
+    assert p.get_absence_report(upcoming).covered == frozenset()
+
+
+def test_a_report_that_returns_to_an_earlier_state_is_stored_again(db_session, now):
+    """absent -> fit -> absent: the third report equals the first and must still
+    become the latest (content-hash dedup used to drop it)."""
+    from edge_ingestion.providers.base import AbsenceReport
+
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    full = provider.get_absence_report
+    ingest_team_news(db_session, provider, now=now, settings=ALL)
+    fid, tid = next((k for k, players in _absence_states(db_session).items() if players))
+    fixture_pid = db_session.get(Fixture, fid).provider_id
+    team_pid = db_session.get(Team, tid).provider_id
+
+    def fit(fixtures):  # the same report, with that team's absentees fit again
+        r = full(fixtures)
+        keep = [
+            a
+            for a in r.absences
+            if (a.fixture_provider_id, a.team_provider_id) != (fixture_pid, team_pid)
+        ]
+        return AbsenceReport(keep, r.covered)
+
+    provider.get_absence_report = fit
+    ingest_team_news(db_session, provider, now=now + timedelta(minutes=10), settings=ALL)
+    provider.get_absence_report = full
+    ingest_team_news(db_session, provider, now=now + timedelta(minutes=20), settings=ALL)
+    history = db_session.scalars(
+        select(TeamNewsSnapshot)
+        .where(
+            TeamNewsSnapshot.kind == "absences",
+            TeamNewsSnapshot.fixture_id == fid,
+            TeamNewsSnapshot.team_id == tid,
+        )
+        .order_by(TeamNewsSnapshot.captured_at)
+    ).all()
+    assert [bool(s.payload["players"]) for s in history] == [True, False, True]
+    assert history[0].content_hash == history[2].content_hash

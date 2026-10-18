@@ -38,7 +38,12 @@ export function sideSummary(side: TeamNewsSide): string {
     if (missing.length === 0) return "평소 주전 11명이 모두 선발로 나와요.";
     return `평소 주전 11명 중 ${11 - missing.length}명이 선발이에요. 빠진 주전: ${named(missing)}`;
   }
-  if (absences.length === 0) return "아직 알려진 결장 선수가 없어요.";
+  if (absences.length === 0) {
+    // "checked, nobody listed" is not the same as "not checked yet"
+    return side.absences_status === "none_reported"
+      ? "결장 정보를 확인했는데, 결장 선수가 없어요."
+      : "결장 정보를 아직 받지 못했어요. 결장 선수가 없다는 뜻은 아니에요.";
+  }
   if (!side.regulars_known) {
     return `결장·출전 불투명 ${absences.length}명 (주전인지 판단할 출전 기록이 아직 부족해요)`;
   }

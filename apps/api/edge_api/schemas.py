@@ -174,6 +174,11 @@ class TeamNewsSideOut(ApiModel):
     lineup_captured_at: datetime | None = None
     absences: list[AbsenceOut] = Field(default_factory=list)
     absences_captured_at: datetime | None = None
+    absences_status: Literal["reported", "none_reported", "unknown"] = Field(
+        default="unknown",
+        description="none_reported: the provider checked and listed nobody; "
+        "unknown: not checked (never means no absences)",
+    )
     missing_regulars: list[MissingRegularOut] = Field(
         default_factory=list,
         description="Regular starters not in the line-up (or reported out before it)",

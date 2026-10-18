@@ -81,6 +81,8 @@ class League(Base):
     current_season: Mapped[str | None] = mapped_column(String(16))
     season_year: Mapped[int | None] = mapped_column(Integer)  # provider's season key
     has_odds: Mapped[bool] = mapped_column(Boolean, default=False)
+    # the provider reports injuries/suspensions for this league (absences coverage)
+    has_injuries: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     logo_url: Mapped[str | None] = mapped_column(String(255))
     flag_url: Mapped[str | None] = mapped_column(String(255))
     # Results are complete up to this instant (history backfill + rolling date
@@ -332,13 +334,14 @@ class TeamNewsKind(StrEnum):
 class TeamNewsSnapshot(Base):
     """What was known about one team's line-up for one fixture at a point in time.
 
-    Append-only: a changed report (new content hash) is a new row. Re-fetching the
-    same report is a no-op, so polling before kickoff never duplicates rows.
+    Append-only: a report that differs from the team's latest one is a new row
+    (also a return to an earlier report); re-fetching the latest report is a
+    no-op, so polling before kickoff never duplicates rows. An absences snapshot
+    with no players means the provider checked and reported none.
     """
 
     __tablename__ = "team_news_snapshots"
     __table_args__ = (
-        UniqueConstraint("fixture_id", "team_id", "kind", "content_hash", name="content_key"),
         Index("ix_team_news_fixture_kind_captured", "fixture_id", "kind", "captured_at"),
     )
 
