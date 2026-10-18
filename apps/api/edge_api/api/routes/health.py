@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from edge_api.api.deps import AppSettings, DbSession
 from edge_api.schemas import HealthOut
-from edge_api.versioning import resolve_git_sha
+from edge_api.versioning import code_fingerprint, resolve_git_sha
 
 router = APIRouter(tags=["health"])
 logger = logging.getLogger(__name__)
@@ -41,4 +41,5 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         redis=redis_status,
         app_env=settings.app_env,
         git_sha=resolve_git_sha(),
+        code_fingerprint=code_fingerprint(),
     )

@@ -164,13 +164,18 @@ class OddsSnapshot(Base):
 class ModelVersion(Base):
     __tablename__ = "model_versions"
     __table_args__ = (
-        UniqueConstraint("name", "version", "git_sha", "feature_set", name="identity"),
+        UniqueConstraint(
+            "name", "version", "git_sha", "feature_set", "code_fingerprint", name="identity"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(64))
     version: Mapped[str] = mapped_column(String(32))  # explicit semver
     git_sha: Mapped[str] = mapped_column(String(40))
+    # SHA-256 of the model/API/ingestion source (edge_api.versioning); NULL on rows
+    # written before it was recorded
+    code_fingerprint: Mapped[str | None] = mapped_column(String(64))
     feature_set: Mapped[str] = mapped_column(String(128))
     calibration: Mapped[str] = mapped_column(String(64))
     params: Mapped[dict[str, Any]] = mapped_column(JSONB)

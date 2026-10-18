@@ -25,6 +25,7 @@ from edge_api.logging_setup import configure_logging
 from edge_api.services.evaluations import import_report
 from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
+from edge_api.versioning import build_info
 from edge_ingestion import (
     backtest_cli,
     draw_backtest,
@@ -120,11 +121,17 @@ def main(argv: list[str] | None = None) -> int:
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
+    sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
     bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
     bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     args = parser.parse_args(argv)
+
+    if args.command == "code-fingerprint":
+        # matches model_versions.code_fingerprint / pick evidence manifest.build
+        print(json.dumps(build_info(), indent=2))
+        return 0
 
     if args.command == "backtest-lineups":
         configure_logging(get_settings().log_level)

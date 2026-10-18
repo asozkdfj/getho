@@ -188,6 +188,52 @@ def test_decision_time_and_policy_version_are_recorded(session_factory, seeded, 
         assert pick.input_data_as_of <= pick_now
 
 
+def test_pick_manifest_records_build_settings_and_candidate_inputs(session_factory, seeded, now):
+    """Codex readiness audit: a decision must be traceable to its code, settings,
+    collection and the exact rows each candidate used."""
+    import hashlib
+    import json
+
+    from edge_api.versioning import build_info
+
+    def sha(value):
+        canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+        return hashlib.sha256(canonical.encode()).hexdigest()
+
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        manifest = pick.evidence["manifest"]
+        assert manifest["version"] == 1
+        assert manifest["build"] == build_info()
+        assert manifest["settings_sha256"] == sha(manifest["settings"])
+        assert manifest["settings"]["min_probability"] == pick.policy["min_probability"]
+        assert manifest["candidates_sha256"] == sha(pick.evidence["candidates"])
+        run = s.get(IngestionRun, manifest["collection"]["run_id"])
+        assert run.finished_at.isoformat() == manifest["collection"]["finished_at"]
+        assert run.finished_at <= pick_now
+        predicted = [c for c in pick.evidence["candidates"] if "inputs" in c]
+        assert predicted
+        for c in predicted:
+            p = s.get(Prediction, c["inputs"]["prediction_id"])
+            assert p.fixture_id == c["fixture_id"]
+            assert c["inputs"]["prediction_created_at"] == p.created_at.isoformat()
+            assert c["inputs"]["odds_snapshot_id"] == p.market_odds_snapshot_id
+            assert c["inputs"]["odds_captured_at"] <= pick_now.isoformat()
+            assert {q["name"] for q in c["quality"]} >= {"prediction_timely", "odds_fresh"}
+        chosen = next(c for c in predicted if c["fixture_id"] == pick.fixture_id)
+        assert chosen["inputs"]["prediction_id"] == pick.prediction_id
+
+
+def test_a_day_without_a_pick_has_a_manifest_too(session_factory, seeded, now):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(pick_min_probability=0.999), pick_now)
+        assert pick.status == "no_qualifying_match"
+        assert pick.evidence["manifest"]["settings"]["min_probability"] == 0.999
+        assert pick.evidence["manifest"]["candidates_sha256"]
+
+
 def test_live_record_counts_only_picks_written_before_kickoff(session_factory, seeded, now):
     real = settings(data_provider="api_football")
     with session_factory() as s:

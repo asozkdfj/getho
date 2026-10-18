@@ -52,3 +52,10 @@ def test_main_prints_check_provider_report_as_json(monkeypatch, capsys):
     assert out["result"]["leagues"] == 4
     sample = out["result"]["sample_finished_fixture"]
     assert sample is None or sample["kickoff_at"].startswith("2026-")
+
+
+def test_code_fingerprint_command_prints_the_build_identity(capsys):
+    from edge_api.versioning import build_info
+
+    assert cli.main(["code-fingerprint"]) == 0
+    assert json.loads(capsys.readouterr().out) == build_info()
