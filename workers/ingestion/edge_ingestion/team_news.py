@@ -3,6 +3,7 @@
 - absences (injured / suspended / doubtful) for fixtures in the next days
 - official line-ups for fixtures about to start (polled until both are stored)
 - player minutes of finished fixtures (tells regular starters from squad players)
+  and, from the same response, team statistics: shots, shots on target, xG
 
 Snapshots are append-only. A report identical to the latest stored one for
 that team writes nothing; a changed report becomes a new row, including a
@@ -22,6 +23,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import Select, exists, func, select
@@ -33,14 +35,16 @@ from edge_api.db.models import (
     Fixture,
     FixtureStatus,
     League,
+    MatchStatistic,
     PlayerAppearance,
     Team,
     TeamNewsKind,
     TeamNewsSnapshot,
 )
 from edge_api.services.leagues import scoped_league_ids
+from edge_api.services.queries import latest_statistics
 from edge_api.timeutil import ensure_utc
-from edge_ingestion.providers.base import FootballDataProvider, PlayerRef
+from edge_ingestion.providers.base import FootballDataProvider, PlayerRef, PostMatchReport
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +56,7 @@ class TeamNewsResult:
     absence_snapshots: int = 0
     lineup_snapshots: int = 0
     appearances_inserted: int = 0
+    statistics_inserted: int = 0
 
 
 def content_hash(payload: dict[str, Any]) -> str:
@@ -228,7 +233,7 @@ def ingest_lineups(
     return _insert_snapshots(session, snapshots)
 
 
-def ingest_appearances(
+def ingest_post_match(
     session: Session,
     provider: FootballDataProvider,
     *,
@@ -236,8 +241,13 @@ def ingest_appearances(
     scope: frozenset[str] | None,
     limit: int,
     lookback: timedelta = APPEARANCE_LOOKBACK,
-) -> int:
-    missing = ~exists().where(PlayerAppearance.fixture_id == Fixture.id)
+    source: str = "ingest",
+) -> tuple[int, int]:
+    """Player minutes and team statistics (shots, shots on target, xG) of
+    finished fixtures still missing either, from one fetch of their details.
+    Returns (appearances inserted, statistics rows inserted)."""
+    no_minutes = ~exists().where(PlayerAppearance.fixture_id == Fixture.id)
+    no_stats = ~exists().where(MatchStatistic.fixture_id == Fixture.id)
     rows = session.execute(
         _scoped(select(Fixture.provider_id, Fixture.id), scope)
         .where(
@@ -245,17 +255,18 @@ def ingest_appearances(
             Fixture.status == FixtureStatus.FINISHED.value,
             Fixture.kickoff_at < now,
             Fixture.kickoff_at >= now - lookback,
-            missing,
+            no_minutes | no_stats,
         )
         .order_by(Fixture.kickoff_at.desc())
         .limit(max(limit, 0))
     ).all()
     if not rows:
-        return 0
+        return 0, 0
     fixture_ids = {pid: fid for pid, fid in rows}
     teams = _team_ids(session, provider.name)
+    report = provider.get_post_match(list(fixture_ids))
     values = []
-    for ap in provider.get_appearances(list(fixture_ids)):
+    for ap in report.appearances:
         fid, tid = fixture_ids.get(ap.fixture_provider_id), teams.get(ap.team_provider_id)
         if fid is None or tid is None:
             continue
@@ -279,7 +290,60 @@ def ingest_appearances(
             .returning(PlayerAppearance.id)
         )
         inserted += len(session.execute(stmt).all())
-    return inserted
+    return inserted, _insert_statistics(session, provider.name, report, fixture_ids, teams, source)
+
+
+def _insert_statistics(
+    session: Session,
+    provider: str,
+    report: PostMatchReport,
+    fixture_ids: dict[str, int],
+    teams: dict[str, int],
+    source: str,
+) -> int:
+    """Append each team's statistics when they differ from its latest stored row."""
+    latest = {
+        (o.fixture_id, o.team_id): (o.shots, o.shots_on_target, o.expected_goals)
+        for o in latest_statistics(session, list(fixture_ids.values()))
+    }
+    rows = []
+    for st in report.statistics:
+        fid, tid = fixture_ids.get(st.fixture_provider_id), teams.get(st.team_provider_id)
+        if fid is None or tid is None:
+            continue
+        xg = None if st.expected_goals is None else Decimal(str(round(st.expected_goals, 3)))
+        if latest.get((fid, tid)) == (st.shots, st.shots_on_target, xg):
+            continue
+        rows.append(
+            {
+                "fixture_id": fid,
+                "team_id": tid,
+                "provider": provider,
+                "shots": st.shots,
+                "shots_on_target": st.shots_on_target,
+                "expected_goals": xg,
+                "source": source,
+            }
+        )
+    if rows:
+        session.execute(insert(MatchStatistic).values(rows))
+    return len(rows)
+
+
+def ingest_appearances(
+    session: Session,
+    provider: FootballDataProvider,
+    *,
+    now: datetime,
+    scope: frozenset[str] | None,
+    limit: int,
+    lookback: timedelta = APPEARANCE_LOOKBACK,
+    source: str = "ingest",
+) -> int:
+    """Player minutes inserted (statistics are stored along the way)."""
+    return ingest_post_match(
+        session, provider, now=now, scope=scope, limit=limit, lookback=lookback, source=source
+    )[0]
 
 
 def ingest_team_news(
@@ -308,9 +372,9 @@ def ingest_team_news(
         scope=scope,
         horizon=timedelta(hours=settings.absences_horizon_hours),
     )
-    appearances = ingest_appearances(
+    appearances, statistics = ingest_post_match(
         session, provider, now=now, scope=scope, limit=settings.appearances_per_run
     )
-    result = TeamNewsResult(absences, lineups, appearances)
+    result = TeamNewsResult(absences, lineups, appearances, statistics)
     logger.info("team news provider=%s %s", provider.name, result)
     return result

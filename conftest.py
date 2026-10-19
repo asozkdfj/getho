@@ -35,7 +35,7 @@ NOW = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
 TABLES = (
     "fixture_observations, shadow_forecasts, daily_pick_events, daily_picks, "
     "model_evaluations, ingestion_runs, "
-    "team_news_snapshots, player_appearances, "
+    "team_news_snapshots, player_appearances, match_statistics, "
     "predictions, odds_snapshots, fixtures, teams, leagues, model_versions"
 )
 

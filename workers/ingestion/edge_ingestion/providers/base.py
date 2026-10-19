@@ -109,6 +109,14 @@ class MatchStatistics:
 
 
 @dataclass(frozen=True, slots=True)
+class PostMatchReport:
+    """What a finished fixture's details tell: player minutes and team statistics."""
+
+    appearances: list[AppearanceData]
+    statistics: list[MatchStatistics]
+
+
+@dataclass(frozen=True, slots=True)
 class AbsenceReport:
     """Absences plus the fixtures the provider actually answered for. A covered
     fixture with no absence for a team means "checked, none reported"; a
@@ -189,6 +197,14 @@ class FootballDataProvider(ABC):
     def get_match_statistics(self, fixture_provider_ids: list[str]) -> list[MatchStatistics]:
         """Post-match team statistics (shots, shots on target, xG when provided)."""
         return []
+
+    def get_post_match(self, fixture_provider_ids: list[str]) -> PostMatchReport:
+        """Player minutes and team statistics together. Providers that read both
+        from one response override this so the details are fetched once."""
+        return PostMatchReport(
+            self.get_appearances(fixture_provider_ids),
+            self.get_match_statistics(fixture_provider_ids),
+        )
 
     def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
         """Player minutes of these finished fixtures."""

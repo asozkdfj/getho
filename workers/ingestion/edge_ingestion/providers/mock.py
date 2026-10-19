@@ -30,6 +30,7 @@ from edge_ingestion.providers.base import (
     FootballDataProvider,
     LeagueData,
     LineupData,
+    MatchStatistics,
     OddsData,
     PlayerRef,
     TeamData,
@@ -458,6 +459,27 @@ class MockProvider(FootballDataProvider):
                     out.append(AppearanceData(pid, code, bench[k], False, 90 - off))
                 out.extend(
                     AppearanceData(pid, code, p, True, minutes[p.provider_id]) for p in starters
+                )
+        return out
+
+    def get_match_statistics(self, fixture_provider_ids: list[str]) -> list[MatchStatistics]:
+        """Synthetic post-match statistics (demo only): xG drawn around the
+        model's expected goals, shots roughly in proportion."""
+        out: list[MatchStatistics] = []
+        for pid in fixture_provider_ids:
+            f = self._by_id.get(pid)
+            if f is None or f.status != "finished":
+                continue
+            league = self._leagues[f.league_provider_id]
+            lams = self._expected_goals(league, f.home_team_provider_id, f.away_team_provider_id)
+            for code, lam in zip(
+                (f.home_team_provider_id, f.away_team_provider_id), lams, strict=True
+            ):
+                rng = np.random.default_rng(_seed("stats", pid, code))
+                xg = round(float(lam * rng.uniform(0.7, 1.3)), 2)
+                shots = int(rng.poisson(max(xg, 0.1) * 9))
+                out.append(
+                    MatchStatistics(pid, code, shots, min(shots, int(rng.poisson(xg * 3.2))), xg)
                 )
         return out
 
