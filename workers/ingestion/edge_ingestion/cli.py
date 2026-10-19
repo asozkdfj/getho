@@ -32,6 +32,7 @@ from edge_ingestion import (
     backtest_cli,
     calibration_backtest,
     calibration_confirmatory,
+    clv_backtest,
     draw_backtest,
     fatigue_backtest,
     goal_markets_backtest,
@@ -215,6 +216,9 @@ def main(argv: list[str] | None = None) -> int:
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
+    clv_backtest.add_arguments(
+        sub.add_parser("backtest-clv", help="does the market move toward the model? (CLV)")
+    )
     calibration_confirmatory.add_arguments(
         sub.add_parser(
             "score-calibration-confirmatory",
@@ -333,6 +337,14 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+
+    if args.command == "backtest-clv":
+        configure_logging(get_settings().log_level)
+        report = clv_backtest.run(args)
+        if args.out:
+            args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+        print(json.dumps(clv_backtest.summary(report), ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "score-calibration-confirmatory":
