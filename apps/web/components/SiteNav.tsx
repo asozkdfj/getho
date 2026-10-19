@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/picks", label: "지난 픽" },
   { href: "/review", label: "복기" },
   { href: "/performance", label: "모델 성과" },
+  { href: "/research", label: "연구" },
   { href: "/guide", label: "가이드" },
   { href: "/methodology", label: "방법론" },
 ] as const;

@@ -95,6 +95,105 @@
         "title": "CalibrationBinOut",
         "type": "object"
       },
+      "CollectionQualityOut": {
+        "properties": {
+          "absences_known_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absences Known Share"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchDayOut"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "days_with_failed_runs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Days With Failed Runs",
+            "type": "array"
+          },
+          "days_with_long_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Days With Long Gaps",
+            "type": "array"
+          },
+          "days_with_shadow_errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Days With Shadow Errors",
+            "type": "array"
+          },
+          "days_without_decision": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Days Without Decision",
+            "type": "array"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "expected_interval_minutes": {
+            "title": "Expected Interval Minutes",
+            "type": "number"
+          },
+          "odds_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odds Share"
+          },
+          "prediction_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Share"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "expected_interval_minutes",
+          "days_without_decision",
+          "days_with_failed_runs",
+          "days_with_long_gaps",
+          "days_with_shadow_errors",
+          "prediction_share",
+          "odds_share",
+          "absences_known_share",
+          "days"
+        ],
+        "title": "CollectionQualityOut",
+        "type": "object"
+      },
       "CombinationLegOut": {
         "properties": {
           "away_team": {
@@ -1613,6 +1712,172 @@
         "title": "LineupPlayerOut",
         "type": "object"
       },
+      "LiveClvFlagOut": {
+        "properties": {
+          "flags": {
+            "title": "Flags",
+            "type": "integer"
+          },
+          "mean_clv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Clv"
+          },
+          "share_positive": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Positive"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "threshold",
+          "flags",
+          "mean_clv",
+          "share_positive"
+        ],
+        "title": "LiveClvFlagOut",
+        "type": "object"
+      },
+      "LiveClvOut": {
+        "properties": {
+          "analysed": {
+            "title": "Analysed",
+            "type": "integer"
+          },
+          "b_base": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B Base"
+          },
+          "b_model": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B Model"
+          },
+          "b_model_ci": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "B Model Ci",
+            "type": "array"
+          },
+          "closing_minutes_before_kickoff_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closing Minutes Before Kickoff Median"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "large_gap": {
+            "items": {
+              "$ref": "#/components/schemas/LiveClvFlagOut"
+            },
+            "title": "Large Gap",
+            "type": "array"
+          },
+          "mean_abs_move": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Abs Move"
+          },
+          "share_moves_toward_model": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Moves Toward Model"
+          },
+          "signal": {
+            "title": "Signal",
+            "type": "string"
+          },
+          "window_end": {
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window_start",
+          "window_end",
+          "counts",
+          "analysed",
+          "days",
+          "b_model",
+          "b_model_ci",
+          "b_base",
+          "signal",
+          "share_moves_toward_model",
+          "mean_abs_move",
+          "closing_minutes_before_kickoff_median",
+          "large_gap"
+        ],
+        "title": "LiveClvOut",
+        "type": "object"
+      },
       "LiveEvaluationOut": {
         "properties": {
           "is_demo": {
@@ -2774,6 +3039,137 @@
         "title": "ReplayOut",
         "type": "object"
       },
+      "ResearchDayOut": {
+        "properties": {
+          "day": {
+            "description": "Pick day (local date)",
+            "title": "Day",
+            "type": "string"
+          },
+          "decided": {
+            "title": "Decided",
+            "type": "boolean"
+          },
+          "fixtures_at_decision": {
+            "title": "Fixtures At Decision",
+            "type": "integer"
+          },
+          "longest_gap_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longest Gap Hours"
+          },
+          "minutes_after_publish_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes After Publish Hour"
+          },
+          "runs_expected": {
+            "title": "Runs Expected",
+            "type": "integer"
+          },
+          "runs_failed": {
+            "title": "Runs Failed",
+            "type": "integer"
+          },
+          "runs_success": {
+            "title": "Runs Success",
+            "type": "integer"
+          },
+          "shadow_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shadow Error"
+          },
+          "shadow_recorded": {
+            "title": "Shadow Recorded",
+            "type": "integer"
+          },
+          "with_odds": {
+            "title": "With Odds",
+            "type": "integer"
+          },
+          "with_prediction": {
+            "title": "With Prediction",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "decided",
+          "minutes_after_publish_hour",
+          "runs_success",
+          "runs_failed",
+          "runs_expected",
+          "longest_gap_hours",
+          "fixtures_at_decision",
+          "with_prediction",
+          "with_odds",
+          "shadow_recorded",
+          "shadow_error"
+        ],
+        "title": "ResearchDayOut",
+        "type": "object"
+      },
+      "ResearchOut": {
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionQualityOut"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "live_clv": {
+            "$ref": "#/components/schemas/LiveClvOut"
+          },
+          "note": {
+            "default": "운영 모델·픽을 바꾸지 않는 연구용 기록입니다. 병행 기록의 성적은 평가 기간이 끝나기 전에는 보여 주지 않습니다(결과를 보고 규칙을 바꾸지 않기 위해).",
+            "title": "Note",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "shadow": {
+            "$ref": "#/components/schemas/ShadowProgressOut"
+          }
+        },
+        "required": [
+          "generated_at",
+          "provider",
+          "is_demo",
+          "collection",
+          "shadow",
+          "live_clv"
+        ],
+        "title": "ResearchOut",
+        "type": "object"
+      },
       "ReviewItemOut": {
         "properties": {
           "actual_outcome": {
@@ -3244,6 +3640,107 @@
           "prediction_id"
         ],
         "title": "SelectionIn",
+        "type": "object"
+      },
+      "ShadowProgressOut": {
+        "properties": {
+          "days_with_records": {
+            "title": "Days With Records",
+            "type": "integer"
+          },
+          "decision_delay_median_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Delay Median Minutes"
+          },
+          "decisions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only once the report is final; scores are withheld during the window",
+            "title": "Decisions"
+          },
+          "excluded": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Excluded",
+            "type": "object"
+          },
+          "min_settled": {
+            "title": "Min Settled",
+            "type": "integer"
+          },
+          "no_decision_days": {
+            "items": {
+              "type": "string"
+            },
+            "title": "No Decision Days",
+            "type": "array"
+          },
+          "not_played": {
+            "title": "Not Played",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "protocol": {
+            "title": "Protocol",
+            "type": "string"
+          },
+          "recorded": {
+            "title": "Recorded",
+            "type": "integer"
+          },
+          "settled": {
+            "title": "Settled",
+            "type": "integer"
+          },
+          "status": {
+            "description": "provisional until the window is complete; then final",
+            "title": "Status",
+            "type": "string"
+          },
+          "window_end": {
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "window_start",
+          "window_end",
+          "status",
+          "recorded",
+          "excluded",
+          "settled",
+          "pending",
+          "not_played",
+          "min_settled",
+          "days_with_records",
+          "no_decision_days",
+          "decision_delay_median_minutes",
+          "decisions"
+        ],
+        "title": "ShadowProgressOut",
         "type": "object"
       },
       "SimulationOut": {
@@ -4625,6 +5122,53 @@
         "summary": "Today",
         "tags": [
           "picks"
+        ]
+      }
+    },
+    "/research": {
+      "get": {
+        "operationId": "research_research_get",
+        "parameters": [
+          {
+            "description": "Collection-quality days, ending today",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Collection-quality days, ending today",
+              "maximum": 31,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research",
+        "tags": [
+          "research"
         ]
       }
     },

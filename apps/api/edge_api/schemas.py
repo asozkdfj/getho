@@ -747,3 +747,89 @@ class ReviewOut(ApiModel):
         "하루치 결과는 표본이 작아 운의 영향이 큽니다. 기대 적중 수(확률의 합)와 실제 적중 수를 "
         "여러 날에 걸쳐 비교해야 확률이 맞는지 알 수 있어요."
     )
+
+
+# --------------------------------------------------------------------- research
+class ResearchDayOut(ApiModel):
+    day: str = Field(description="Pick day (local date)")
+    decided: bool
+    minutes_after_publish_hour: int | None
+    runs_success: int
+    runs_failed: int
+    runs_expected: int
+    longest_gap_hours: float | None
+    fixtures_at_decision: int
+    with_prediction: int
+    with_odds: int
+    shadow_recorded: int
+    shadow_error: str | None
+
+
+class CollectionQualityOut(ApiModel):
+    start: str
+    end: str
+    expected_interval_minutes: float
+    days_without_decision: list[str]
+    days_with_failed_runs: list[str]
+    days_with_long_gaps: list[str]
+    days_with_shadow_errors: list[str]
+    prediction_share: float | None
+    odds_share: float | None
+    absences_known_share: float | None
+    days: list[ResearchDayOut]
+
+
+class ShadowProgressOut(ApiModel):
+    protocol: str
+    window_start: str
+    window_end: str
+    status: str = Field(description="provisional until the window is complete; then final")
+    recorded: int
+    excluded: dict[str, int]
+    settled: int
+    pending: int
+    not_played: int
+    min_settled: int
+    days_with_records: int
+    no_decision_days: list[str]
+    decision_delay_median_minutes: float | None
+    decisions: dict[str, Any] | None = Field(
+        description="Only once the report is final; scores are withheld during the window"
+    )
+
+
+class LiveClvFlagOut(ApiModel):
+    threshold: float
+    flags: int
+    mean_clv: float | None
+    share_positive: float | None
+
+
+class LiveClvOut(ApiModel):
+    window_start: str
+    window_end: str
+    counts: dict[str, int]
+    analysed: int
+    days: int
+    b_model: float | None
+    b_model_ci: list[float | None]
+    b_base: float | None
+    signal: str
+    share_moves_toward_model: float | None
+    mean_abs_move: float | None
+    closing_minutes_before_kickoff_median: float | None
+    large_gap: list[LiveClvFlagOut]
+
+
+class ResearchOut(ApiModel):
+    generated_at: datetime
+    provider: str
+    is_demo: bool
+    collection: CollectionQualityOut
+    shadow: ShadowProgressOut
+    live_clv: LiveClvOut
+    note: str = (
+        "운영 모델·픽을 바꾸지 않는 연구용 기록입니다. "
+        "병행 기록의 성적은 평가 기간이 끝나기 전에는 보여 주지 않습니다"
+        "(결과를 보고 규칙을 바꾸지 않기 위해)."
+    )

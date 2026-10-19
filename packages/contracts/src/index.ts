@@ -55,6 +55,10 @@ export type MarketBaseline = Schemas["MarketBaselineOut"];
 export type Review = Schemas["ReviewOut"];
 export type ReviewItem = Schemas["ReviewItemOut"];
 export type ReviewSummary = Schemas["ReviewSummaryOut"];
+export type Research = Schemas["ResearchOut"];
+export type ResearchDay = Schemas["ResearchDayOut"];
+export type LiveClv = Schemas["LiveClvOut"];
+export type ShadowProgress = Schemas["ShadowProgressOut"];
 
 export type Outcome = Schemas["Outcome"];
 export const OUTCOMES = ["HOME", "DRAW", "AWAY"] as const satisfies readonly Outcome[];
