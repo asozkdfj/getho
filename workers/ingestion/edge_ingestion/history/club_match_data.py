@@ -211,3 +211,36 @@ def load_goal_odds(code: str, cache_dir: Path) -> dict[MatchKey, GoalMarketOdds]
         at = datetime.combine(day, kickoff, tzinfo=UK).astimezone(UTC)
         out[(at, team_key(r["HomeTeam"]), team_key(r["AwayTeam"]))] = _goal_odds(r)
     return out
+
+
+# ------------------------------------------------------------------ match statistics
+@dataclass(frozen=True, slots=True)
+class MatchShots:
+    home_shots: float
+    away_shots: float
+    home_on_target: float
+    away_on_target: float
+
+
+def load_shots(code: str, cache_dir: Path) -> dict[MatchKey, MatchShots]:
+    """Shots and shots on target per match (both teams known), keyed like ``load``.
+    Post-match numbers: use them only for matches that finished before a forecast."""
+    text = fetch(cache_dir).read_text(encoding="utf-8")
+    out: dict[MatchKey, MatchShots] = {}
+    for r in csv.DictReader(io.StringIO(text)):
+        if r.get("Division") != DIVISIONS[code]:
+            continue
+        try:
+            day = date.fromisoformat(r["MatchDate"])
+            stats = MatchShots(
+                float(r["HomeShots"]),
+                float(r["AwayShots"]),
+                float(r["HomeTarget"]),
+                float(r["AwayTarget"]),
+            )
+        except (KeyError, ValueError):
+            continue
+        kickoff = time.fromisoformat(r["MatchTime"]) if r.get("MatchTime") else DEFAULT_KICKOFF
+        at = datetime.combine(day, kickoff, tzinfo=UK).astimezone(UTC)
+        out[(at, team_key(r["HomeTeam"]), team_key(r["AwayTeam"]))] = stats
+    return out
