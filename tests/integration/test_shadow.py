@@ -137,6 +137,52 @@ def test_a_shadow_failure_never_blocks_the_pick(session_factory, seeded, now, mo
         assert s.scalars(select(DailyPick)).one().id == pick.id
 
 
+def test_a_failing_shadow_lookup_never_blocks_the_pick(session_factory, seeded, now, monkeypatch):
+    """Codex QA MORN-3: the shadow's own prediction lookup (fixtures outside the
+    pick scope) fails; the pick is still published with the error recorded."""
+    with session_factory() as s:
+        decision, fixture = _pick_time(s, now)
+        config = settings(pick_leagues=fixture.league.provider_id)
+        original = queries.latest_predictions_by_fixture
+        calls = []
+
+        def fail_second(session, ids, as_of=None):
+            calls.append(list(ids))
+            if len(calls) == 2:
+                assert ids and not set(ids) & set(calls[0])
+                raise RuntimeError("shadow-only lookup failed")
+            return original(session, ids, as_of=as_of)
+
+        monkeypatch.setattr(queries, "latest_predictions_by_fixture", fail_second)
+        pick = publish_daily_pick(s, config, decision)
+        assert pick.id is not None
+        assert pick.evidence["shadow"]["error"].startswith("RuntimeError")
+        assert _rows(s) == []
+
+
+def test_report_answers_nothing_before_final_and_accounts_for_every_day(
+    session_factory, seeded, now, monkeypatch
+):
+    with session_factory() as s:
+        pick_now, _ = _pick_time(s, now)
+        pick = publish_daily_pick(s, settings(), pick_now)
+        _settle_all(s, _rows(s))
+        s.expire_all()
+        day = pick.pick_date
+        start = day - timedelta(days=2)
+        report = shadow_report(s, "mock", now=now + timedelta(days=30), start=start, end=day)
+        assert report["status"] == "provisional" and report["decisions"] == {}
+        assert report["metrics"]["paired"]["blend_vs_market"]["weeks"] >= 1
+        timing = report["decision_timing"]
+        assert timing["days"] == 1
+        expected = pick_now - picks_module.local_day(pick_now, settings()).publish_at
+        assert timing["minutes_after_publish_hour"]["max"] == expected.total_seconds() / 60
+        cov = report["coverage_days"]
+        assert cov["days"] == 3 and cov["with_records"] == 1
+        assert cov["no_decision"] == [start.isoformat(), (start + timedelta(days=1)).isoformat()]
+        assert cov["shadow_failed"] == []
+
+
 def _settle_all(s, rows):
     for i, r in enumerate(x for x in rows if x.status == "recorded"):
         s.execute(

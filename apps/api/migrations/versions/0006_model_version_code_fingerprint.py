@@ -28,6 +28,23 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Rows that differ only by fingerprint would collide on the old key: keep them
+    # apart by appending the fingerprint's prefix to the commit label of all but
+    # the first (rows are referenced by predictions and cannot be merged).
+    op.execute(
+        """
+        UPDATE model_versions mv
+        SET git_sha = left(mv.git_sha, 27) || '+'
+            || coalesce(left(mv.code_fingerprint, 12), mv.id::text)
+        FROM (
+            SELECT id, row_number() OVER (
+                PARTITION BY name, version, git_sha, feature_set ORDER BY id
+            ) AS rn
+            FROM model_versions
+        ) dup
+        WHERE mv.id = dup.id AND dup.rn > 1
+        """
+    )
     op.drop_constraint(op.f("uq_model_versions_identity"), "model_versions", type_="unique")
     op.create_unique_constraint(op.f("uq_model_versions_identity"), "model_versions", OLD)
     op.drop_column("model_versions", "code_fingerprint")

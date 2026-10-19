@@ -10,6 +10,7 @@ from edge_api.config import Settings
 from edge_api.db.models import Fixture, PlayerAppearance, Team, TeamNewsSnapshot
 from edge_ingestion.jobs import run_ingestion
 from edge_ingestion.providers import ApiFootballProvider, MockProvider
+from edge_ingestion.providers.base import AbsenceReport
 from edge_ingestion.providers.mock import LINEUPS_KNOWN
 from edge_ingestion.team_news import content_hash, ingest_team_news
 from edge_ingestion.testing import REF, FakeApiFootball
@@ -268,3 +269,34 @@ def test_a_report_that_returns_to_an_earlier_state_is_stored_again(db_session, n
     ).all()
     assert [bool(s.payload["players"]) for s in history] == [True, False, True]
     assert history[0].content_hash == history[2].content_hash
+
+
+def _injuries(p, monkeypatch, rows):
+    monkeypatch.setattr(p, "budget_ok", lambda: True)
+    monkeypatch.setattr(p, "_get", lambda *args, **kwargs: {"response": rows})
+
+
+def _row(fixture, team, player=True):
+    item = {"fixture": {"id": fixture}, "team": {"id": team}, "player": {"type": "Missing Fixture"}}
+    if player:
+        item["player"].update({"id": 7, "name": "Somebody", "reason": "Injury"})
+    return item
+
+
+def test_malformed_injury_rows_leave_their_fixture_unknown(monkeypatch):
+    """Codex QA MORN-2: an unreadable row is not "checked, none". Its fixture is
+    not covered and keeps nothing (a partial list would replace the last good
+    report); other fixtures of the day stay covered."""
+    p = _api(FakeApiFootball())
+    day = REF + timedelta(hours=1)
+    wanted = {"123": day, "124": day, "125": day}
+    _injuries(p, monkeypatch, [_row(123, 456), _row(123, 456, player=False), _row(124, 9)])
+    report = p.get_absence_report(wanted)
+    assert report.covered == frozenset({"124", "125"})  # 125: checked, nobody listed
+    assert [a.fixture_provider_id for a in report.absences] == ["124"]
+
+    _injuries(p, monkeypatch, [])  # a well-formed empty answer: every fixture checked
+    assert p.get_absence_report(wanted).covered == frozenset(wanted)
+
+    _injuries(p, monkeypatch, [{"team": {"id": 1}, "player": {"id": 2, "name": "x"}}])
+    assert p.get_absence_report(wanted) == AbsenceReport([], frozenset())  # whole day unknown

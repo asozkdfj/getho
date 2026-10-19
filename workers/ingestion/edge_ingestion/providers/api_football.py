@@ -395,7 +395,10 @@ class ApiFootballProvider(FootballDataProvider):
 
     def get_absence_report(self, fixtures: Mapping[str, datetime]) -> AbsenceReport:
         """One /injuries request per kickoff day. Only days actually fetched are
-        covered: a day skipped for the request budget stays unknown."""
+        covered: a day skipped for the request budget stays unknown. A fixture
+        with a malformed row is not covered and none of its rows are kept (a
+        partial or empty list must not replace its last good report); a row that
+        cannot even be tied to a fixture leaves the whole day uncovered."""
         by_day: dict[date, set[str]] = {}
         for pid, kickoff in fixtures.items():
             by_day.setdefault(kickoff.astimezone(UTC).date(), set()).add(pid)
@@ -405,12 +408,34 @@ class ApiFootballProvider(FootballDataProvider):
             if not self.budget_ok():
                 break
             payload = self._get("/injuries", {"date": day.isoformat(), "timezone": "UTC"})
+            parsed: list[AbsenceData] = []
+            broken: set[str] = set()
+            unattributable = False
             for item in payload["response"]:
-                absence = self._parse_absence(item, wanted)
-                if absence:
-                    out.append(absence)
-            covered |= wanted
+                fixture_id = self._fixture_id_of(item)
+                if fixture_id is None:
+                    unattributable = True
+                elif fixture_id in wanted:
+                    absence = self._parse_absence(item, wanted)
+                    if absence is None:
+                        broken.add(fixture_id)
+                    else:
+                        parsed.append(absence)
+            if unattributable:
+                logger.warning("injuries of %s: a row without a fixture; day left unknown", day)
+                continue
+            if broken:
+                logger.warning("injuries of %s: malformed rows for %d fixtures", day, len(broken))
+            out += [a for a in parsed if a.fixture_provider_id not in broken]
+            covered |= wanted - broken
         return AbsenceReport(out, frozenset(covered))
+
+    @staticmethod
+    def _fixture_id_of(item: Any) -> str | None:
+        try:
+            return str(item["fixture"]["id"])
+        except (KeyError, TypeError):
+            return None
 
     @staticmethod
     def _parse_absence(item: Mapping[str, Any], wanted: set[str]) -> AbsenceData | None:
