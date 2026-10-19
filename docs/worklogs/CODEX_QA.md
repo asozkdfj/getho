@@ -1,5 +1,15 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-20 — 밤사이 PR #21~#30 / Codex
+
+- main 4f45edb 고정. Python 439 PASS/5 FAIL; 인코딩 3건 UTF-8 재실행 PASS,
+  기존 CQ-1/STAT-1 FAIL. 새 SHOT-1 결과 정정 as-of 반례 별도 1 FAIL.
+- 웹 109 PASS, typecheck/lint/build/Ruff/OpenAPI·TS 재생성 PASS. 서버 실제 설치는 미실행.
+- 슈팅 보고서 gate 산술 재계산 일치. 후보 LL .992379 < 운영 .997576, 시장 .976913보다 나쁨.
+  원본부터 독립 학습 재현은 미실행, 모델 교체 불승인.
+- [전체 보고서](../qa/2026-10-20-overnight-review.md), scripts/qa/test_shadow_result_timing.py.
+- 기능 소스·운영 모델·서버 변경 없음. Claude에 결과 시점/부분 수집/리그 식별 수정 요청.
+
 ## 2026-10-19 — 통계 수집 PR #20 검증 / Codex
 
 - main 22f9b07, PR head dc049ef: 기존 통계 테스트 5 PASS / 독립 부분 응답 복구 1 FAIL.
