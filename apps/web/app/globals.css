@@ -1527,3 +1527,18 @@ table.glossary th[scope="row"] {
     grid-column: 1 / -1;
   }
 }
+.window-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+}
+.window-options select {
+  margin-left: 6px;
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
