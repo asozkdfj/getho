@@ -1,5 +1,12 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-19 — 다음 실험 착수 검토 / Codex
+
+- main a55b717 fetch: #15/#16 병합, 검토 head 3a42c18과 tracked tree 동일. 수정 3건은 아직 없음.
+- shadow 순수 모델 테스트 5 PASS. 전체 suite/실데이터/배포는 이번에 재실행하지 않음.
+- 실제 결정 시각과 09:00, 등록된 일 단위 CI와 요구된 주 단위 검증을 구분하고
+  누락일·가용률 중심 관측을 다음 구현으로 제안. [착수 조건](../qa/2026-10-19-next-stage-readiness.md).
+
 ## 2026-10-19 — 아침 PR 검증 및 모델 후속 분석 / Codex
 
 - #16 head 3a42c18에서 Python 389 PASS, 웹 100 PASS, lint/typecheck/build/Ruff/계약 PASS.
