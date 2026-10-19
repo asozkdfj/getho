@@ -1,0 +1,43 @@
+# Always-on personal server: layered on top of docker-compose.yml.
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml ...
+# (infra/server/*.sh do this for you; guide: docs/SERVER.md)
+#
+# Nothing listens on a public interface: Docker publishes ports past the host
+# firewall (ufw), so the database and Redis get no host port at all, and the API
+# and web bind to 127.0.0.1 only. The web is reached through `tailscale serve`
+# (HTTPS inside your tailnet), never from the internet. The app has no login.
+# `!reset` / `!override` need Docker Compose 2.24.4 or newer (deploy.sh checks).
+
+x-server: &server
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  postgres:
+    <<: *server
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see docs/SERVER.md)}
+
+  redis:
+    <<: *server
+    ports: !reset []
+
+  api:
+    <<: *server
+    ports: !override ["127.0.0.1:8000:8000"]
+    environment:
+      APP_ENV: production
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:?set API_FOOTBALL_KEY in .env}
+
+  worker:
+    <<: *server
+    environment:
+      APP_ENV: production
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:?set API_FOOTBALL_KEY in .env}
+
+  web:
+    <<: *server
+    ports: !override ["127.0.0.1:3000:3000"]

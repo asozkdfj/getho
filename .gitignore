@@ -28,3 +28,9 @@ next-env.d.ts
 
 # downloaded historical datasets (backtests)
 .cache/
+
+# database dumps (server backups, laptop -> server migration): real data, never commit
+*.dump
+*.dump.part
+backups/
+server-backups/
