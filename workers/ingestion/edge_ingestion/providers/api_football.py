@@ -45,6 +45,7 @@ from edge_ingestion.providers.base import (
     MatchStatistics,
     OddsData,
     PlayerRef,
+    PostMatchReport,
     TeamData,
 )
 from edge_ingestion.providers.http import JsonHttpClient, ProviderError, Transport, urllib_transport
@@ -501,8 +502,17 @@ class ApiFootballProvider(FootballDataProvider):
     def get_match_statistics(self, fixture_provider_ids: list[str]) -> list[MatchStatistics]:
         """Team statistics from the same /fixtures?ids= details (20 per request).
         A team block that cannot be read is skipped, never filled in."""
+        return self._statistics_from(self._fixture_details(fixture_provider_ids))
+
+    def get_post_match(self, fixture_provider_ids: list[str]) -> PostMatchReport:
+        """Minutes and statistics from one fetch of the details."""
+        items = self._fixture_details(fixture_provider_ids)
+        return PostMatchReport(self._appearances_from(items), self._statistics_from(items))
+
+    @staticmethod
+    def _statistics_from(items: list[Mapping[str, Any]]) -> list[MatchStatistics]:
         out: list[MatchStatistics] = []
-        for item in self._fixture_details(fixture_provider_ids):
+        for item in items:
             try:
                 fixture_id = str(item["fixture"]["id"])
                 for team in item.get("statistics") or []:
@@ -524,8 +534,12 @@ class ApiFootballProvider(FootballDataProvider):
         return out
 
     def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
+        return self._appearances_from(self._fixture_details(fixture_provider_ids))
+
+    @staticmethod
+    def _appearances_from(items: list[Mapping[str, Any]]) -> list[AppearanceData]:
         out: list[AppearanceData] = []
-        for item in self._fixture_details(fixture_provider_ids):
+        for item in items:
             try:
                 fixture_id = str(item["fixture"]["id"])
                 for team in item.get("players") or []:

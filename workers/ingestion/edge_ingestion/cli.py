@@ -243,7 +243,9 @@ def main(argv: list[str] | None = None) -> int:
     tc.add_argument("--start", type=date.fromisoformat, required=True, help="first pick day")
     tc.add_argument("--end", type=date.fromisoformat, required=True, help="last pick day")
     tc.add_argument("--out", type=Path, help="write the JSON report here")
-    bf = sub.add_parser("backfill-appearances", help="player minutes of past fixtures")
+    bf = sub.add_parser(
+        "backfill-appearances", help="player minutes and team statistics (xG) of past fixtures"
+    )
     bf.add_argument("--days", type=int, default=420, help="how far back (default ~2 seasons)")
     bf.add_argument("--limit", type=int, default=2000, help="fixtures per run")
     bf.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
@@ -419,19 +421,24 @@ def _shadow_report(args: argparse.Namespace) -> int:
 
 def _backfill_appearances(settings: Settings, now: datetime, days: int, limit: int) -> dict:
     from edge_api.services.leagues import scoped_league_ids
-    from edge_ingestion.team_news import ingest_appearances
+    from edge_ingestion.team_news import ingest_post_match
 
     provider = get_provider(settings.data_provider, settings=settings, reference_time=now)
     with session_scope() as session:
-        inserted = ingest_appearances(
+        appearances, statistics = ingest_post_match(
             session,
             provider,
             now=now,
             scope=scoped_league_ids(session, provider.name, settings.team_news_leagues),
             limit=limit,
             lookback=timedelta(days=days),
+            source="backfill",  # history collected now, not known at the time
         )
-    return {"appearances_inserted": inserted, "requests_used": provider.requests_made}
+    return {
+        "appearances_inserted": appearances,
+        "statistics_inserted": statistics,
+        "requests_used": provider.requests_made,
+    }
 
 
 def _run(

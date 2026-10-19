@@ -13,6 +13,7 @@ from edge_api.db.models import (
     FixtureObservation,
     FixtureStatus,
     League,
+    MatchStatistic,
     OddsSnapshot,
     Prediction,
 )
@@ -205,3 +206,33 @@ def result_history(session: Session, fixture_id: int) -> list[dict[str, object]]
             }
         )
     return out
+
+
+def latest_statistics(
+    session: Session, fixture_ids: Sequence[int], as_of: datetime | None = None
+) -> Sequence[MatchStatistic]:
+    """Each team's latest post-match statistics row; with ``as_of`` only rows
+    stored by then (what a decision at that moment could have used)."""
+    if not fixture_ids:
+        return []
+    where = [MatchStatistic.fixture_id.in_(fixture_ids)]
+    if as_of is not None:
+        where.append(MatchStatistic.created_at <= as_of)
+    ranked = (
+        select(
+            MatchStatistic.id,
+            func.row_number()
+            .over(
+                partition_by=(MatchStatistic.fixture_id, MatchStatistic.team_id),
+                order_by=(MatchStatistic.created_at.desc(), MatchStatistic.id.desc()),
+            )
+            .label("rn"),
+        )
+        .where(*where)
+        .subquery()
+    )
+    return session.scalars(
+        select(MatchStatistic)
+        .join(ranked, ranked.c.id == MatchStatistic.id)
+        .where(ranked.c.rn == 1)
+    ).all()

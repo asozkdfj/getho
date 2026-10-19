@@ -447,3 +447,30 @@ class FixtureObservation(Base):
     away_score: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str] = mapped_column(String(16), default="ingest")
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class MatchStatistic(Base):
+    """One team's post-match statistics as the provider reported them (append-only).
+
+    ``expected_goals`` is the provider's xG, None where it publishes none; it is
+    a fact about a finished match, never an input about that match itself.
+    ``created_at`` is when it was stored (the earliest moment a later decision
+    could use it). A changed report from the provider is a new row; ``source``
+    is "ingest" for the pipeline and "backfill" for history collected later.
+    """
+
+    __tablename__ = "match_statistics"
+    __table_args__ = (
+        Index("ix_match_statistics_fixture_team", "fixture_id", "team_id", "created_at"),
+        CheckConstraint("expected_goals IS NULL OR expected_goals >= 0", name="xg_non_negative"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    shots: Mapped[int | None] = mapped_column(Integer)
+    shots_on_target: Mapped[int | None] = mapped_column(Integer)
+    expected_goals: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))
+    source: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
