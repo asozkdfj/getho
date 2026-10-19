@@ -248,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     sr.add_argument("--end", type=date.fromisoformat, help="last decision day (default: protocol)")
     sr.add_argument("--out", type=Path, help="write the JSON report here")
+    lc = sub.add_parser("live-clv", help="did the market move toward the model after 09:00?")
+    lc.add_argument("--start", type=date.fromisoformat, help="first decision day (default 10-20)")
+    lc.add_argument("--end", type=date.fromisoformat, help="last decision day (default today)")
+    lc.add_argument("--out", type=Path, help="write the JSON report here")
     tc = sub.add_parser(
         "team-news-coverage", help="player information known at each 09:00 decision"
     )
@@ -273,6 +277,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "shadow-report":
         configure_logging(get_settings().log_level)
         return _shadow_report(args)
+
+    if args.command == "live-clv":
+        configure_logging(get_settings().log_level)
+        return _live_clv(args)
 
     if args.command == "check-xg":
         configure_logging(get_settings().log_level)
@@ -437,6 +445,25 @@ def _shadow_report(args: argparse.Namespace) -> int:
             now=utcnow(),
             start=args.start or EVALUATION_START,
             end=args.end or EVALUATION_END,
+        )
+    text = json.dumps(report, indent=2, ensure_ascii=False)
+    if args.out:
+        args.out.write_text(text + "\n")
+    print(text)
+    return 0
+
+
+def _live_clv(args: argparse.Namespace) -> int:
+    from edge_api.services.live_clv import live_clv_report
+    from edge_ml.shadow import EVALUATION_START
+
+    with session_scope() as session:
+        report = live_clv_report(
+            session,
+            get_settings().data_provider,
+            now=utcnow(),
+            start=args.start or EVALUATION_START,
+            end=args.end,
         )
     text = json.dumps(report, indent=2, ensure_ascii=False)
     if args.out:
