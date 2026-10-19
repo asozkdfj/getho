@@ -10,3 +10,7 @@
 .env.*
 docs
 **/*.md
+**/*.dump
+**/*.dump.part
+backups
+server-backups
