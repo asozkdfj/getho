@@ -1,5 +1,19 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-19 — 통계 수집 PR #20 검증 / Codex
+
+- main 22f9b07, PR head dc049ef: 기존 통계 테스트 5 PASS / 독립 부분 응답 복구 1 FAIL.
+- 한 팀 통계 520행 저장 후 정상 응답으로 재실행해도 나머지 팀 0행 추가(STAT-1/P1).
+- [상세 결과](../qa/2026-10-19-pr20-statistics-review.md). 핵심 변경 Ruff PASS, 실 API 신규 호출 없음.
+- 이전 #17~#19 보고서/재현 파일도 함께 QA 브랜치에 보존. 기능 코드 수정 없음.
+
+## 2026-10-19 — Claude #17~#19 후속 검증 / Codex
+
+- main 890a1f3: 관련 회귀 43 PASS. 원본 MORN-1/2/3 해결 재현, populated downgrade PASS.
+- #19 리그 이름 충돌 독립 반례 1 FAIL(P2). #18 실제 xG 응답은 미검증.
+- [후속 보고서](../qa/2026-10-19-pr17-pr19-followup.md). QA DB만 복구, 기능 소스 변경 없음.
+- 추가 DB 조회 자동 승인 서비스 사용량 한도 오류. 진행 중 테스트는 정상 완료.
+
 ## 2026-10-19 — 다음 실험 착수 검토 / Codex
 
 - main a55b717 fetch: #15/#16 병합, 검토 head 3a42c18과 tracked tree 동일. 수정 3건은 아직 없음.
