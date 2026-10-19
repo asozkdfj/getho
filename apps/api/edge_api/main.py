@@ -11,6 +11,7 @@ from edge_api.api.routes import (
     leagues,
     performance,
     picks,
+    research,
     review,
 )
 from edge_api.config import get_settings
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(performance.router)
     app.include_router(combinations.router)
     app.include_router(review.router)
+    app.include_router(research.router)
     return app
 
 
