@@ -1,5 +1,16 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-19 — 아침 PR 검증 및 모델 후속 분석 / Codex
+
+- #16 head 3a42c18에서 Python 389 PASS, 웹 100 PASS, lint/typecheck/build/Ruff/계약 PASS.
+- 새 독립 반례 3 FAIL: 선수 행 시점 누수, malformed 결장 coverage, shadow 조회 장애 전파.
+- [아침 QA 상세](../qa/2026-10-19-morning-pr14-pr16-review.md). 이전 F1~F6/M2/M3는 수정 재검증 PASS.
+- 고정 실데이터 manifest 676경기를 paired 재분석. 시장 LL .985904, 혼합 .988995,
+  운영 1.011212. 신규 미관측 시험 아님. 1주 표본으로 CI 산출 보류, 모델 교체 불승인.
+- 추가 분석 도구 및 테스트 6 PASS. 양 팀 결장 커버리지 34경기, 공식 선발 0경기로
+  선수 효과 학습은 보류. [분석 결과와 Claude 구현 순서](../qa/2026-10-19-model-paired-followup.md).
+- 담당 Codex: QA 테스트·분석·문서만 변경. Claude 기능 코드·운영 DB·모델 버전 변경 없음.
+
 ## 2026-10-19 — Codex
 
 - 후속 실행: 같은 09:00 시장 비교 read-only 도구 구현, 테스트 2 PASS, 실데이터 DB 감사.
