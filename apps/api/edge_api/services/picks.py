@@ -50,12 +50,14 @@ from edge_api.services import queries
 from edge_api.services.leagues import scoped_league_ids
 from edge_api.services.quality import assess, last_successful_run
 from edge_api.services.shadow import record_shadow_forecasts
+from edge_api.services.shadow_v2 import record_shadow_v2
 from edge_api.versioning import build_info
 from edge_ml.core import Outcome, Probabilities1X2
 from edge_ml.metrics import wilson_interval
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
 from edge_ml.picks import PickCandidate, best_outcome, select_pick
 from edge_ml.shadow import PROTOCOL as SHADOW_PROTOCOL
+from edge_ml.shadow_v2 import PROTOCOL as SHADOW_V2_PROTOCOL
 
 # Version of the selection policy recorded with every pick.
 # 1: candidates from the publish hour to local midnight (picks before ADR-016,
@@ -201,6 +203,36 @@ def _record_shadow(
     return {"protocol": SHADOW_PROTOCOL, **counts}
 
 
+def _record_shadow_v2(
+    session: Session,
+    settings: Settings,
+    day: date,
+    now: datetime,
+    all_fixtures: list[Fixture],
+    in_scope: list[Fixture],
+    preds: dict[int, Prediction],
+) -> dict[str, Any]:
+    """The shot-based form candidate (services/shadow_v2.py), isolated like v1."""
+    scope_ids = {f.id for f in in_scope}
+    others = [f.id for f in all_fixtures if f.id not in scope_ids]
+    try:
+        with session.begin_nested():
+            all_preds = preds | queries.latest_predictions_by_fixture(session, others, as_of=now)
+            counts = record_shadow_v2(
+                session,
+                settings,
+                decision_date=day,
+                decided_at=now,
+                fixtures=all_fixtures,
+                in_scope=scope_ids,
+                predictions=all_preds,
+            )
+    except Exception as exc:  # the pick must not depend on the shadow record
+        logger.exception("shadow-v2 forecasts not recorded")
+        return {"protocol": SHADOW_V2_PROTOCOL, "error": f"{type(exc).__name__}: {exc}"[:300]}
+    return {"protocol": SHADOW_V2_PROTOCOL, **counts}
+
+
 def backtest_reference(session: Session, threshold: float) -> dict[str, Any] | None:
     """Historical performance of the daily rule at this threshold (current model)."""
     ev = session.scalars(
@@ -333,6 +365,9 @@ def publish_daily_pick(
         "factors_used": MODEL_FACTORS,
     }
     evidence["shadow"] = _record_shadow(
+        session, settings, ld.day, now, all_fixtures, fixtures, preds
+    )
+    evidence["shadow_v2"] = _record_shadow_v2(
         session, settings, ld.day, now, all_fixtures, fixtures, preds
     )
     evidence["manifest"] = _manifest(settings, evidence, all_fixtures, fixtures, last_run)

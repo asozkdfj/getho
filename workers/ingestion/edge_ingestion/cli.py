@@ -252,6 +252,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     sr.add_argument("--end", type=date.fromisoformat, help="last decision day (default: protocol)")
     sr.add_argument("--out", type=Path, help="write the JSON report here")
+    sr.add_argument(
+        "--protocol", choices=["shadow-v1", "shadow-v2"], default="shadow-v1", help="which record"
+    )
     lc = sub.add_parser("live-clv", help="did the market move toward the model after 09:00?")
     lc.add_argument("--start", type=date.fromisoformat, help="first decision day (default 10-20)")
     lc.add_argument("--end", type=date.fromisoformat, help="last decision day (default today)")
@@ -445,17 +448,30 @@ def _collection_quality(args: argparse.Namespace) -> int:
 
 
 def _shadow_report(args: argparse.Namespace) -> int:
-    from edge_api.services.shadow import shadow_report
-    from edge_ml.shadow import EVALUATION_END, EVALUATION_START
+    if args.protocol == "shadow-v2":
+        from edge_api.services.shadow_v2 import shadow_v2_report
+        from edge_ml import shadow_v2
 
-    with session_scope() as session:
-        report = shadow_report(
-            session,
-            get_settings().data_provider,
-            now=utcnow(),
-            start=args.start or EVALUATION_START,
-            end=args.end or EVALUATION_END,
-        )
+        with session_scope() as session:
+            report = shadow_v2_report(
+                session,
+                get_settings().data_provider,
+                now=utcnow(),
+                start=args.start or shadow_v2.EVALUATION_START,
+                end=args.end or shadow_v2.EVALUATION_END,
+            )
+    else:
+        from edge_api.services.shadow import shadow_report
+        from edge_ml.shadow import EVALUATION_END, EVALUATION_START
+
+        with session_scope() as session:
+            report = shadow_report(
+                session,
+                get_settings().data_provider,
+                now=utcnow(),
+                start=args.start or EVALUATION_START,
+                end=args.end or EVALUATION_END,
+            )
     text = json.dumps(report, indent=2, ensure_ascii=False)
     if args.out:
         args.out.write_text(text + "\n")

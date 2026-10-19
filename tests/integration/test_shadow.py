@@ -18,7 +18,12 @@ from tests.integration.test_picks import _pick_time, settings
 
 
 def _rows(s):
-    return s.scalars(select(ShadowForecast).order_by(ShadowForecast.fixture_id)).all()
+    # shadow-v1 only: shadow-v2 rows are recorded at the same decision (test_shadow_v2.py)
+    return s.scalars(
+        select(ShadowForecast)
+        .where(ShadowForecast.protocol == "shadow-v1")
+        .order_by(ShadowForecast.fixture_id)
+    ).all()
 
 
 def test_every_window_fixture_is_recorded_once_with_the_decision_inputs(

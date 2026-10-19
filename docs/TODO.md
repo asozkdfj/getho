@@ -49,4 +49,4 @@
 | 43 | ~~슈팅 기반 대리 변수 실험~~ | 완료(2026-10-19): `sot_and_finishing`이 표준 기준 통과(후속 +0.0052 [+0.0036, +0.0068]). 서비스 반영은 #46 | – |
 | 44 | CLV 분석 실행 | `edge backtest-clv`는 football-data.co.uk에서 CSV를 받습니다. 이 개발 환경에서는 그 사이트에 접속할 수 없어 사용자 환경에서 실행합니다. 결과에 따라 2단계(시장 가격 조정 모델) 사전 등록 여부를 정합니다(ADR-030) | 사용자 실행 후 |
 | 45 | 실시간 CLV 모니터링 | `edge live-clv`(ADR-032)로 병행 기록 기간 동안 주 1회 확인. 표본이 쌓이면(수백 경기) 과거 CLV 결과와 비교해 2단계 사전 등록 여부를 정합니다 | 매주(2026-10-20~) |
-| 46 | 슈팅 변수 서비스 반영 준비 | (1) Codex QA, (2) API-Football 유효 슈팅과 football-data 수치 비교(같은 경기), (3) 팀별 최근 10경기 통계 확보(수집 중 + `backfill-appearances`), (4) 병행 기록 새 프로토콜(shadow-v2)에 후보로 추가해 미래 경기로 확인, (5) 사용자 승인 후 모델 0.3.0 | 사용자 결정 |
+| 46 | 슈팅 변수 서비스 반영 준비 | (1) Codex QA, (2) `edge compare-shots`로 API-Football과 football-data 유효 슈팅 비교(도구 PR #27), (3) 팀별 최근 10경기 통계 확보(수집 중 + `backfill-appearances`), (4) shadow-v2 미래 경기 확인(ADR-035, 2026-11-02~2027-03-28, `edge shadow-report --protocol shadow-v2`), (5) 통과 시 사용자 승인 후 모델 0.3.0 | 2027-04 채점 후 |
