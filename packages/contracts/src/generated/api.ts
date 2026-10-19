@@ -229,6 +229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/research": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Research */
+        get: operations["research_research_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/review": {
         parameters: {
             query?: never;
@@ -299,6 +316,31 @@ export interface components {
             outcome: components["schemas"]["Outcome"];
             /** Upper */
             upper: number;
+        };
+        /** CollectionQualityOut */
+        CollectionQualityOut: {
+            /** Absences Known Share */
+            absences_known_share: number | null;
+            /** Days */
+            days: components["schemas"]["ResearchDayOut"][];
+            /** Days With Failed Runs */
+            days_with_failed_runs: string[];
+            /** Days With Long Gaps */
+            days_with_long_gaps: string[];
+            /** Days With Shadow Errors */
+            days_with_shadow_errors: string[];
+            /** Days Without Decision */
+            days_without_decision: string[];
+            /** End */
+            end: string;
+            /** Expected Interval Minutes */
+            expected_interval_minutes: number;
+            /** Odds Share */
+            odds_share: number | null;
+            /** Prediction Share */
+            prediction_share: number | null;
+            /** Start */
+            start: string;
         };
         /** CombinationLegOut */
         CombinationLegOut: {
@@ -855,6 +897,48 @@ export interface components {
              */
             regular: boolean;
         };
+        /** LiveClvFlagOut */
+        LiveClvFlagOut: {
+            /** Flags */
+            flags: number;
+            /** Mean Clv */
+            mean_clv: number | null;
+            /** Share Positive */
+            share_positive: number | null;
+            /** Threshold */
+            threshold: number;
+        };
+        /** LiveClvOut */
+        LiveClvOut: {
+            /** Analysed */
+            analysed: number;
+            /** B Base */
+            b_base: number | null;
+            /** B Model */
+            b_model: number | null;
+            /** B Model Ci */
+            b_model_ci: (number | null)[];
+            /** Closing Minutes Before Kickoff Median */
+            closing_minutes_before_kickoff_median: number | null;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Days */
+            days: number;
+            /** Large Gap */
+            large_gap: components["schemas"]["LiveClvFlagOut"][];
+            /** Mean Abs Move */
+            mean_abs_move: number | null;
+            /** Share Moves Toward Model */
+            share_moves_toward_model: number | null;
+            /** Signal */
+            signal: string;
+            /** Window End */
+            window_end: string;
+            /** Window Start */
+            window_start: string;
+        };
         /** LiveEvaluationOut */
         LiveEvaluationOut: {
             /** Is Demo */
@@ -1273,6 +1357,56 @@ export interface components {
             /** Home Goals */
             home_goals: number;
         };
+        /** ResearchDayOut */
+        ResearchDayOut: {
+            /**
+             * Day
+             * @description Pick day (local date)
+             */
+            day: string;
+            /** Decided */
+            decided: boolean;
+            /** Fixtures At Decision */
+            fixtures_at_decision: number;
+            /** Longest Gap Hours */
+            longest_gap_hours: number | null;
+            /** Minutes After Publish Hour */
+            minutes_after_publish_hour: number | null;
+            /** Runs Expected */
+            runs_expected: number;
+            /** Runs Failed */
+            runs_failed: number;
+            /** Runs Success */
+            runs_success: number;
+            /** Shadow Error */
+            shadow_error: string | null;
+            /** Shadow Recorded */
+            shadow_recorded: number;
+            /** With Odds */
+            with_odds: number;
+            /** With Prediction */
+            with_prediction: number;
+        };
+        /** ResearchOut */
+        ResearchOut: {
+            collection: components["schemas"]["CollectionQualityOut"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Is Demo */
+            is_demo: boolean;
+            live_clv: components["schemas"]["LiveClvOut"];
+            /**
+             * Note
+             * @default 운영 모델·픽을 바꾸지 않는 연구용 기록입니다. 병행 기록의 성적은 평가 기간이 끝나기 전에는 보여 주지 않습니다(결과를 보고 규칙을 바꾸지 않기 위해).
+             */
+            note: string;
+            /** Provider */
+            provider: string;
+            shadow: components["schemas"]["ShadowProgressOut"];
+        };
         /** ReviewItemOut */
         ReviewItemOut: {
             actual_outcome: components["schemas"]["Outcome"] | null;
@@ -1430,6 +1564,47 @@ export interface components {
             outcome: components["schemas"]["Outcome"];
             /** Prediction Id */
             prediction_id: number;
+        };
+        /** ShadowProgressOut */
+        ShadowProgressOut: {
+            /** Days With Records */
+            days_with_records: number;
+            /** Decision Delay Median Minutes */
+            decision_delay_median_minutes: number | null;
+            /**
+             * Decisions
+             * @description Only once the report is final; scores are withheld during the window
+             */
+            decisions: {
+                [key: string]: unknown;
+            } | null;
+            /** Excluded */
+            excluded: {
+                [key: string]: number;
+            };
+            /** Min Settled */
+            min_settled: number;
+            /** No Decision Days */
+            no_decision_days: string[];
+            /** Not Played */
+            not_played: number;
+            /** Pending */
+            pending: number;
+            /** Protocol */
+            protocol: string;
+            /** Recorded */
+            recorded: number;
+            /** Settled */
+            settled: number;
+            /**
+             * Status
+             * @description provisional until the window is complete; then final
+             */
+            status: string;
+            /** Window End */
+            window_end: string;
+            /** Window Start */
+            window_start: string;
         };
         /** SimulationOut */
         SimulationOut: {
@@ -2076,6 +2251,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    research_research_get: {
+        parameters: {
+            query?: {
+                /** @description Collection-quality days, ending today */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
