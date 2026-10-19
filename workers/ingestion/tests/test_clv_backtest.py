@@ -46,6 +46,32 @@ def test_slope_recovers_the_share_of_the_move():
     assert flat["beta"] == pytest.approx(0.0)
 
 
+def test_partial_slope_ignores_mean_reversion_of_noisy_early_prices():
+    """A forecaster with no information (base rate + noise) gets a positive plain
+    slope when early prices are noisy; the partial slope does not credit it."""
+    rng = np.random.default_rng(2)
+    n = 6000
+    base = np.tile([0.45, 0.27, 0.28], (n, 1))
+    truth = 0.6 * base + 0.4 * rng.dirichlet([4, 3, 3], size=n)
+    noise = rng.normal(0, 0.04, size=(n, 3))
+    noise -= noise.mean(axis=1, keepdims=True)  # keeps sums at 1
+    early, close = truth + noise, truth
+    junk = rng.normal(0, 0.04, size=(n, 3))
+    model = base + junk - junk.mean(axis=1, keepdims=True)
+    weeks = np.arange(n) // 30
+    plain = clv_backtest.slope(model, early, close, weeks)["beta"]
+    partial = clv_backtest.partial_slope(model, base, early, close, weeks)
+    assert plain > 0.1
+    assert abs(partial["b_model"]) < 0.05
+    lo, hi = partial["b_model_ci95_weekly"]
+    assert lo < 0 < hi
+    assert partial["b_base"] > 0.1  # the move toward the average is attributed to it
+
+    informed = early + 0.5 * (close - early)  # knows half of the correction
+    good = clv_backtest.partial_slope(informed, base, early, close, weeks)
+    assert good["b_model_ci95_weekly"][0] > 0
+
+
 def test_flag_clv_values_early_price_at_the_close():
     model = np.array([[0.60, 0.20, 0.20]])
     early = np.array([[0.50, 0.25, 0.25]])
@@ -143,7 +169,9 @@ def test_cli_end_to_end_from_cached_files(tmp_path, capsys):
     summary = json.loads(capsys.readouterr().out)
     assert summary["book"] == "pinnacle"
     assert summary["n_joined"] == summary["n_predictions"] - 1
-    assert summary["follow_up"]["beta"] == pytest.approx(0.3, abs=0.01)
+    assert summary["n_analysed"] < summary["n_joined"]  # 2019-20 has no earlier base rate
+    assert summary["follow_up"]["b_model"] == pytest.approx(0.3, abs=0.01)
+    assert summary["follow_up"]["b_base"] == pytest.approx(0.0, abs=0.01)
     assert summary["reading"]["model_has_information_beyond_early_market"] is True
     report = json.loads(out.read_text())
     assert report["unmatched"] == {"en.1 2019-20": 1}

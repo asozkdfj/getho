@@ -25,22 +25,33 @@ Books     Primary: Pinnacle (PSH/PSD/PSA -> PSCH/PSCD/PSCA). If Pinnacle has bot
 Join      (division, UK match date, home, away) after the same team-name
           normalisation as the market experiment; unmatched rows are counted.
 Segments  validation 2020-21..2022-23, follow-up 2023-24..2025-26 (as before).
-Primary   Line-move slope  beta = sum(x * y) / sum(x * x) over all matches and
-          the three outcomes, x = model - early, y = close - early (fair
-          probabilities). beta = 0: the market never moves toward the model;
-          beta = 1: the close lands on the model. 95% CI: weekly cluster
-          bootstrap (ISO weeks, 4,000 resamples).
+Primary   Partial line-move slope. Least squares without intercept, stacked
+          over matches and the three outcomes (fair probabilities):
+              close - early = b_model * (model - early) + b_base * (base - early)
+          base = the league's home/draw/away frequencies in its earlier seasons
+          of the file (walk-forward). The base term absorbs mean reversion: if
+          early prices are noisy, ANY forecaster that shrinks toward the average
+          "predicts" part of the move, so the plain slope alone is no evidence.
+          b_model > 0: the model predicts line moves beyond that. 95% CI: weekly
+          cluster bootstrap (ISO weeks, 4,000 resamples).
 Reading   "The model carries information the early market lacks" iff the
-          follow-up beta > 0 with its CI lower bound > 0 AND the validation
-          beta > 0. Otherwise: no detectable information beyond the early price.
+          follow-up b_model > 0 with its CI lower bound > 0 AND the validation
+          b_model > 0. Otherwise: no detectable information beyond the early price.
 Descriptive (not part of the reading)
           - log loss of model, early and close on the matched sample;
+          - plain slopes sum(x * y) / sum(x * x) with x = model - early and with
+            x = base - early (the base rate is the null reference: a positive
+            model slope means little unless it clearly exceeds it);
           - per league, season phase (first 42 days of a league season vs the
             rest) and disagreement size (max |x| bins): beta and log loss;
           - outcomes the service would mark "large gap" (model - early >= t,
             t in 0.03/0.05/0.10): mean CLV = early price x closing fair
             probability - 1 (the value of the early price judged by the close)
             and the share of positive CLV. The product never places bets.
+Revision  Before the first real-data run (2026-10-19, still in PR #21) the
+          primary statistic changed from the plain model slope to the partial
+          slope above, because noise in the early price alone makes the plain
+          slope positive for a no-information forecaster.
 Decision  None. No model, pick or product change follows from this report; a
           positive reading only justifies pre-registering step 2 (a model that
           adjusts the market price).
@@ -259,6 +270,44 @@ def slope(
     }
 
 
+def partial_slope(
+    model: np.ndarray, base: np.ndarray, early: np.ndarray, close: np.ndarray, weeks: np.ndarray
+) -> dict[str, Any]:
+    """b_model and b_base of the protocol's two-regressor fit, weekly bootstrap CI."""
+    x1, x2, y = model - early, base - early, close - early
+    # per match: the entries of X'X (a11, a12, a22) and X'y (c1, c2)
+    parts = np.stack(
+        [(x1 * x1).sum(1), (x1 * x2).sum(1), (x2 * x2).sum(1), (x1 * y).sum(1), (x2 * y).sum(1)],
+        axis=1,
+    )
+    empty = {"n_matches": len(parts), "b_model": None, "b_model_ci95_weekly": [None, None]}
+    if len(parts) == 0:
+        return empty
+
+    def solve(t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        a11, a12, a22, c1, c2 = t.T
+        det = a11 * a22 - a12 * a12
+        det = np.where(np.abs(det) > 1e-12, det, np.nan)
+        return (a22 * c1 - a12 * c2) / det, (a11 * c2 - a12 * c1) / det
+
+    b_model, b_base = solve(parts.sum(0, keepdims=True))
+    if not np.isfinite(b_model[0]):
+        return empty
+    _, ids = np.unique(weeks, return_inverse=True)
+    weekly = np.stack([np.bincount(ids, weights=parts[:, j]) for j in range(5)], axis=1)
+    rng = np.random.default_rng(SEED)
+    idx = rng.integers(0, len(weekly), size=(N_RESAMPLES, len(weekly)))
+    boot_model, boot_base = solve(weekly[idx].sum(axis=1))
+    return {
+        "n_matches": len(parts),
+        "weeks": len(weekly),
+        "b_model": float(b_model[0]),
+        "b_model_ci95_weekly": [float(v) for v in np.nanquantile(boot_model, [0.025, 0.975])],
+        "b_base": float(b_base[0]),
+        "b_base_ci95_weekly": [float(v) for v in np.nanquantile(boot_base, [0.025, 0.975])],
+    }
+
+
 def _mean_ci(values: np.ndarray, weeks: np.ndarray) -> list[float | None]:
     if len(values) == 0:
         return [None, None]
@@ -297,6 +346,7 @@ def flag_clv(
 class Arrays:
     rows: list[Joined]
     model: np.ndarray
+    base: np.ndarray
     early: np.ndarray
     early_raw: np.ndarray
     close: np.ndarray
@@ -304,12 +354,17 @@ class Arrays:
     weeks: np.ndarray
 
     @classmethod
-    def build(cls, rows: list[Joined], book: str) -> Arrays:
-        rows = [r for r in rows if r.books[book].early and r.books[book].close]
+    def build(cls, rows: list[Joined], book: str, base: dict[tuple[str, str], Prices]) -> Arrays:
+        rows = [
+            r
+            for r in rows
+            if r.books[book].early and r.books[book].close and (r.league, r.season) in base
+        ]
         early_raw = np.array([r.books[book].early for r in rows], dtype=float).reshape(-1, 3)
         return cls(
             rows,
             np.array([r.model for r in rows], dtype=float).reshape(-1, 3),
+            np.array([base[(r.league, r.season)] for r in rows], dtype=float).reshape(-1, 3),
             np.array([devig(e) for e in early_raw], dtype=float).reshape(-1, 3),
             early_raw,
             np.array([devig(r.books[book].close) for r in rows], dtype=float).reshape(-1, 3),  # type: ignore[arg-type]
@@ -321,6 +376,7 @@ class Arrays:
         return Arrays(
             [r for r, k in zip(self.rows, mask, strict=True) if k],
             self.model[mask],
+            self.base[mask],
             self.early[mask],
             self.early_raw[mask],
             self.close[mask],
@@ -338,7 +394,11 @@ class Arrays:
         }
         out["log_loss"] = ll
         out["closing_sharper_than_early"] = ll["close"] < ll["early"]
+        out["partial_line_move"] = partial_slope(
+            self.model, self.base, self.early, self.close, self.weeks
+        )
         out["line_move"] = slope(self.model, self.early, self.close, self.weeks)
+        out["line_move_base_rate"] = slope(self.base, self.early, self.close, self.weeks)
         if flags:
             out["large_gap_clv"] = flag_clv(
                 self.model, self.early, self.early_raw, self.close, self.weeks
@@ -354,13 +414,29 @@ def early_phase_mask(rows: list[Joined]) -> np.ndarray:
     return np.array([r.kickoff_at < starts[(r.league, r.season)] + EARLY_PHASE for r in rows])
 
 
+def base_rates(rows: list[Joined]) -> dict[tuple[str, str], Prices]:
+    """Home/draw/away frequencies of each league's earlier seasons (walk-forward);
+    a league's first season in the file has none and is left out."""
+    counts: dict[tuple[str, str], np.ndarray] = {}
+    for r in rows:
+        counts.setdefault((r.league, r.season), np.zeros(3))[r.outcome] += 1
+    out: dict[tuple[str, str], Prices] = {}
+    for league, season in counts:
+        earlier = sum(
+            (c for (lg, s), c in counts.items() if lg == league and s < season), np.zeros(3)
+        )
+        if earlier.sum() > 0:
+            out[(league, season)] = tuple(float(v) for v in earlier / earlier.sum())  # type: ignore[assignment]
+    return out
+
+
 def reading(validation: dict[str, Any], follow_up: dict[str, Any]) -> dict[str, Any]:
-    v, f = validation.get("line_move", {}), follow_up.get("line_move", {})
+    v, f = validation.get("partial_line_move", {}), follow_up.get("partial_line_move", {})
+    lower = (f.get("b_model_ci95_weekly") or [None])[0]
     checks = {
-        "follow_up_beta>0": (f.get("beta") or 0) > 0,
-        "follow_up_ci_lower>0": (f.get("beta_ci95_weekly") or [None])[0] is not None
-        and f["beta_ci95_weekly"][0] > 0,
-        "validation_beta>0": (v.get("beta") or 0) > 0,
+        "follow_up_b_model>0": (f.get("b_model") or 0) > 0,
+        "follow_up_ci_lower>0": lower is not None and lower > 0,
+        "validation_b_model>0": (v.get("b_model") or 0) > 0,
     }
     return {
         "checks": checks,
@@ -383,7 +459,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             odds.update(parse_odds(_decode(raw), league))
     rows, unmatched = join([p for p in preds if p["league"] in leagues], odds)
     book, cov = choose_book(rows)
-    data = Arrays.build(rows, book)
+    base = base_rates(rows)
+    data = Arrays.build(rows, book, base)
     seasons = np.array([r.season for r in data.rows])
     validation = data.subset(np.isin(seasons, VALIDATION)).section()
     follow = data.subset(np.isin(seasons, FOLLOW_UP))
@@ -402,7 +479,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for other in BOOKS:
         if other == book:
             continue
-        alt = Arrays.build(rows, other)
+        alt = Arrays.build(rows, other, base)
         alt_seasons = np.array([r.season for r in alt.rows])
         other_books[other] = {
             "validation": alt.subset(np.isin(alt_seasons, VALIDATION)).section(flags=False),
@@ -411,7 +488,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     return {
         "generated_at": datetime.now().astimezone().isoformat(),
-        "experiment": "clv_line_move_v1",
+        "experiment": "clv_line_move_v2",
         "protocol": __doc__,
         "predictions": {
             "file": args.predictions.name,
@@ -428,7 +505,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "unmatched": unmatched,
         "coverage_follow_up": cov,
         "book": book,
-        "n_with_book_prices": len(data.rows),
+        "n_analysed": len(data.rows),
         "validation": validation,
         "follow_up": follow_up,
         "reading": reading(validation, follow_up),
@@ -450,14 +527,18 @@ def summary(report: dict[str, Any]) -> dict[str, Any]:
     """The few numbers worth pasting back into a chat."""
 
     def brief(section: dict[str, Any]) -> dict[str, Any]:
-        move = section.get("line_move", {})
+        def r3(v: float | None) -> float | None:
+            return None if v is None else round(v, 3)
+
+        partial = section.get("partial_line_move", {})
         return {
             "n": section.get("n_matches"),
             "log_loss": {k: round(v, 4) for k, v in section.get("log_loss", {}).items()},
-            "beta": None if move.get("beta") is None else round(move["beta"], 3),
-            "beta_ci95": [
-                None if v is None else round(v, 3) for v in move.get("beta_ci95_weekly", [])
-            ],
+            "b_model": r3(partial.get("b_model")),
+            "b_model_ci95": [r3(v) for v in partial.get("b_model_ci95_weekly", [])],
+            "b_base": r3(partial.get("b_base")),
+            "plain_beta_model": r3(section.get("line_move", {}).get("beta")),
+            "plain_beta_base_rate": r3(section.get("line_move_base_rate", {}).get("beta")),
         }
 
     d = report["descriptive"]
@@ -466,7 +547,7 @@ def summary(report: dict[str, Any]) -> dict[str, Any]:
         "coverage_follow_up": report["coverage_follow_up"],
         "n_predictions": report["n_predictions"],
         "n_joined": report["n_joined"],
-        "n_with_book_prices": report["n_with_book_prices"],
+        "n_analysed": report["n_analysed"],
         "validation": brief(report["validation"]),
         "follow_up": brief(report["follow_up"]),
         "reading": report["reading"],
