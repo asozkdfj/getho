@@ -182,9 +182,10 @@ def _record_shadow(
     never affect the pick; a failure is logged in the evidence, not raised."""
     scope_ids = {f.id for f in in_scope}
     others = [f.id for f in all_fixtures if f.id not in scope_ids]
-    all_preds = preds | queries.latest_predictions_by_fixture(session, others, as_of=now)
     try:
+        # everything the shadow needs beyond the pick, lookups included, is isolated
         with session.begin_nested():
+            all_preds = preds | queries.latest_predictions_by_fixture(session, others, as_of=now)
             counts = record_shadow_forecasts(
                 session,
                 settings,

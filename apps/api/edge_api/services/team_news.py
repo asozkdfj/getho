@@ -35,8 +35,10 @@ def regular_players(
     """(player_id, name) of the team's most used players in its recent matches
     before ``before``, counting only minutes stored by ``known_by``."""
     where = [PlayerAppearance.team_id == team_id, Fixture.kickoff_at < before]
-    if known_by is not None:
-        where.append(PlayerAppearance.created_at <= known_by)
+    # every appearance row must have been stored by then, not only some row of
+    # its match (a match can be collected partly before and partly after)
+    stored = [PlayerAppearance.created_at <= known_by] if known_by is not None else []
+    where += stored
     recent = (
         select(Fixture.id)
         .join(PlayerAppearance, PlayerAppearance.fixture_id == Fixture.id)
@@ -52,7 +54,11 @@ def regular_players(
             func.max(PlayerAppearance.player_name),
             func.sum(PlayerAppearance.minutes).label("minutes"),
         )
-        .where(PlayerAppearance.team_id == team_id, PlayerAppearance.fixture_id.in_(select(recent)))
+        .where(
+            PlayerAppearance.team_id == team_id,
+            PlayerAppearance.fixture_id.in_(select(recent)),
+            *stored,
+        )
         .group_by(PlayerAppearance.player_provider_id)
         .order_by(func.sum(PlayerAppearance.minutes).desc(), PlayerAppearance.player_provider_id)
         .limit(REGULARS)
