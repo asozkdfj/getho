@@ -242,6 +242,11 @@ def main(argv: list[str] | None = None) -> int:
         help="expected minutes between pipeline runs (default: the worker's schedule)",
     )
     cq.add_argument("--out", type=Path, help="write the JSON report here")
+    cs = sub.add_parser("compare-shots", help="API-Football vs football-data shots on target")
+    cs.add_argument("--days", type=int, default=120, help="finished matches of the last N days")
+    cs.add_argument("--cache-dir", type=Path, default=Path(".cache/history"))
+    cs.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
+    cs.add_argument("--out", type=Path, help="write the JSON report here")
     xg = sub.add_parser("check-xg", help="which leagues return post-match xG (no DB writes)")
     xg.add_argument("--days", type=int, default=3, help="finished fixtures of the last N days")
     xg.add_argument("--limit", type=int, default=40, help="fixtures to fetch details for")
@@ -288,6 +293,24 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "live-clv":
         configure_logging(get_settings().log_level)
         return _live_clv(args)
+
+    if args.command == "compare-shots":
+        configure_logging(get_settings().log_level)
+        from edge_ingestion.shot_sources import compare_shot_sources
+
+        with session_scope() as session:
+            report = compare_shot_sources(
+                session,
+                get_settings().data_provider,
+                now=_parse_now(args.now),
+                days=args.days,
+                cache_dir=args.cache_dir,
+            )
+        text = json.dumps(report, indent=2, ensure_ascii=False)
+        if args.out:
+            args.out.write_text(text + "\n")
+        print(text)
+        return 0
 
     if args.command == "check-xg":
         configure_logging(get_settings().log_level)
