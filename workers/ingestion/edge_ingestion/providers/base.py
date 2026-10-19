@@ -97,6 +97,18 @@ class LineupData:
 
 
 @dataclass(frozen=True, slots=True)
+class MatchStatistics:
+    """One team's post-match statistics. ``expected_goals`` is the provider's
+    xG when it publishes one for the league, else None (never a guess)."""
+
+    fixture_provider_id: str
+    team_provider_id: str
+    shots: int | None
+    shots_on_target: int | None
+    expected_goals: float | None
+
+
+@dataclass(frozen=True, slots=True)
 class AbsenceReport:
     """Absences plus the fixtures the provider actually answered for. A covered
     fixture with no absence for a team means "checked, none reported"; a
@@ -172,6 +184,10 @@ class FootballDataProvider(ABC):
 
     def get_lineups(self, fixture_provider_ids: list[str]) -> list[LineupData]:
         """Official line-ups already published for these fixtures."""
+        return []
+
+    def get_match_statistics(self, fixture_provider_ids: list[str]) -> list[MatchStatistics]:
+        """Post-match team statistics (shots, shots on target, xG when provided)."""
         return []
 
     def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:

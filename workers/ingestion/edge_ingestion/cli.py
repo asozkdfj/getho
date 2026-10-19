@@ -48,6 +48,55 @@ def _parse_now(value: str | None) -> datetime:
     return ensure_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
 
 
+def check_xg(settings: Settings, now: datetime, days: int, limit: int) -> dict[str, Any]:
+    """Which leagues return post-match xG, without touching the database.
+
+    Recently finished fixtures, spread over the leagues, are fetched with their
+    details (/fixtures?ids=, 20 per request): about 1 + ``days`` + limit/20
+    requests with API-Football. Only reports what came back; stores nothing.
+    """
+    provider = get_provider(settings.data_provider, settings=settings, reference_time=now)
+    names = {lg.provider_id: f"{lg.country} - {lg.name}" for lg in provider.get_leagues()}
+    finished = [
+        f for f in provider.get_fixtures(now - timedelta(days=days), now) if f.status == "finished"
+    ]
+    by_league: dict[str, list[str]] = {}
+    for f in sorted(finished, key=lambda f: f.kickoff_at, reverse=True):
+        by_league.setdefault(f.league_provider_id, []).append(f.provider_id)
+    chosen: list[str] = []
+    while len(chosen) < limit and any(by_league.values()):  # round-robin over leagues
+        for ids in by_league.values():
+            if ids and len(chosen) < limit:
+                chosen.append(ids.pop(0))
+    stats = provider.get_match_statistics(chosen)
+    league_of = {f.provider_id: f.league_provider_id for f in finished}
+    per: dict[str, dict[str, Any]] = {}
+    for fid in chosen:
+        row = per.setdefault(
+            league_of[fid],
+            {"fixtures_checked": 0, "with_statistics": 0, "with_xg": 0, "sample_xg": None},
+        )
+        row["fixtures_checked"] += 1
+        teams = [s for s in stats if s.fixture_provider_id == fid]
+        row["with_statistics"] += bool(teams)
+        xg = [s.expected_goals for s in teams if s.expected_goals is not None]
+        if len(xg) == 2:
+            row["with_xg"] += 1
+            row["sample_xg"] = row["sample_xg"] or xg
+    report: dict[str, Any] = {
+        "provider": provider.name,
+        "window_days": days,
+        "fixtures_checked": len(chosen),
+        "leagues_checked": len(per),
+        "leagues_with_xg": sorted(names.get(k, k) for k, v in per.items() if v["with_xg"]),
+        "per_league": {names.get(k, k): v for k, v in sorted(per.items())},
+        "note": "a league without xG here may still have it for other seasons or matches",
+    }
+    if isinstance(provider, ApiFootballProvider):
+        report["requests_used"] = provider.requests_made
+    return report
+
+
 def check_provider(settings: Settings, now: datetime) -> dict[str, Any]:
     """Fetch and parse without touching the database (use it to verify a new API key).
 
@@ -165,6 +214,10 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
     sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
+    xg = sub.add_parser("check-xg", help="which leagues return post-match xG (no DB writes)")
+    xg.add_argument("--days", type=int, default=3, help="finished fixtures of the last N days")
+    xg.add_argument("--limit", type=int, default=40, help="fixtures to fetch details for")
+    xg.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     sr = sub.add_parser("shadow-report", help="private shadow forecasts: production vs market")
     sr.add_argument(
         "--start", type=date.fromisoformat, help="first decision day (default: protocol)"
@@ -190,6 +243,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "shadow-report":
         configure_logging(get_settings().log_level)
         return _shadow_report(args)
+
+    if args.command == "check-xg":
+        configure_logging(get_settings().log_level)
+        report = check_xg(get_settings(), _parse_now(args.now), args.days, args.limit)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0
 
     if args.command == "code-fingerprint":
         # matches model_versions.code_fingerprint / pick evidence manifest.build

@@ -155,6 +155,10 @@ LEAGUES: dict[int, dict] = {
 }
 
 
+# leagues whose finished-fixture details carry an xG value (the others: null)
+XG_LEAGUES = {LEAGUE}
+
+
 def leagues_payload() -> list[dict]:
     out = []
     for lid, lg in LEAGUES.items():
@@ -315,7 +319,25 @@ def fixture_details(fid: int) -> dict | None:
                 for n in range(1, 15)
             ]
             players.append({"team": {"id": tid}, "players": entries})
-    return {**item, "lineups": lineups, "players": players}
+        # xG only for XG_LEAGUES; elsewhere the provider sends null
+        with_xg = item["league"]["id"] in XG_LEAGUES
+        statistics = [
+            {
+                "team": {"id": tid},
+                "statistics": [
+                    {"type": "Shots on Goal", "value": 4 + side},
+                    {"type": "Total Shots", "value": 11 + side},
+                    {
+                        "type": "expected_goals",
+                        "value": f"{1.2 + side / 10:.2f}" if with_xg else None,
+                    },
+                ],
+            }
+            for side, tid in enumerate(teams)
+        ]
+    else:
+        statistics = []
+    return {**item, "lineups": lineups, "players": players, "statistics": statistics}
 
 
 def injuries_for(day: str) -> list[dict]:

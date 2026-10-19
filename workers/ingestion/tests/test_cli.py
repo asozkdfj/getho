@@ -59,3 +59,39 @@ def test_code_fingerprint_command_prints_the_build_identity(capsys):
 
     assert cli.main(["code-fingerprint"]) == 0
     assert json.loads(capsys.readouterr().out) == build_info()
+
+
+def test_check_xg_reports_which_leagues_return_expected_goals():
+    from edge_ingestion.testing import LEAGUE, XG_LEAGUES
+
+    fake = FakeApiFootball()
+    p = ApiFootballProvider(
+        "k", reference_time=REF, transport=fake, min_interval_seconds=0, sleep=lambda _: None
+    )
+    settings = Settings(data_provider="api_football", api_football_key="k")
+    import edge_ingestion.cli as cli_module
+
+    original = cli_module.get_provider
+    cli_module.get_provider = lambda *a, **k: p
+    try:
+        report = cli.check_xg(settings, REF, days=7, limit=40)
+    finally:
+        cli_module.get_provider = original
+    assert report["fixtures_checked"] > 0 and report["leagues_checked"] >= 2
+    assert {LEAGUE} == XG_LEAGUES
+    assert report["leagues_with_xg"] == ["England - Premier League"]
+    for name, row in report["per_league"].items():
+        assert row["with_statistics"] == row["fixtures_checked"]
+        if name == "England - Premier League":
+            assert row["with_xg"] == row["fixtures_checked"] and row["sample_xg"] == [1.2, 1.3]
+        else:
+            assert row["with_xg"] == 0 and row["sample_xg"] is None
+    # catalogue + one /fixtures call per day + details in batches of 20
+    assert report["requests_used"] <= 1 + 8 + -(-40 // 20)
+
+
+def test_match_statistics_skip_unreadable_values():
+    from edge_ingestion.providers.api_football import _count, _number
+
+    assert _count("12") == 12 and _count(None) is None and _count("-1") is None
+    assert _number("1.37") == 1.37 and _number(None) is None and _number("nan") is None

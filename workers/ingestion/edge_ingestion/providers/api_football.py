@@ -42,6 +42,7 @@ from edge_ingestion.providers.base import (
     FootballDataProvider,
     LeagueData,
     LineupData,
+    MatchStatistics,
     OddsData,
     PlayerRef,
     TeamData,
@@ -497,6 +498,31 @@ class ApiFootballProvider(FootballDataProvider):
                 logger.warning("malformed lineup payload skipped: %s", exc)
         return out
 
+    def get_match_statistics(self, fixture_provider_ids: list[str]) -> list[MatchStatistics]:
+        """Team statistics from the same /fixtures?ids= details (20 per request).
+        A team block that cannot be read is skipped, never filled in."""
+        out: list[MatchStatistics] = []
+        for item in self._fixture_details(fixture_provider_ids):
+            try:
+                fixture_id = str(item["fixture"]["id"])
+                for team in item.get("statistics") or []:
+                    values = {
+                        str(s.get("type", "")).strip().lower(): s.get("value")
+                        for s in team.get("statistics") or []
+                    }
+                    out.append(
+                        MatchStatistics(
+                            fixture_provider_id=fixture_id,
+                            team_provider_id=str(team["team"]["id"]),
+                            shots=_count(values.get("total shots")),
+                            shots_on_target=_count(values.get("shots on goal")),
+                            expected_goals=_number(values.get("expected_goals")),
+                        )
+                    )
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning("malformed statistics payload skipped: %s", exc)
+        return out
+
     def get_appearances(self, fixture_provider_ids: list[str]) -> list[AppearanceData]:
         out: list[AppearanceData] = []
         for item in self._fixture_details(fixture_provider_ids):
@@ -543,6 +569,22 @@ class ApiFootballProvider(FootballDataProvider):
             if {"Home", "Draw", "Away"} <= prices.keys():
                 return prices
         return None
+
+
+def _count(value: Any) -> int | None:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return None
+    return n if n >= 0 else None
+
+
+def _number(value: Any) -> float | None:
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return None
+    return x if math.isfinite(x) and x >= 0 else None
 
 
 def _player(item: Mapping[str, Any]) -> PlayerRef:
