@@ -78,6 +78,10 @@ class ShotHistory:
     def _before(self, times: list[datetime], cutoff: datetime) -> int:
         return bisect.bisect_left(times, cutoff - RESULT_DELAY)
 
+    def count(self, team: str, cutoff: datetime) -> int:
+        """Matches of ``team`` usable at ``cutoff`` (capped at the window)."""
+        return min(self._before(self._team_times.get(team, []), cutoff), WINDOW)
+
     def features(self, team: str, cutoff: datetime, variant: str) -> np.ndarray:
         size = 4 if variant == "sot_and_finishing" else 2
         n = self._before(self._team_times.get(team, []), cutoff)
