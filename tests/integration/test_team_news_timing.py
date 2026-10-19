@@ -97,3 +97,35 @@ def test_coverage_report_counts_only_what_the_decision_could_see(session_factory
         _news(s, now)
         late = coverage_on(s, NEWS, day)
         assert late["absences"]["reported"] == late["absences"]["none_reported"] == 0
+
+
+def test_rows_stored_after_the_moment_never_count_toward_regulars(db_session, seeded, now):
+    """Codex QA MORN-1: a match collected partly before and partly after the
+    decision only contributes the rows stored by then (the boundary included)."""
+    from edge_api.db.models import PlayerAppearance
+    from edge_api.services.team_news import regular_players
+
+    fixture = db_session.scalars(select(Fixture).where(Fixture.kickoff_at < now).limit(1)).one()
+    for pid, minutes, stored in (
+        ("known", 10, now - timedelta(hours=1)),
+        ("at-boundary", 20, now),
+        ("future-star", 130, now + timedelta(seconds=1)),
+    ):
+        db_session.add(
+            PlayerAppearance(
+                fixture_id=fixture.id,
+                team_id=fixture.home_team_id,
+                provider="mock",
+                player_provider_id=pid,
+                player_name=pid,
+                started=True,
+                minutes=minutes,
+                created_at=stored,
+            )
+        )
+    db_session.flush()
+    players, matches = regular_players(db_session, fixture.home_team_id, now, known_by=now)
+    ids = {pid for pid, _ in players}
+    assert matches >= 1 and {"known", "at-boundary"} <= ids and "future-star" not in ids
+    everyone, _ = regular_players(db_session, fixture.home_team_id, now)
+    assert "future-star" in {pid for pid, _ in everyone}

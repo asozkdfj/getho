@@ -214,8 +214,70 @@ def shadow_report(
         report["status"] = "inconclusive"
     else:
         report["status"] = "final"
-    report["decisions"] = _decisions(metrics) if settled else {}
+    # the pre-registered questions are answered only by a final report
+    report["decisions"] = _decisions(metrics) if report["status"] == "final" else {}
+    report["decision_timing"] = _decision_timing(rows)
+    report["coverage_days"] = _coverage_days(session, provider, start, min(end, now.date()), rows)
     return report
+
+
+def _decision_timing(rows: list[Any]) -> dict[str, Any]:
+    """How long after the publish hour each day was actually decided (the first
+    request or pipeline run after it): shadow-v1 compares candidates at that
+    moment, which is not a fixed 09:00 decision."""
+    from edge_api.config import get_settings
+    from edge_api.services.picks import local_day
+
+    settings = get_settings()
+    delays = sorted(
+        {
+            r.decision_date: (r.decided_at - local_day(r.decided_at, settings).publish_at)
+            for r, _ in rows
+        }.values()
+    )
+    if not delays:
+        return {"days": 0}
+    minutes = [d.total_seconds() / 60 for d in delays]
+    return {
+        "days": len(minutes),
+        "minutes_after_publish_hour": {
+            "median": minutes[len(minutes) // 2],
+            "max": minutes[-1],
+        },
+        "days_over_60_minutes": sum(m > 60 for m in minutes),
+    }
+
+
+def _coverage_days(
+    session: Session, provider: str, start: date, end: date, rows: list[Any]
+) -> dict[str, Any]:
+    """Days of the window by what was recorded: a missing day is not the same as
+    a day whose fixtures were all excluded."""
+    from edge_api.db.models import DailyPick
+
+    if end < start:
+        return {"days": 0}
+    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    with_rows = {r.decision_date for r, _ in rows}
+    picks = session.execute(
+        select(DailyPick.pick_date, DailyPick.evidence).where(
+            DailyPick.provider == provider,
+            DailyPick.pick_date >= start,
+            DailyPick.pick_date <= end,
+            DailyPick.revision == 1,
+        )
+    ).all()
+    decided = {d: (ev or {}).get("shadow") for d, ev in picks}
+    no_decision = [d for d in days if d not in decided]
+    failed = [d for d in days if isinstance(decided.get(d), dict) and "error" in decided[d]]
+    empty = [d for d in days if d in decided and d not in with_rows and d not in failed]
+    return {
+        "days": len(days),
+        "with_records": len([d for d in days if d in with_rows]),
+        "no_decision": [d.isoformat() for d in no_decision],
+        "shadow_failed": [d.isoformat() for d in failed],
+        "decided_without_fixtures_or_records": [d.isoformat() for d in empty],
+    }
 
 
 def _metrics(settled: list[tuple[ShadowForecast, int]], names: list[str]) -> dict[str, Any]:
@@ -234,12 +296,19 @@ def _metrics(settled: list[tuple[ShadowForecast, int]], names: list[str]) -> dic
             "accuracy": float((probs[k].argmax(axis=1) == y).mean()),
         }
 
+    weeks = [r.decision_date.isocalendar()[:2] for r, _ in settled]
+
     def paired(a: str, b: str) -> dict[str, Any]:
         diff = ll[a] - ll[b]  # negative: a is better
         lo, hi = cluster_bootstrap_ci(diff, days, seed=CI_SEED)
+        # secondary (addendum of 2026-10-19): ISO-week clusters, reported next to
+        # the pre-registered day clusters; if they disagree, both are reported
+        wlo, whi = cluster_bootstrap_ci(diff, weeks, seed=CI_SEED)
         return {
             "log_loss_diff": float(diff.mean()),
             "ci95_by_day": [lo, hi],
+            "ci95_by_week": [wlo, whi],
+            "weeks": len(set(weeks)),
             "brier_diff": float((brier[a] - brier[b]).mean()),
         }
 
