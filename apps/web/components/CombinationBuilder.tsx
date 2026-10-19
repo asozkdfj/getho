@@ -26,6 +26,7 @@ import { LatestRequest } from "@/lib/latestRequest";
 import { groupByLeague, leagueLabel } from "@/lib/leagues";
 
 import { AutoCombo } from "./AutoCombo";
+import { WindowCombos } from "./WindowCombos";
 import { LeagueBadge } from "./LeagueBadge";
 import { LeagueMark } from "./LeagueMark";
 import { LocalTime } from "./LocalTime";
@@ -193,6 +194,8 @@ export function CombinationBuilder({
           ))}
         </div>
       </div>
+
+      <WindowCombos fixtures={fixtures} tz={tz} demo={demo} onApply={applySuggestion} />
 
       <AutoCombo
         fixtures={league === null ? fixtures : fixtures.filter((f) => f.league.id === league)}

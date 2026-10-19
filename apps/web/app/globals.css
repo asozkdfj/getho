@@ -1433,3 +1433,112 @@ table.glossary th[scope="row"] {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Same-window 3-match combinations (top 5) */
+.window-combos h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.window-combo-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.window-combo {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--bg);
+}
+.window-combo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+}
+.window-rank {
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text);
+}
+.window-rank.rank-1 {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.window-prob strong {
+  font-size: 1.25rem;
+}
+.window-market {
+  margin-left: auto;
+}
+.window-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  margin: 8px 0 6px;
+  overflow: hidden;
+}
+.window-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.window-span {
+  margin: 0 0 6px;
+}
+.window-legs {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.window-legs li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.window-leg-pick {
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.window-leg-pick.pick-home {
+  color: var(--home);
+}
+.window-leg-pick.pick-away {
+  color: var(--away);
+}
+@media (max-width: 560px) {
+  .window-legs li {
+    grid-template-columns: 1fr auto;
+  }
+  .window-leg-time {
+    grid-column: 1 / -1;
+  }
+}
+.window-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+}
+.window-options select {
+  margin-left: 6px;
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
