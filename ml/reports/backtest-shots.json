@@ -1,0 +1,729 @@
+{
+  "generated_at": "2026-10-19T09:12:51.621967+00:00",
+  "experiment": "shot_form_v1",
+  "production_model": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "protocol": "`edge backtest-shots` - does shot-based form improve the production model?\n\nPre-registered protocol (committed before the first run; do not edit after\nresults - add a dated addendum instead):\n\nQuestion  Shots on target are less noisy than goals. Do features from a team's\n          recent shots on target (and its finishing above or below them)\n          improve the goal-based production model? (TODO #43)\nData      Club Football Match Data (football-data.co.uk results, shots, shots\n          on target, Bet365 1X2 odds; MIT copy, file SHA-256 in the report),\n          9 leagues pooled: en.1 en.2 de.1 de.2 es.1 it.1 fr.1 nl.1 pt.1,\n          2018-19..2025-26 (same file and leagues as the market experiment).\nFeatures  edge_ml.shots: for a forecast fitted at time T, only league matches\n          with kickoff + 3 h < T count (the production results delay); last 10\n          matches per team, fewer than 5 -> neutral; league references from\n          the last 300 league matches. Variants: sot, finishing,\n          sot_and_finishing.\nModel     log lam_own' = log lam_own + a . x_own - b . x_opp on the production\n          walk-forward expected goals (weekly refit, results enter training\n          3 h after kickoff); a, b refitted before each season on every\n          earlier season of all 9 leagues (Poisson MLE, production as offset).\nWindows   2019-20 warm-up (first coefficients), 2020-21..2022-23 validation\n          (choose one variant: lowest pooled log loss), 2023-24..2025-26\n          follow-up.\nGate      validation gain >= 0.001 AND follow-up gain >= 0.002 AND weekly\n          paired 95% CI upper bound < 0 AND Brier not worse (pooled), against\n          production. Passing is a research result only: no automatic\n          deployment (a model change needs Codex QA and the user's approval).\nDescriptive (not part of the gate)\n          - every variant against the de-margined Bet365 market on follow-up\n            matches with odds (the bar the user wants to beat);\n          - per-league follow-up log loss of the chosen variant;\n          - coefficients per season; share of rows with neutral features.\n",
+  "source": {
+    "url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/Matches.csv",
+    "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221",
+    "attribution": "football-data.co.uk via xgabora/Club-Football-Match-Data (MIT)"
+  },
+  "leagues": [
+    "en.1",
+    "en.2",
+    "de.1",
+    "de.2",
+    "es.1",
+    "it.1",
+    "fr.1",
+    "nl.1",
+    "pt.1"
+  ],
+  "matches_per_season": {
+    "en.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "en.2": {
+      "2018-19": 552,
+      "2019-20": 552,
+      "2020-21": 552,
+      "2021-22": 552,
+      "2022-23": 552,
+      "2023-24": 552,
+      "2024-25": 550,
+      "2025-26": 552
+    },
+    "de.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "de.2": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "es.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "it.1": {
+      "2018-19": 380,
+      "2019-20": 380,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 380,
+      "2024-25": 380,
+      "2025-26": 380
+    },
+    "fr.1": {
+      "2018-19": 380,
+      "2019-20": 279,
+      "2020-21": 380,
+      "2021-22": 380,
+      "2022-23": 380,
+      "2023-24": 306,
+      "2024-25": 305,
+      "2025-26": 306
+    },
+    "nl.1": {
+      "2018-19": 306,
+      "2019-20": 232,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    },
+    "pt.1": {
+      "2018-19": 306,
+      "2019-20": 306,
+      "2020-21": 306,
+      "2021-22": 306,
+      "2022-23": 306,
+      "2023-24": 306,
+      "2024-25": 306,
+      "2025-26": 306
+    }
+  },
+  "n_predicted": 22672,
+  "validation": {
+    "seasons": [
+      "2020-21",
+      "2021-22",
+      "2022-23"
+    ],
+    "n_matches": 9888,
+    "production": {
+      "log_loss": 1.0027534544596821,
+      "brier": 0.5984937335855114,
+      "accuracy": 0.5100121359223301,
+      "ece": 0.01441895565594321
+    },
+    "sot": {
+      "log_loss": 0.9996990080052217,
+      "brier": 0.596471528698902,
+      "accuracy": 0.5116302588996764,
+      "ece": 0.01401464560870441,
+      "vs_production": {
+        "log_loss_diff": -0.003054446454460506,
+        "log_loss_diff_ci95_weekly": [
+          -0.004391169567991047,
+          -0.001693461504605147
+        ],
+        "brier_diff": -0.002022204886609424,
+        "accuracy_diff": 0.0016181229773462784,
+        "weeks": 123
+      }
+    },
+    "finishing": {
+      "log_loss": 1.001645500325133,
+      "brier": 0.5976479131528636,
+      "accuracy": 0.509203074433657,
+      "ece": 0.01898303788363431,
+      "vs_production": {
+        "log_loss_diff": -0.0011079541345494382,
+        "log_loss_diff_ci95_weekly": [
+          -0.002283069962565158,
+          6.341817629601129e-05
+        ],
+        "brier_diff": -0.000845820432647852,
+        "accuracy_diff": -0.0008090614886731392,
+        "weeks": 123
+      }
+    },
+    "sot_and_finishing": {
+      "log_loss": 0.9976615821997161,
+      "brier": 0.5950693489387,
+      "accuracy": 0.5082928802588996,
+      "ece": 0.01288500796467122,
+      "vs_production": {
+        "log_loss_diff": -0.0050918722599662515,
+        "log_loss_diff_ci95_weekly": [
+          -0.0071445621742945425,
+          -0.003035610918245096
+        ],
+        "brier_diff": -0.003424384646811425,
+        "accuracy_diff": -0.0017192556634304207,
+        "weeks": 123
+      }
+    }
+  },
+  "follow_up": {
+    "seasons": [
+      "2023-24",
+      "2024-25",
+      "2025-26"
+    ],
+    "n_matches": 9663,
+    "production": {
+      "log_loss": 0.9975764649213771,
+      "brier": 0.5955908882140436,
+      "accuracy": 0.5118493221566801,
+      "ece": 0.017548809302709547
+    },
+    "sot": {
+      "log_loss": 0.9943635301919224,
+      "brier": 0.5937214787289052,
+      "accuracy": 0.5126772223947015,
+      "ece": 0.018343235241311963,
+      "vs_production": {
+        "log_loss_diff": -0.0032129347294549263,
+        "log_loss_diff_ci95_weekly": [
+          -0.0044553492575284325,
+          -0.0020030803356676295
+        ],
+        "brier_diff": -0.0018694094851385201,
+        "accuracy_diff": 0.0008279002380213184,
+        "weeks": 121
+      }
+    },
+    "finishing": {
+      "log_loss": 0.996376330405733,
+      "brier": 0.594614863926854,
+      "accuracy": 0.5149539480492601,
+      "ece": 0.02141244901957496,
+      "vs_production": {
+        "log_loss_diff": -0.001200134515644103,
+        "log_loss_diff_ci95_weekly": [
+          -0.0020307044792473865,
+          -0.00032530686926020215
+        ],
+        "brier_diff": -0.0009760242871894866,
+        "accuracy_diff": 0.003104625892579944,
+        "weeks": 121
+      }
+    },
+    "sot_and_finishing": {
+      "log_loss": 0.9923793695632225,
+      "brier": 0.5923188508714621,
+      "accuracy": 0.5156783607575287,
+      "ece": 0.019155238596066822,
+      "vs_production": {
+        "log_loss_diff": -0.00519709535815481,
+        "log_loss_diff_ci95_weekly": [
+          -0.006808672184308469,
+          -0.003593602948809971
+        ],
+        "brier_diff": -0.0032720373425815887,
+        "accuracy_diff": 0.0038290386008485978,
+        "weeks": 121
+      }
+    }
+  },
+  "gate": {
+    "selected_on_validation": "sot_and_finishing",
+    "validation_gain": 0.0050918722599659905,
+    "follow_up_gain": 0.00519709535815481,
+    "checks": {
+      "validation_gain>=0.001": true,
+      "follow_up_gain>=0.002": true,
+      "weekly_ci_upper<0": true,
+      "brier_not_worse": true
+    },
+    "passes": true,
+    "deployed": false
+  },
+  "coefficients": {
+    "sot": {
+      "2020-21": {
+        "own": [
+          0.09540758902145478,
+          -0.1619483248857556
+        ],
+        "opponent": [
+          0.06575634172513804,
+          -0.09019601770463558
+        ],
+        "n_matches": 3121,
+        "log_likelihood_gain": 0.004495740805610532
+      },
+      "2021-22": {
+        "own": [
+          0.06823698399487627,
+          -0.1665878955728887
+        ],
+        "opponent": [
+          0.13537608506280643,
+          -0.008883559344375364
+        ],
+        "n_matches": 6417,
+        "log_likelihood_gain": 0.004453225695863364
+      },
+      "2022-23": {
+        "own": [
+          0.05797302512251918,
+          -0.16344650980256506
+        ],
+        "opponent": [
+          0.11612078588991621,
+          -0.006994697028399003
+        ],
+        "n_matches": 9713,
+        "log_likelihood_gain": 0.003852837329450119
+      },
+      "2023-24": {
+        "own": [
+          0.06416008346376978,
+          -0.1455864276333982
+        ],
+        "opponent": [
+          0.11436385586192649,
+          -0.015939837826421756
+        ],
+        "n_matches": 13009,
+        "log_likelihood_gain": 0.0035347965233941316
+      },
+      "2024-25": {
+        "own": [
+          0.061454487637352,
+          -0.14625583821596802
+        ],
+        "opponent": [
+          0.1203018963776485,
+          -0.025396880822111396
+        ],
+        "n_matches": 16231,
+        "log_likelihood_gain": 0.003751080991195252
+      },
+      "2025-26": {
+        "own": [
+          0.05347078303903792,
+          -0.14287828775048333
+        ],
+        "opponent": [
+          0.10427137636493944,
+          -0.03741602762758106
+        ],
+        "n_matches": 19450,
+        "log_likelihood_gain": 0.0034013301805184723
+      }
+    },
+    "finishing": {
+      "2020-21": {
+        "own": [
+          -0.24262919781392608,
+          -0.09097812561954144
+        ],
+        "opponent": [
+          0.1005587780117454,
+          0.29761128214248367
+        ],
+        "n_matches": 3121,
+        "log_likelihood_gain": 0.010333979131650056
+      },
+      "2021-22": {
+        "own": [
+          -0.21429876791054048,
+          -0.07161079527079514
+        ],
+        "opponent": [
+          0.06570785675453687,
+          0.250871715926089
+        ],
+        "n_matches": 6417,
+        "log_likelihood_gain": 0.007772377763901246
+      },
+      "2022-23": {
+        "own": [
+          -0.17270540246612165,
+          -0.08568846451141032
+        ],
+        "opponent": [
+          0.0733150703092699,
+          0.23376499993254707
+        ],
+        "n_matches": 9713,
+        "log_likelihood_gain": 0.006418568560899149
+      },
+      "2023-24": {
+        "own": [
+          -0.1815249688304292,
+          -0.08673207184934612
+        ],
+        "opponent": [
+          0.08351657135680005,
+          0.2389142150085262
+        ],
+        "n_matches": 13009,
+        "log_likelihood_gain": 0.006943702434092588
+      },
+      "2024-25": {
+        "own": [
+          -0.16850504157509844,
+          -0.09043536830153591
+        ],
+        "opponent": [
+          0.08868051302801469,
+          0.25224124603066667
+        ],
+        "n_matches": 16231,
+        "log_likelihood_gain": 0.0070895107770845905
+      },
+      "2025-26": {
+        "own": [
+          -0.1727076039165516,
+          -0.08316851785668584
+        ],
+        "opponent": [
+          0.07591889995548821,
+          0.2508946550938331
+        ],
+        "n_matches": 19450,
+        "log_likelihood_gain": 0.006937080256742363
+      }
+    },
+    "sot_and_finishing": {
+      "2020-21": {
+        "own": [
+          0.11609988501842314,
+          -0.18615041005066027,
+          -0.2739357543667556,
+          -0.08287366462023309
+        ],
+        "opponent": [
+          0.09179359611217199,
+          -0.0645368749581432,
+          0.08847664655601746,
+          0.30090897825178625
+        ],
+        "n_matches": 3121,
+        "log_likelihood_gain": 0.016086130731789484
+      },
+      "2021-22": {
+        "own": [
+          0.08442339878391235,
+          -0.20619751922908713,
+          -0.2567190833381953,
+          -0.061114085694031324
+        ],
+        "opponent": [
+          0.16799825508979868,
+          0.022683884975047218,
+          0.05293558145427194,
+          0.26747463702469526
+        ],
+        "n_matches": 6417,
+        "log_likelihood_gain": 0.01411658508731848
+      },
+      "2022-23": {
+        "own": [
+          0.07170240548716941,
+          -0.19946701047952212,
+          -0.2187875690876749,
+          -0.07734376306169558
+        ],
+        "opponent": [
+          0.14679543880948848,
+          0.018861019900693565,
+          0.05669634298982207,
+          0.24816474514806652
+        ],
+        "n_matches": 9713,
+        "log_likelihood_gain": 0.011871458287338025
+      },
+      "2023-24": {
+        "own": [
+          0.07737435418984859,
+          -0.18987008652588025,
+          -0.23193409185417008,
+          -0.07767558557320707
+        ],
+        "opponent": [
+          0.1497533170163357,
+          0.012919545886090861,
+          0.06572436996265718,
+          0.25405770804424943
+        ],
+        "n_matches": 13009,
+        "log_likelihood_gain": 0.012254260109864475
+      },
+      "2024-25": {
+        "own": [
+          0.07345200917589971,
+          -0.18781596386216376,
+          -0.21834517641780718,
+          -0.08291381628461429
+        ],
+        "opponent": [
+          0.15287969635276266,
+          0.0019653569195333736,
+          0.06945697937176615,
+          0.26496549034618355
+        ],
+        "n_matches": 16231,
+        "log_likelihood_gain": 0.012471677743932392
+      },
+      "2025-26": {
+        "own": [
+          0.06793123165921523,
+          -0.18400185348785486,
+          -0.222388161193573,
+          -0.07768501034894973
+        ],
+        "opponent": [
+          0.13721883144829083,
+          -0.013909374764260796,
+          0.05629119331994834,
+          0.2619196082922281
+        ],
+        "n_matches": 19450,
+        "log_likelihood_gain": 0.011962737600091046
+      }
+    }
+  },
+  "descriptive": {
+    "vs_market_follow_up": {
+      "n_matches": 9663,
+      "market": {
+        "log_loss": 0.9769128353466942,
+        "brier": 0.5820777725984484,
+        "accuracy": 0.5273724516195798,
+        "ece": 0.015178306640688519
+      },
+      "production": {
+        "log_loss": 0.9975764649213771,
+        "brier": 0.5955908882140436,
+        "accuracy": 0.5118493221566801,
+        "ece": 0.017548809302709547,
+        "market_vs_this": {
+          "log_loss_diff": -0.020663629574683078,
+          "log_loss_diff_ci95_weekly": [
+            -0.023509634040504733,
+            -0.017871111726364033
+          ],
+          "brier_diff": -0.01351311561559523,
+          "accuracy_diff": 0.01552312946289972,
+          "weeks": 121
+        }
+      },
+      "sot": {
+        "log_loss": 0.9943635301919224,
+        "brier": 0.5937214787289052,
+        "accuracy": 0.5126772223947015,
+        "ece": 0.018343235241311963,
+        "market_vs_this": {
+          "log_loss_diff": -0.01745069484522815,
+          "log_loss_diff_ci95_weekly": [
+            -0.020064103963599974,
+            -0.014813244828346383
+          ],
+          "brier_diff": -0.01164370613045671,
+          "accuracy_diff": 0.014695229224878403,
+          "weeks": 121
+        }
+      },
+      "finishing": {
+        "log_loss": 0.996376330405733,
+        "brier": 0.594614863926854,
+        "accuracy": 0.5149539480492601,
+        "ece": 0.02141244901957496,
+        "market_vs_this": {
+          "log_loss_diff": -0.019463495059038976,
+          "log_loss_diff_ci95_weekly": [
+            -0.022293997355306787,
+            -0.01663185264567095
+          ],
+          "brier_diff": -0.012537091328405744,
+          "accuracy_diff": 0.012418503570319777,
+          "weeks": 121
+        }
+      },
+      "sot_and_finishing": {
+        "log_loss": 0.9923793695632225,
+        "brier": 0.5923188508714621,
+        "accuracy": 0.5156783607575287,
+        "ece": 0.019155238596066822,
+        "market_vs_this": {
+          "log_loss_diff": -0.015466534216528268,
+          "log_loss_diff_ci95_weekly": [
+            -0.018058777922211534,
+            -0.012920279207448261
+          ],
+          "brier_diff": -0.010241078273013644,
+          "accuracy_diff": 0.011694090862051122,
+          "weeks": 121
+        }
+      }
+    },
+    "per_league_follow_up": {
+      "en.1": {
+        "log_loss": 0.9755247924453742,
+        "brier": 0.5808710315832083,
+        "accuracy": 0.5307017543859649,
+        "ece": 0.02788426024476001,
+        "vs_production": {
+          "log_loss_diff": -0.007669466628806532,
+          "log_loss_diff_ci95_weekly": [
+            -0.01282809152075028,
+            -0.0027147172731164025
+          ],
+          "brier_diff": -0.004825777198427337,
+          "accuracy_diff": 0.008771929824561403,
+          "weeks": 109
+        }
+      },
+      "en.2": {
+        "log_loss": 1.0443778847559435,
+        "brier": 0.6288578587945302,
+        "accuracy": 0.4528415961305925,
+        "ece": 0.018688957595970657,
+        "vs_production": {
+          "log_loss_diff": -0.006712723973040136,
+          "log_loss_diff_ci95_weekly": [
+            -0.011292344987700719,
+            -0.0023056457927511146
+          ],
+          "brier_diff": -0.004602975580598816,
+          "accuracy_diff": -0.0012091898428053204,
+          "weeks": 106
+        }
+      },
+      "de.1": {
+        "log_loss": 0.987305248734537,
+        "brier": 0.5872531280472493,
+        "accuracy": 0.5250544662309368,
+        "ece": 0.03552460496183248,
+        "vs_production": {
+          "log_loss_diff": -0.0052166106755553695,
+          "log_loss_diff_ci95_weekly": [
+            -0.011087256059081703,
+            0.0007661788551042377
+          ],
+          "brier_diff": -0.003242938329351091,
+          "accuracy_diff": -0.0032679738562091504,
+          "weeks": 100
+        }
+      },
+      "de.2": {
+        "log_loss": 1.0413021705960197,
+        "brier": 0.6261109607718407,
+        "accuracy": 0.4880174291938998,
+        "ece": 0.03022889682782106,
+        "vs_production": {
+          "log_loss_diff": -0.007512405253666841,
+          "log_loss_diff_ci95_weekly": [
+            -0.012593560898047968,
+            -0.0024623349452223987
+          ],
+          "brier_diff": -0.005734724199239526,
+          "accuracy_diff": 0.018518518518518517,
+          "weeks": 102
+        }
+      },
+      "es.1": {
+        "log_loss": 0.9758214663952681,
+        "brier": 0.5796933065360652,
+        "accuracy": 0.5333333333333333,
+        "ece": 0.04156224624987173,
+        "vs_production": {
+          "log_loss_diff": -0.0022793711142687265,
+          "log_loss_diff_ci95_weekly": [
+            -0.0069110323346427225,
+            0.0025305970979607626
+          ],
+          "brier_diff": -0.0014812071475355968,
+          "accuracy_diff": 0.002631578947368421,
+          "weeks": 110
+        }
+      },
+      "it.1": {
+        "log_loss": 0.9869293685708451,
+        "brier": 0.5899335985137824,
+        "accuracy": 0.5307017543859649,
+        "ece": 0.03577617157412423,
+        "vs_production": {
+          "log_loss_diff": -0.0013103105247508743,
+          "log_loss_diff_ci95_weekly": [
+            -0.006194796291722981,
+            0.003494465897473291
+          ],
+          "brier_diff": -0.0002542698263296341,
+          "accuracy_diff": 0.0043859649122807015,
+          "weeks": 111
+        }
+      },
+      "fr.1": {
+        "log_loss": 0.9974048228696758,
+        "brier": 0.5960124532427284,
+        "accuracy": 0.5234460196292258,
+        "ece": 0.02231909520170645,
+        "vs_production": {
+          "log_loss_diff": -0.005990854980391806,
+          "log_loss_diff_ci95_weekly": [
+            -0.012133751504734747,
+            0.0001416771958905746
+          ],
+          "brier_diff": -0.004048054273786055,
+          "accuracy_diff": -0.0054525627044711015,
+          "weeks": 101
+        }
+      },
+      "nl.1": {
+        "log_loss": 0.9605624856451624,
+        "brier": 0.5703606039090786,
+        "accuracy": 0.5435729847494554,
+        "ece": 0.03617459003132753,
+        "vs_production": {
+          "log_loss_diff": -0.0015754167811793311,
+          "log_loss_diff_ci95_weekly": [
+            -0.007816105654200652,
+            0.005148886742035388
+          ],
+          "brier_diff": 7.392672740515306e-05,
+          "accuracy_diff": 0.0054466230936819175,
+          "weeks": 102
+        }
+      },
+      "pt.1": {
+        "log_loss": 0.9299002354191597,
+        "brier": 0.5488843379249025,
+        "accuracy": 0.5522875816993464,
+        "ece": 0.04287157514671686,
+        "vs_production": {
+          "log_loss_diff": -0.00834005961214799,
+          "log_loss_diff_ci95_weekly": [
+            -0.013944506228671506,
+            -0.002578215206529892
+          ],
+          "brier_diff": -0.005053213769163237,
+          "accuracy_diff": 0.007625272331154684,
+          "weeks": 107
+        }
+      }
+    },
+    "neutral_feature_share_home": {
+      "sot": 0.012173606210303459,
+      "finishing": 0.012173606210303459,
+      "sot_and_finishing": 0.012173606210303459
+    }
+  }
+}

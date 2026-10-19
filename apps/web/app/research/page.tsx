@@ -23,6 +23,11 @@ const LEDGER: { name: string; status: "adopted" | "rejected" | "pending"; note: 
   { name: "배당과 섞기 (0.25 + 0.75)", status: "rejected", note: "시장 단독보다 나쁨" },
   { name: "언더/오버·핸디캡 표시", status: "rejected", note: "표시 조건 미달" },
   { name: "강팀 확률 보정", status: "pending", note: "2026-27 확인 실험, 2027-06 채점" },
+  {
+    name: "슈팅 기반 전력",
+    status: "pending",
+    note: "표준 기준 통과(+0.0052), 실시간 검증·승인 전 미반영",
+  },
   { name: "선발 명단 변수", status: "pending", note: "+0.2%, 큰 표본으로 재측정 필요" },
   { name: "병행 기록 (shadow-v1)", status: "pending", note: "10/20~12/14, 12월 중순 채점" },
   { name: "CLV (과거·실시간)", status: "pending", note: "모델에 시장이 모르는 정보가 있는가" },

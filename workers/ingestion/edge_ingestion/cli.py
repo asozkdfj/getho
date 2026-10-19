@@ -38,6 +38,7 @@ from edge_ingestion import (
     goal_markets_backtest,
     lineup_backtest,
     market_backtest,
+    shots_backtest,
     standings_backtest,
 )
 from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
@@ -210,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
     market_backtest.add_arguments(
         sub.add_parser("backtest-market", help="model vs market, and blending with the market")
     )
+    shots_backtest.add_arguments(
+        sub.add_parser("backtest-shots", help="does shot-based form improve the model?")
+    )
     calibration_backtest.add_arguments(
         sub.add_parser("backtest-calibration", help="recalibrate the most likely outcome?")
     )
@@ -322,6 +326,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backtest-draws":
         configure_logging(get_settings().log_level)
         report = draw_backtest.run(args)
+        print(json.dumps(report["gate"], indent=2))
+        return 0
+
+    if args.command == "backtest-shots":
+        configure_logging(get_settings().log_level)
+        report = shots_backtest.run(args)
         print(json.dumps(report["gate"], indent=2))
         return 0
 
