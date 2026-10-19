@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from dataclasses import asdict
@@ -165,6 +166,18 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
     )
     sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
+    cq = sub.add_parser(
+        "collection-quality", help="per pick day: runs, decision, inputs (no outcomes read)"
+    )
+    cq.add_argument("--start", type=date.fromisoformat, required=True, help="first pick day")
+    cq.add_argument("--end", type=date.fromisoformat, required=True, help="last pick day")
+    cq.add_argument(
+        "--interval-minutes",
+        type=float,
+        default=float(os.getenv("PIPELINE_INTERVAL_SECONDS", "1800")) / 60,
+        help="expected minutes between pipeline runs (default: the worker's schedule)",
+    )
+    cq.add_argument("--out", type=Path, help="write the JSON report here")
     sr = sub.add_parser("shadow-report", help="private shadow forecasts: production vs market")
     sr.add_argument(
         "--start", type=date.fromisoformat, help="first decision day (default: protocol)"
@@ -186,6 +199,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "team-news-coverage":
         configure_logging(get_settings().log_level)
         return _team_news_coverage(args)
+
+    if args.command == "collection-quality":
+        configure_logging(get_settings().log_level)
+        return _collection_quality(args)
 
     if args.command == "shadow-report":
         configure_logging(get_settings().log_level)
@@ -296,6 +313,25 @@ def _team_news_coverage(args: argparse.Namespace) -> int:
 
     with session_scope() as session:
         report = coverage_report(session, get_settings(), args.start, args.end)
+    text = json.dumps(report, indent=2, ensure_ascii=False)
+    if args.out:
+        args.out.write_text(text + "\n")
+    print(text)
+    return 0
+
+
+def _collection_quality(args: argparse.Namespace) -> int:
+    from edge_api.services.collection_quality import quality_report
+
+    with session_scope() as session:
+        report = quality_report(
+            session,
+            get_settings(),
+            args.start,
+            args.end,
+            now=utcnow(),
+            interval=timedelta(minutes=args.interval_minutes),
+        )
     text = json.dumps(report, indent=2, ensure_ascii=False)
     if args.out:
         args.out.write_text(text + "\n")

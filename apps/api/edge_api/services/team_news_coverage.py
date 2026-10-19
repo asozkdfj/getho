@@ -77,10 +77,13 @@ def _matches_with_minutes(session: Session, team_ids: set[int], at: datetime) ->
     return {tid: n for tid, n in rows}
 
 
-def coverage_on(session: Session, settings: Settings, day: date) -> dict[str, Any]:
+def coverage_on(
+    session: Session, settings: Settings, day: date, at: datetime | None = None
+) -> dict[str, Any]:
+    """At the publish hour of ``day``, or at ``at`` (e.g. the actual decision)."""
     zone = ZoneInfo(settings.pick_tz)
     ld = local_day(datetime.combine(day, time(settings.pick_publish_hour), tzinfo=zone), settings)
-    at = ld.publish_at
+    at = at or ld.publish_at
     fixtures = [
         f
         for f in queries.fixtures_between(session, ld.start_utc, ld.end_utc, settings.data_provider)
