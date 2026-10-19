@@ -7,7 +7,9 @@ source "$(dirname "$0")/common.sh"
 if [ "${1:-}" = "--install-cron" ]; then
   line="30 4 * * * $REPO_DIR/infra/server/backup.sh >> $REPO_DIR/backups/backup.log 2>&1"
   mkdir -p backups
-  ( crontab -l 2>/dev/null | grep -v 'infra/server/backup.sh' ; echo "$line" ) | crontab -
+  # no crontab yet (crontab -l fails) or nothing left after grep -v must not stop the script
+  ( { crontab -l 2>/dev/null || true; } | { grep -v 'infra/server/backup.sh' || true; }
+    echo "$line" ) | crontab -
   say "Installed: $line"
 fi
 
