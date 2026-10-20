@@ -41,6 +41,7 @@ from edge_ingestion import (
     market_backtest,
     shots_backtest,
     standings_backtest,
+    xg_backtest,
 )
 from edge_ingestion.jobs import record_failed_run, run_ingestion, run_pipeline
 from edge_ingestion.providers import ApiFootballProvider, get_provider
@@ -217,6 +218,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     calibration_backtest.add_arguments(
         sub.add_parser("backtest-calibration", help="recalibrate the most likely outcome?")
+    )
+    xg_backtest.add_arguments(
+        sub.add_parser("backtest-xg", help="does xG form improve on the shot-based candidate?")
     )
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
@@ -430,6 +434,12 @@ def main(argv: list[str] | None = None) -> int:
         report = calibration_confirmatory.run(args)
         calibration_confirmatory.write(report, args.out)
         print(json.dumps(calibration_confirmatory.summary(report), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "backtest-xg":
+        configure_logging(get_settings().log_level)
+        report = xg_backtest.run(args)
+        print(json.dumps(xg_backtest.summary(report), ensure_ascii=False, indent=2, default=str))
         return 0
 
     if args.command == "backtest-goal-markets":
