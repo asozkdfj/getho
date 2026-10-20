@@ -1,5 +1,13 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-20 — 베트맨 수익 검증 개발 명세 / Codex
+
+- 사용자 지시: 예측력 개선은 유지하고, 베트맨 배당 기반 수익 검증 기능의 개발 문서를 QA에 게시.
+- [개발 명세 v0.1](../qa/2026-10-20-betman-profit-simulator-development-spec.md):
+  실제 구매 배당 계약, 가상 티켓/정산, 동일 예산 구성 비교, prospective 평가 및 필수 QA 반례.
+- Claude 첫 구현은 수동/file 입력·경기 mapping·규칙 계약(A 단계). 자동 실구매/금액 최적화는 제외.
+- 이번 변경은 문서만 작성. 기능 구현 또는 수익성 검증 완료로 표시하지 않음.
+
 ## 2026-10-20 — 밤사이 PR #21~#30 / Codex
 
 - main 4f45edb 고정. Python 439 PASS/5 FAIL; 인코딩 3건 UTF-8 재실행 PASS,
