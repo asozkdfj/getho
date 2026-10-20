@@ -454,9 +454,7 @@ def test_rules_document_matches_the_code():
 
     from edge_api.betman_rules import RULES
 
-    doc = (Path(__file__).resolve().parents[2] / "docs/betman/RULES.md").read_text(
-        encoding="utf-8"
-    )
+    doc = (Path(__file__).resolve().parents[2] / "docs/betman/RULES.md").read_text(encoding="utf-8")
     assert RULES_VERSION in doc
     for r in RULES:
         line = next(ln for ln in doc.splitlines() if f"`{r.key}`" in ln)
