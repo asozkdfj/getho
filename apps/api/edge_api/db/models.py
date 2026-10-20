@@ -474,3 +474,150 @@ class MatchStatistic(Base):
     expected_goals: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))
     source: Mapped[str] = mapped_column(String(16))
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+# ------------------------------------------------------------- Betman (research)
+# Paper-betting research on Betman Proto prices (docs/betman/README.md). Nothing
+# here buys anything; these tables never feed the daily pick or the model.
+# All four are append-only (migration 0011): a correction is a new row.
+
+
+class BetmanImport(Base):
+    """One file (or typed list) of Betman prices loaded into the database.
+
+    ``artifact_sha256`` is the hash of the exact bytes loaded; loading the same
+    bytes again is a no-op. ``rules_version`` names the rule list in force.
+    """
+
+    __tablename__ = "betman_imports"
+    __table_args__ = (
+        UniqueConstraint("artifact_sha256", name="artifact"),
+        CheckConstraint(
+            "source_mode IN ('manual', 'file', 'approved_connector')", name="source_mode"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_mode: Mapped[str] = mapped_column(String(24))
+    filename: Mapped[str | None] = mapped_column(String(255))
+    artifact_sha256: Mapped[str] = mapped_column(String(64))
+    rows: Mapped[int] = mapped_column(Integer)
+    rules_version: Mapped[str] = mapped_column(String(48))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class BetmanOddsSnapshot(Base):
+    """One Betman fixed-odds price for one selection of one event, as entered.
+
+    Raw names stay as Betman shows them; the link to a fixture lives in
+    ``betman_event_mappings`` (it can be reviewed later without touching this
+    row). ``source_observed_at`` is when the price was seen on Betman; without
+    that evidence the price is a ``historical_proxy`` and never counts as
+    purchasable. ``created_at`` is when it was stored.
+    """
+
+    __tablename__ = "betman_odds_snapshots"
+    __table_args__ = (
+        CheckConstraint("selection IN ('HOME', 'DRAW', 'AWAY')", name="selection"),
+        CheckConstraint("market_type = '1X2'", name="market_type"),
+        CheckConstraint("decimal_odds > 1", name="odds_gt_one"),
+        CheckConstraint(
+            "sale_status IN ('on_sale', 'suspended', 'closed', 'unknown')", name="sale_status"
+        ),
+        CheckConstraint(
+            "(price_evidence = 'observed') = (source_observed_at IS NOT NULL)",
+            name="price_evidence",
+        ),
+        CheckConstraint(
+            "sale_close_at IS NULL OR sale_close_at <= kickoff_at", name="close_before_kickoff"
+        ),
+        Index(
+            "ix_betman_odds_snapshots_event",
+            "product",
+            "round_id",
+            "event_number",
+            "selection",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    import_id: Mapped[int] = mapped_column(ForeignKey("betman_imports.id"))
+    source: Mapped[str] = mapped_column(String(16), default="betman")
+    product: Mapped[str] = mapped_column(String(32))
+    round_id: Mapped[str] = mapped_column(String(32))
+    event_number: Mapped[int] = mapped_column(Integer)
+    market_type: Mapped[str] = mapped_column(String(8), default="1X2")
+    selection: Mapped[str] = mapped_column(String(8))
+    raw_league: Mapped[str] = mapped_column(String(120))
+    raw_country: Mapped[str | None] = mapped_column(String(80))
+    raw_home: Mapped[str] = mapped_column(String(120))
+    raw_away: Mapped[str] = mapped_column(String(120))
+    kickoff_at: Mapped[datetime] = _ts()
+    sale_close_at: Mapped[datetime | None] = _ts()
+    sale_status: Mapped[str] = mapped_column(String(16))
+    single_allowed: Mapped[bool | None] = mapped_column(Boolean)
+    decimal_odds: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    source_observed_at: Mapped[datetime | None] = _ts()
+    price_evidence: Mapped[str] = mapped_column(String(16))
+    rules_version: Mapped[str] = mapped_column(String(48))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class BetmanEventMapping(Base):
+    """A decision about which fixture a Betman event is (append-only, latest wins).
+
+    ``status`` is ``mapped`` (one verified fixture), ``ambiguous`` (more than
+    one candidate or a conflict), ``unmatched`` (no candidate, unknown names)
+    or ``rejected`` (e.g. home and away reversed, or a person said no).
+    ``method`` is ``auto`` (aliases + league + home/away + kickoff) or
+    ``manual`` (a person chose the fixture). ``candidates`` keeps what was
+    considered.
+    """
+
+    __tablename__ = "betman_event_mappings"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('mapped', 'ambiguous', 'unmatched', 'rejected')", name="status"
+        ),
+        CheckConstraint("method IN ('auto', 'manual')", name="method"),
+        CheckConstraint("(status = 'mapped') = (fixture_id IS NOT NULL)", name="mapped_fixture"),
+        Index(
+            "ix_betman_event_mappings_event", "product", "round_id", "event_number", "created_at"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product: Mapped[str] = mapped_column(String(32))
+    round_id: Mapped[str] = mapped_column(String(32))
+    event_number: Mapped[int] = mapped_column(Integer)
+    fixture_id: Mapped[int | None] = mapped_column(ForeignKey("fixtures.id"))
+    status: Mapped[str] = mapped_column(String(16))
+    method: Mapped[str] = mapped_column(String(8))
+    reason: Mapped[str | None] = mapped_column(String(64))
+    candidates: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class BetmanAlias(Base):
+    """A Betman name confirmed by a person to mean one of our leagues or teams
+    (append-only, latest wins). A team alias is scoped to its league: the same
+    short name can mean different clubs in different leagues."""
+
+    __tablename__ = "betman_aliases"
+    __table_args__ = (
+        CheckConstraint("kind IN ('league', 'team')", name="kind"),
+        CheckConstraint(
+            "(kind = 'league' AND team_id IS NULL) OR (kind = 'team' AND team_id IS NOT NULL)",
+            name="target",
+        ),
+        Index("ix_betman_aliases_name", "kind", "raw_name", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(8))
+    raw_name: Mapped[str] = mapped_column(String(120))
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"))
+    team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"))
+    method: Mapped[str] = mapped_column(String(8), default="manual")
+    created_at: Mapped[datetime] = _ts(server_default=func.now())

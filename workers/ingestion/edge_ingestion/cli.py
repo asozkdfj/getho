@@ -30,6 +30,7 @@ from edge_api.timeutil import ensure_utc, utcnow
 from edge_api.versioning import build_info
 from edge_ingestion import (
     backtest_cli,
+    betman_cli,
     calibration_backtest,
     calibration_confirmatory,
     clv_backtest,
@@ -229,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
             help="one-time scoring of the frozen calibration on 2026-27 (after the season)",
         )
     )
+    betman_cli.add_arguments(sub)
     sub.add_parser("code-fingerprint", help="build commit and source fingerprint of this checkout")
     cq = sub.add_parser(
         "collection-quality", help="per pick day: runs, decision, inputs (no outcomes read)"
@@ -317,6 +319,10 @@ def main(argv: list[str] | None = None) -> int:
         report = check_xg(get_settings(), _parse_now(args.now), args.days, args.limit)
         print(json.dumps(report, indent=2, ensure_ascii=False))
         return 0
+
+    if args.command in betman_cli.COMMANDS:
+        configure_logging(get_settings().log_level)
+        return betman_cli.run(args)
 
     if args.command == "code-fingerprint":
         # matches model_versions.code_fingerprint / pick evidence manifest.build

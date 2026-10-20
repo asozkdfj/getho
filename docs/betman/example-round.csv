@@ -1,0 +1,3 @@
+product,round_id,event_number,league,country,home,away,kickoff_at,sale_close_at,sale_status,single_allowed,odds_home,odds_draw,odds_away,observed_at
+proto,2026-00,1,EPL,잉글랜드,예시홈,예시원정,2026-10-24T21:00:00+09:00,2026-10-24T20:50:00+09:00,on_sale,,2.10,3.20,3.05,
+proto,2026-00,2,EPL,잉글랜드,예시홈2,예시원정2,2026-10-24T23:30:00+09:00,2026-10-24T23:20:00+09:00,on_sale,false,1.75,3.40,4.10,
