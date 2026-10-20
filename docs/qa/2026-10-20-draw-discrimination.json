@@ -1,0 +1,183 @@
+{
+  "status": "EXPLORATORY_ONLY_NO_POLICY_CHANGE",
+  "all": {
+    "n": 676,
+    "draws": 167,
+    "draw_rate": 0.2470414201183432,
+    "production": {
+      "mean_draw_probability": 0.2423124149871784,
+      "draw_brier": 0.18316717255400927,
+      "draw_auc": 0.5847087749844123
+    },
+    "market": {
+      "mean_draw_probability": 0.24851953689155368,
+      "draw_brier": 0.1818167875004259,
+      "draw_auc": 0.6151194663717751
+    }
+  },
+  "draw_bins_by_production_probability": {
+    "0_0.2": {
+      "n": 82,
+      "draws": 15,
+      "draw_rate": 0.18292682926829268,
+      "production": {
+        "mean_draw_probability": 0.18063838995516954,
+        "draw_brier": 0.14867878591361108,
+        "draw_auc": 0.5383084577114428
+      },
+      "market": {
+        "mean_draw_probability": 0.18754341920586576,
+        "draw_brier": 0.14869794184295226,
+        "draw_auc": 0.5840796019900497
+      }
+    },
+    "0.2_0.25": {
+      "n": 330,
+      "draws": 75,
+      "draw_rate": 0.22727272727272727,
+      "production": {
+        "mean_draw_probability": 0.22766052605213336,
+        "draw_brier": 0.1746777703384727,
+        "draw_auc": 0.5659607843137255
+      },
+      "market": {
+        "mean_draw_probability": 0.24120434132694962,
+        "draw_brier": 0.17358100212210043,
+        "draw_auc": 0.562875816993464
+      }
+    },
+    "0.25_0.3": {
+      "n": 210,
+      "draws": 56,
+      "draw_rate": 0.26666666666666666,
+      "production": {
+        "mean_draw_probability": 0.2695506909918436,
+        "draw_brier": 0.1946541094357931,
+        "draw_auc": 0.5723562152133581
+      },
+      "market": {
+        "mean_draw_probability": 0.2701059942897613,
+        "draw_brier": 0.19192858099603877,
+        "draw_auc": 0.6248840445269017
+      }
+    },
+    "0.3_1.000001": {
+      "n": 54,
+      "draws": 21,
+      "draw_rate": 0.3888888888888889,
+      "production": {
+        "mean_draw_probability": 0.3195782564725469,
+        "draw_brier": 0.24274668534040053,
+        "draw_auc": 0.5021645021645021
+      },
+      "market": {
+        "mean_draw_probability": 0.30186953935307514,
+        "draw_brier": 0.24311452610563947,
+        "draw_auc": 0.556998556998557
+      }
+    }
+  },
+  "confidence_excess_bins": {
+    "-1_0": {
+      "n": 315,
+      "chosen_outcome_hit_rate": 0.5904761904761905,
+      "production_probability_of_chosen_outcome": 0.4981932216857473,
+      "market_probability_of_same_chosen_outcome": 0.562247689763534
+    },
+    "0_0.05": {
+      "n": 171,
+      "chosen_outcome_hit_rate": 0.49707602339181284,
+      "production_probability_of_chosen_outcome": 0.47696584349125914,
+      "market_probability_of_same_chosen_outcome": 0.4527474099624973
+    },
+    "0.05_0.1": {
+      "n": 111,
+      "chosen_outcome_hit_rate": 0.40540540540540543,
+      "production_probability_of_chosen_outcome": 0.4757510661037635,
+      "market_probability_of_same_chosen_outcome": 0.4021216252480708
+    },
+    "0.1_1.000001": {
+      "n": 79,
+      "chosen_outcome_hit_rate": 0.3291139240506329,
+      "production_probability_of_chosen_outcome": 0.4859950392983476,
+      "market_probability_of_same_chosen_outcome": 0.3428241767784055
+    }
+  },
+  "ll_delta_production_minus_market_by_actual_outcome": {
+    "home": {
+      "n": 307,
+      "within_outcome_mean_ll_delta": 0.030990317185720186,
+      "contribution_to_overall_ll_delta": 0.014074004994106652
+    },
+    "draw": {
+      "n": 167,
+      "within_outcome_mean_ll_delta": 0.03579977714058513,
+      "contribution_to_overall_ll_delta": 0.008844027784730351
+    },
+    "away": {
+      "n": 202,
+      "within_outcome_mean_ll_delta": 0.007996043912042327,
+      "contribution_to_overall_ll_delta": 0.002389350399752293
+    }
+  },
+  "by_decision": {
+    "2026-10-17 00:00:00+00:00": {
+      "n": 506,
+      "draws": 127,
+      "draw_rate": 0.2509881422924901,
+      "production": {
+        "mean_draw_probability": 0.24377196505793122,
+        "draw_brier": 0.18458857109234486,
+        "draw_auc": 0.597116323520246
+      },
+      "market": {
+        "mean_draw_probability": 0.2503612974307106,
+        "draw_brier": 0.18395157441587742,
+        "draw_auc": 0.6171857145825109
+      }
+    },
+    "2026-10-18 00:00:00+00:00": {
+      "n": 170,
+      "draws": 40,
+      "draw_rate": 0.23529411764705882,
+      "production": {
+        "mean_draw_probability": 0.23796810712952587,
+        "draw_brier": 0.1789364216104928,
+        "draw_auc": 0.5478846153846154
+      },
+      "market": {
+        "mean_draw_probability": 0.24303759081618076,
+        "draw_brier": 0.17546265703443484,
+        "draw_auc": 0.6103846153846154
+      }
+    }
+  },
+  "high_confidence_60plus": {
+    "n": 86,
+    "draws": 14,
+    "draw_rate": 0.16279069767441862,
+    "production": {
+      "mean_draw_probability": 0.18902205480269707,
+      "draw_brier": 0.13864672416985355,
+      "draw_auc": 0.4156746031746032
+    },
+    "market": {
+      "mean_draw_probability": 0.18744457427471986,
+      "draw_brier": 0.1349784896734364,
+      "draw_auc": 0.6021825396825397
+    }
+  },
+  "limitations": [
+    "Inherited timing/source limitations; no independent availability certification",
+    "Current schedule/results are not frozen decision-time candidate sets",
+    "No season identifier: season comparison and cross-season stability unavailable",
+    "No fatigue/player candidate predictions: incremental feature performance not measured",
+    "Subgroups and confidence threshold are descriptive, not model selection evidence",
+    "Two decision days, one week; no confidence intervals or significance claims.",
+    "Outcome-conditioned LL decomposition is retrospective, not a selection rule.",
+    "AUC measures ranking, not calibration or profit.",
+    "Bins are exploratory, not preregistered; no causal feature attribution."
+  ],
+  "manifest_sha256": "d85ba40b0d3c0df9e67c5206323329c07a37b22cdc3485b55540221012008ba3",
+  "analysis_source_sha256": "59fb8ae084534d340649e32d9b88a8bb2338b78935e7e8af61b16664e0e90335"
+}
