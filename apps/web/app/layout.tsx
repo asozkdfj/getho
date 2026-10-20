@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 
 import { SiteNav } from "@/components/SiteNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -15,7 +17,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    // the theme script may set data-theme before React hydrates
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <header className="site-header">
           <div className="container header-inner">
@@ -23,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               EPL <span>Edge Lab</span>
             </Link>
             <SiteNav />
+            <ThemeToggle />
           </div>
         </header>
         <main className="container">{children}</main>
