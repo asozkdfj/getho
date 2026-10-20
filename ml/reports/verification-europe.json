@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-20T16:05:21.136896+00:00",
+  "generated_at": "2026-10-20T23:50:00.169093+00:00",
   "experiment": "league_verification_europe_v1",
-  "protocol": "`edge verify-leagues` - score more leagues with the \"verified\" rule (research).\n\nSelection, fixed 2026-10-20 before any league was scored: the divisions of the\nClub Football Match Data file (football-data.co.uk results, the file the shots\nexperiment uses) whose three test seasons 2023-24, 2024-25 and 2025-26 each\nhold at least 90% of the division's usual season. That gives the 11 leagues in\nEXTRA_LEAGUES. Left out: National League (2024-25 incomplete), Greek Super\nLeague (seasons missing), and the calendar-year leagues of the file (their data\nstops in early 2025).\n\nSame rule as the 10 verified leagues (backtest_cli.league_summary, ADR-013):\nwalk-forward production model, warm-up 2018-19..2022-23, test from 2023-24,\nverified = at least 300 test matches AND the 95% CI of its log-loss gain over the\nbase rate above 0. The de-margined Bet365 market on the same test matches is\nreported for context (not part of the rule).\n\nThis writes a separate report. It does not change which leagues the service\ntreats as verified (that comes from the imported production backtest report);\napplying it widens the Today's Pick candidates, so it needs Codex QA and the\nuser's approval first.\n",
+  "protocol": "`edge verify-leagues` - score more leagues with the \"verified\" rule (research).\n\nSelection, fixed 2026-10-20 before any league was scored: the divisions of the\nClub Football Match Data file (football-data.co.uk results, the file the shots\nexperiment uses) whose three test seasons 2023-24, 2024-25 and 2025-26 each\nhold at least 90% of the division's usual season. That gives the 11 leagues in\nEXTRA_LEAGUES. Left out: National League (2024-25 incomplete), Greek Super\nLeague (seasons missing), and the calendar-year leagues of the file (their data\nstops in early 2025).\n\nSame rule as the 10 verified leagues (backtest_cli.league_summary, ADR-013):\nwalk-forward production model, warm-up 2018-19..2022-23, test from 2023-24,\nverified = at least 300 test matches AND the 95% CI of its log-loss gain over the\nbase rate above 0. The de-margined Bet365 market on the same test matches is\nreported for context (not part of the rule).\n\nAddendum 2026-10-21 (after Codex QA; the rule above is unchanged and is now\nchecked in code instead of by eye): the \"usual season\" of a league is its most\ncommon season match count in 2018-19..2025-26 (ties: the larger count, the\nstricter choice). A league is eligible only if each test season holds >= 90% of\nit. Checked this way, Scottish Premiership (2024-25 at 87.7%), Scottish\nChampionship (88.3%) and Ligue 2 (80.5%, 18 teams from 2024-25) are not eligible;\nthe first run had listed them by mistake. All 11 stay in the report as\nexploratory rows; only eligible leagues can be verified.\n\nThis writes a separate report. It does not change which leagues the service\ntreats as verified (that comes from the imported production backtest report);\napplying it widens the Today's Pick candidates, so it needs Codex QA and the\nuser's approval first.\n",
   "production_model": {
     "version": "0.2.0",
     "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
@@ -16,6 +16,24 @@
     "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221"
   },
   "applied_to_service": false,
+  "eligible": [
+    "en.3",
+    "en.4",
+    "es.2",
+    "it.2",
+    "tr.1",
+    "be.1",
+    "sc.3",
+    "sc.4"
+  ],
+  "verified": [
+    "en.3",
+    "en.4",
+    "it.2",
+    "tr.1",
+    "be.1",
+    "sc.3"
+  ],
   "leagues": [
     {
       "code": "en.3",
@@ -64,6 +82,17 @@
         "2024-25": 549,
         "2025-26": 552
       },
+      "selection": {
+        "usual_season_matches": 552,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9946,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 1653,
         "market": {
@@ -127,6 +156,17 @@
         "2024-25": 548,
         "2025-26": 552
       },
+      "selection": {
+        "usual_season_matches": 552,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9928,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 1652,
         "market": {
@@ -190,6 +230,17 @@
         "2024-25": 462,
         "2025-26": 462
       },
+      "selection": {
+        "usual_season_matches": 462,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 1.0,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": false,
       "market_context": {
         "n_matches": 1386,
         "market": {
@@ -253,6 +304,17 @@
         "2024-25": 380,
         "2025-26": 380
       },
+      "selection": {
+        "usual_season_matches": 380,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 1.0,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 1139,
         "market": {
@@ -316,6 +378,17 @@
         "2024-25": 306,
         "2025-26": 305
       },
+      "selection": {
+        "usual_season_matches": 380,
+        "test_season_coverage": {
+          "2023-24": 0.9974,
+          "2024-25": 0.8053,
+          "2025-26": 0.8026
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25, 2025-26"
+      },
+      "verified_rule_only": false,
       "market_context": {
         "n_matches": 990,
         "market": {
@@ -379,6 +452,17 @@
         "2024-25": 314,
         "2025-26": 306
       },
+      "selection": {
+        "usual_season_matches": 306,
+        "test_season_coverage": {
+          "2023-24": 1.2418,
+          "2024-25": 1.0261,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 1000,
         "market": {
@@ -442,6 +526,17 @@
         "2024-25": 312,
         "2025-26": 311
       },
+      "selection": {
+        "usual_season_matches": 306,
+        "test_season_coverage": {
+          "2023-24": 1.0196,
+          "2024-25": 1.0196,
+          "2025-26": 1.0163
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 935,
         "market": {
@@ -493,7 +588,7 @@
         "ci_low": 0.0665457576667515,
         "ci_high": 0.12092306484936285
       },
-      "verified": true,
+      "verified": false,
       "division": "SC0",
       "matches_per_season": {
         "2018-19": 228,
@@ -505,6 +600,17 @@
         "2024-25": 200,
         "2025-26": 228
       },
+      "selection": {
+        "usual_season_matches": 228,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.8772,
+          "2025-26": 1.0
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25"
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 656,
         "market": {
@@ -556,7 +662,7 @@
         "ci_low": 0.004576910977215487,
         "ci_high": 0.04723119709765947
       },
-      "verified": true,
+      "verified": false,
       "division": "SC1",
       "matches_per_season": {
         "2018-19": 180,
@@ -567,6 +673,17 @@
         "2024-25": 159,
         "2025-26": 180
       },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.8833,
+          "2025-26": 1.0
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25"
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 519,
         "market": {
@@ -629,6 +746,17 @@
         "2024-25": 164,
         "2025-26": 180
       },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9111,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
       "market_context": {
         "n_matches": 524,
         "market": {
@@ -691,6 +819,17 @@
         "2024-25": 169,
         "2025-26": 180
       },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9389,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": false,
       "market_context": {
         "n_matches": 529,
         "market": {

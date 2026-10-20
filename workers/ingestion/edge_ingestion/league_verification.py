@@ -14,6 +14,15 @@ verified = at least 300 test matches AND the 95% CI of its log-loss gain over th
 base rate above 0. The de-margined Bet365 market on the same test matches is
 reported for context (not part of the rule).
 
+Addendum 2026-10-21 (after Codex QA; the rule above is unchanged and is now
+checked in code instead of by eye): the "usual season" of a league is its most
+common season match count in 2018-19..2025-26 (ties: the larger count, the
+stricter choice). A league is eligible only if each test season holds >= 90% of
+it. Checked this way, Scottish Premiership (2024-25 at 87.7%), Scottish
+Championship (88.3%) and Ligue 2 (80.5%, 18 teams from 2024-25) are not eligible;
+the first run had listed them by mistake. All 11 stay in the report as
+exploratory rows; only eligible leagues can be verified.
+
 This writes a separate report. It does not change which leagues the service
 treats as verified (that comes from the imported production backtest report);
 applying it widens the Today's Pick candidates, so it needs Codex QA and the
@@ -26,7 +35,7 @@ import argparse
 import hashlib
 import json
 import logging
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -45,6 +54,8 @@ from edge_ml.model import FEATURE_SET, MODEL_VERSION, ModelParams
 logger = logging.getLogger(__name__)
 
 FIRST, LAST, TEST_FROM = "2018-19", "2025-26", "2023-24"
+TEST_SEASONS = ("2023-24", "2024-25", "2025-26")
+MIN_SEASON_COVERAGE = 0.90
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +104,21 @@ def load(lg: ExtraLeague, cache_dir: Path) -> tuple[list[Any], dict[str, int]]:
     return matches, dict(sorted(counts.items()))
 
 
+def coverage(counts: dict[str, int]) -> dict[str, Any]:
+    """The selection rule: each test season holds >= 90% of the usual season
+    (the most common season match count; ties: the larger count)."""
+    tally = Counter(v for v in counts.values() if v > 0)
+    usual = max(tally, key=lambda v: (tally[v], v)) if tally else 0
+    per_season = {s: (counts.get(s, 0) / usual if usual else 0.0) for s in TEST_SEASONS}
+    short = [s for s, c in per_season.items() if c < MIN_SEASON_COVERAGE]
+    return {
+        "usual_season_matches": usual,
+        "test_season_coverage": {s: round(c, 4) for s, c in per_season.items()},
+        "eligible": not short,
+        "reason": None if not short else "below 90% of a usual season: " + ", ".join(short),
+    }
+
+
 def score_league(lg: ExtraLeague, cache_dir: Path) -> dict[str, Any]:
     matches, counts = load(lg, cache_dir)
     test_start = min(m.result.kickoff_at for m in matches if m.result.season == TEST_FROM)
@@ -109,7 +135,11 @@ def score_league(lg: ExtraLeague, cache_dir: Path) -> dict[str, Any]:
         division=lg.division,
         provider_ids={"api_football": lg.api_football_id},
         matches_per_season=counts,
+        selection=coverage(counts),
     )
+    # only an eligible league can count as verified; the rest are exploratory rows
+    summary["verified_rule_only"] = summary["verified"]
+    summary["verified"] = bool(summary["verified"] and summary["selection"]["eligible"])
     # context: the de-margined Bet365 market on the same test matches
     idx = np.array([k for k, m in enumerate(preds.matches) if m.odds is not None], dtype=int)
     if len(idx):
@@ -156,6 +186,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         },
         "applied_to_service": False,
+        "eligible": [s["code"] for s in leagues if s["selection"]["eligible"]],
+        "verified": [s["code"] for s in leagues if s["verified"]],
         "leagues": leagues,
     }
     if args.out:
@@ -181,6 +213,7 @@ def summary(report: dict[str, Any]) -> list[dict[str, Any]]:
                     round(g["ci_low"], 4),
                     round(g["ci_high"], 4),
                 ],
+                "eligible": s["selection"]["eligible"],
                 "verified": s["verified"],
                 "production_ll": round(s["models"]["production"]["log_loss"], 4),
                 "market_ll": round(m["market"]["log_loss"], 4) if m else None,
