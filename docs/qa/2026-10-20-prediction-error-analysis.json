@@ -1,0 +1,641 @@
+{
+  "status": "EXPLORATORY_NOT_PROFIT_OR_PROMOTION_EVIDENCE",
+  "manifest_count": 3364,
+  "settled_pairs": 676,
+  "decision_counts": {
+    "2026-10-17 00:00:00+00:00": 506,
+    "2026-10-18 00:00:00+00:00": 170
+  },
+  "outcome_rates_and_mean_probabilities": {
+    "home": {
+      "observed": 0.4541420118343195,
+      "production": 0.4326009252010229,
+      "market": 0.430869831186443
+    },
+    "draw": {
+      "observed": 0.2470414201183432,
+      "production": 0.2423124149871784,
+      "market": 0.24851953689155368
+    },
+    "away": {
+      "observed": 0.2988165680473373,
+      "production": 0.32508665981179874,
+      "market": 0.3206106319220033
+    }
+  },
+  "tie_policy": "home then away then draw; inherited",
+  "slices": {
+    "all": {
+      "n": 676,
+      "production": {
+        "n": 676,
+        "log_loss": 1.0112115055537254,
+        "brier": 0.6049530447487026,
+        "accuracy": 0.5059171597633136
+      },
+      "market": {
+        "n": 676,
+        "log_loss": 0.9859041223751362,
+        "brier": 0.5871774305264363,
+        "accuracy": 0.5310650887573964
+      },
+      "production_minus_market": {
+        "n": 676,
+        "delta_log_loss_candidate_minus_baseline": 0.025307383178589295,
+        "candidate_better_games": 288,
+        "baseline_better_games": 388,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4877130185060694,
+      "production_failures": 334,
+      "failure_outcomes_home_draw_away": [
+        67,
+        166,
+        101
+      ],
+      "market_correct_on_production_failures": 49
+    },
+    "agree": {
+      "n": 561,
+      "production": {
+        "n": 561,
+        "log_loss": 0.9885112766436137,
+        "brier": 0.5886297845509063,
+        "accuracy": 0.5525846702317291
+      },
+      "market": {
+        "n": 561,
+        "log_loss": 0.9686827403663802,
+        "brier": 0.5749978210925505,
+        "accuracy": 0.5525846702317291
+      },
+      "production_minus_market": {
+        "n": 561,
+        "delta_log_loss_candidate_minus_baseline": 0.019828536277233313,
+        "candidate_better_games": 247,
+        "baseline_better_games": 314,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.5027096015539244,
+      "production_failures": 251,
+      "failure_outcomes_home_draw_away": [
+        43,
+        132,
+        76
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "disagree": {
+      "n": 115,
+      "production": {
+        "n": 115,
+        "log_loss": 1.1219491439760974,
+        "brier": 0.6845821662353432,
+        "accuracy": 0.2782608695652174
+      },
+      "market": {
+        "n": 115,
+        "log_loss": 1.0699145163482846,
+        "brier": 0.6465927426343487,
+        "accuracy": 0.4260869565217391
+      },
+      "production_minus_market": {
+        "n": 115,
+        "delta_log_loss_candidate_minus_baseline": 0.05203462762781283,
+        "candidate_better_games": 41,
+        "baseline_better_games": 74,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4145557742465335,
+      "production_failures": 83,
+      "failure_outcomes_home_draw_away": [
+        24,
+        34,
+        25
+      ],
+      "market_correct_on_production_failures": 49
+    },
+    "production_confidence_0_0.5": {
+      "n": 420,
+      "production": {
+        "n": 420,
+        "log_loss": 1.0617068642972771,
+        "brier": 0.6422934296336641,
+        "accuracy": 0.4380952380952381
+      },
+      "market": {
+        "n": 420,
+        "log_loss": 1.041997159166418,
+        "brier": 0.6278955000460666,
+        "accuracy": 0.4714285714285714
+      },
+      "production_minus_market": {
+        "n": 420,
+        "delta_log_loss_candidate_minus_baseline": 0.01970970513085902,
+        "candidate_better_games": 183,
+        "baseline_better_games": 237,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4300220547522318,
+      "production_failures": 236,
+      "failure_outcomes_home_draw_away": [
+        51,
+        116,
+        69
+      ],
+      "market_correct_on_production_failures": 46
+    },
+    "production_confidence_0.5_0.6": {
+      "n": 170,
+      "production": {
+        "n": 170,
+        "log_loss": 0.9879681445853006,
+        "brier": 0.5875380416168681,
+        "accuracy": 0.5647058823529412
+      },
+      "market": {
+        "n": 170,
+        "log_loss": 0.9591882065707867,
+        "brier": 0.5676323615313933,
+        "accuracy": 0.5823529411764706
+      },
+      "production_minus_market": {
+        "n": 170,
+        "delta_log_loss_candidate_minus_baseline": 0.028779938014513798,
+        "candidate_better_games": 78,
+        "baseline_better_games": 92,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.5426548954130375,
+      "production_failures": 74,
+      "failure_outcomes_home_draw_away": [
+        13,
+        36,
+        25
+      ],
+      "market_correct_on_production_failures": 3
+    },
+    "production_confidence_0.6_0.7": {
+      "n": 69,
+      "production": {
+        "n": 69,
+        "log_loss": 0.7852522410541408,
+        "brier": 0.4390862019586564,
+        "accuracy": 0.7391304347826086
+      },
+      "market": {
+        "n": 69,
+        "log_loss": 0.7193870843119857,
+        "brier": 0.39926060143354497,
+        "accuracy": 0.7391304347826086
+      },
+      "production_minus_market": {
+        "n": 69,
+        "delta_log_loss_candidate_minus_baseline": 0.06586515674215514,
+        "candidate_better_games": 20,
+        "baseline_better_games": 49,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.6433413880362834,
+      "production_failures": 18,
+      "failure_outcomes_home_draw_away": [
+        1,
+        11,
+        6
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "production_confidence_0.7_1.000001": {
+      "n": 17,
+      "production": {
+        "n": 17,
+        "log_loss": 0.9132415021897189,
+        "brier": 0.529800164351127,
+        "accuracy": 0.6470588235294118
+      },
+      "market": {
+        "n": 17,
+        "log_loss": 0.9489809377138644,
+        "brier": 0.5393735327806775,
+        "accuracy": 0.6470588235294118
+      },
+      "production_minus_market": {
+        "n": 17,
+        "delta_log_loss_candidate_minus_baseline": -0.03573943552414555,
+        "candidate_better_games": 7,
+        "baseline_better_games": 10,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.7319323246732728,
+      "production_failures": 6,
+      "failure_outcomes_home_draw_away": [
+        2,
+        3,
+        1
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "production_top_home": {
+      "n": 456,
+      "production": {
+        "n": 456,
+        "log_loss": 0.995385240701021,
+        "brier": 0.5937776325067563,
+        "accuracy": 0.5263157894736842
+      },
+      "market": {
+        "n": 456,
+        "log_loss": 0.9669799261754233,
+        "brier": 0.5738165997599683,
+        "accuracy": 0.543859649122807
+      },
+      "production_minus_market": {
+        "n": 456,
+        "delta_log_loss_candidate_minus_baseline": 0.02840531452559767,
+        "candidate_better_games": 196,
+        "baseline_better_games": 260,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.5004738053358128,
+      "production_failures": 216,
+      "failure_outcomes_home_draw_away": [
+        0,
+        116,
+        100
+      ],
+      "market_correct_on_production_failures": 25
+    },
+    "production_top_home_60plus": {
+      "n": 73,
+      "production": {
+        "n": 73,
+        "log_loss": 0.7903774481858808,
+        "brier": 0.4459437474249641,
+        "accuracy": 0.726027397260274
+      },
+      "market": {
+        "n": 73,
+        "log_loss": 0.7411449866805105,
+        "brier": 0.4133440358145667,
+        "accuracy": 0.726027397260274
+      },
+      "production_minus_market": {
+        "n": 73,
+        "delta_log_loss_candidate_minus_baseline": 0.04923246150537023,
+        "candidate_better_games": 23,
+        "baseline_better_games": 50,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.6592823834805865,
+      "production_failures": 20,
+      "failure_outcomes_home_draw_away": [
+        0,
+        13,
+        7
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "production_top_draw": {
+      "n": 3,
+      "production": {
+        "n": 3,
+        "log_loss": 1.0730589664146224,
+        "brier": 0.6504809188686017,
+        "accuracy": 0.3333333333333333
+      },
+      "market": {
+        "n": 3,
+        "log_loss": 1.17466468902853,
+        "brier": 0.7302696308040261,
+        "accuracy": 0.3333333333333333
+      },
+      "production_minus_market": {
+        "n": 3,
+        "delta_log_loss_candidate_minus_baseline": -0.10160572261390755,
+        "candidate_better_games": 2,
+        "baseline_better_games": 1,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.3510434922323617,
+      "production_failures": 2,
+      "failure_outcomes_home_draw_away": [
+        1,
+        0,
+        1
+      ],
+      "market_correct_on_production_failures": 1
+    },
+    "production_top_draw_60plus": {
+      "n": 0
+    },
+    "production_top_away": {
+      "n": 217,
+      "production": {
+        "n": 217,
+        "log_loss": 1.0436135073521153,
+        "brier": 0.6278074427209045,
+        "accuracy": 0.46543778801843316
+      },
+      "market": {
+        "n": 217,
+        "log_loss": 1.0230615037903847,
+        "brier": 0.6132754131470659,
+        "accuracy": 0.5069124423963134
+      },
+      "production_minus_market": {
+        "n": 217,
+        "delta_log_loss_candidate_minus_baseline": 0.020552003561730637,
+        "candidate_better_games": 90,
+        "baseline_better_games": 127,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.46278716497822686,
+      "production_failures": 116,
+      "failure_outcomes_home_draw_away": [
+        66,
+        50,
+        0
+      ],
+      "market_correct_on_production_failures": 23
+    },
+    "production_top_away_60plus": {
+      "n": 13,
+      "production": {
+        "n": 13,
+        "log_loss": 0.9238428040301263,
+        "brier": 0.5192043974687742,
+        "accuracy": 0.6923076923076923
+      },
+      "market": {
+        "n": 13,
+        "log_loss": 0.8974462100758029,
+        "brier": 0.5034013032094429,
+        "accuracy": 0.6923076923076923
+      },
+      "production_minus_market": {
+        "n": 13,
+        "delta_log_loss_candidate_minus_baseline": 0.026396593954323314,
+        "candidate_better_games": 4,
+        "baseline_better_games": 9,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.6696762538358747,
+      "production_failures": 4,
+      "failure_outcomes_home_draw_away": [
+        3,
+        1,
+        0
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "confidence_excess_over_market_-1_0": {
+      "n": 315,
+      "production": {
+        "n": 315,
+        "log_loss": 0.9509064266767465,
+        "brier": 0.5612508349715521,
+        "accuracy": 0.5904761904761905
+      },
+      "market": {
+        "n": 315,
+        "log_loss": 0.9165465766624128,
+        "brier": 0.5382462370153536,
+        "accuracy": 0.5904761904761905
+      },
+      "production_minus_market": {
+        "n": 315,
+        "delta_log_loss_candidate_minus_baseline": 0.034359850014333775,
+        "candidate_better_games": 95,
+        "baseline_better_games": 220,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4981932216857473,
+      "production_failures": 129,
+      "failure_outcomes_home_draw_away": [
+        24,
+        68,
+        37
+      ],
+      "market_correct_on_production_failures": 0
+    },
+    "confidence_excess_over_market_0_0.05": {
+      "n": 171,
+      "production": {
+        "n": 171,
+        "log_loss": 1.0300884469980285,
+        "brier": 0.6190367154644008,
+        "accuracy": 0.49707602339181284
+      },
+      "market": {
+        "n": 171,
+        "log_loss": 1.0333079971315413,
+        "brier": 0.6207894534559502,
+        "accuracy": 0.5029239766081871
+      },
+      "production_minus_market": {
+        "n": 171,
+        "delta_log_loss_candidate_minus_baseline": -0.003219550133512902,
+        "candidate_better_games": 112,
+        "baseline_better_games": 59,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.47696584349125914,
+      "production_failures": 86,
+      "failure_outcomes_home_draw_away": [
+        18,
+        43,
+        25
+      ],
+      "market_correct_on_production_failures": 8
+    },
+    "confidence_excess_over_market_0.05_0.1": {
+      "n": 111,
+      "production": {
+        "n": 111,
+        "log_loss": 1.0855726950583282,
+        "brier": 0.6574753582566338,
+        "accuracy": 0.40540540540540543
+      },
+      "market": {
+        "n": 111,
+        "log_loss": 1.0715739450541286,
+        "brier": 0.6477747531881232,
+        "accuracy": 0.45045045045045046
+      },
+      "production_minus_market": {
+        "n": 111,
+        "delta_log_loss_candidate_minus_baseline": 0.013998750004199395,
+        "candidate_better_games": 52,
+        "baseline_better_games": 59,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4757510661037635,
+      "production_failures": 66,
+      "failure_outcomes_home_draw_away": [
+        11,
+        33,
+        22
+      ],
+      "market_correct_on_production_failures": 16
+    },
+    "confidence_excess_over_market_0.1_1.000001": {
+      "n": 79,
+      "production": {
+        "n": 79,
+        "log_loss": 1.1063260729494429,
+        "brier": 0.6749266091542424,
+        "accuracy": 0.3291139240506329
+      },
+      "market": {
+        "n": 79,
+        "log_loss": 1.0394764514737997,
+        "brier": 0.6243846105213344,
+        "accuracy": 0.46835443037974683
+      },
+      "production_minus_market": {
+        "n": 79,
+        "delta_log_loss_candidate_minus_baseline": 0.06684962147564302,
+        "candidate_better_games": 29,
+        "baseline_better_games": 50,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4859950392983476,
+      "production_failures": 53,
+      "failure_outcomes_home_draw_away": [
+        14,
+        22,
+        17
+      ],
+      "market_correct_on_production_failures": 25
+    }
+  },
+  "by_decision": {
+    "2026-10-17 00:00:00+00:00": {
+      "n": 83,
+      "production": {
+        "n": 83,
+        "log_loss": 1.116305557448362,
+        "brier": 0.6791493518624047,
+        "accuracy": 0.3132530120481928
+      },
+      "market": {
+        "n": 83,
+        "log_loss": 1.096456945063973,
+        "brier": 0.6646216218339007,
+        "accuracy": 0.3855421686746988
+      },
+      "production_minus_market": {
+        "n": 83,
+        "delta_log_loss_candidate_minus_baseline": 0.019848612384389005,
+        "candidate_better_games": 32,
+        "baseline_better_games": 51,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.415039804773198,
+      "production_failures": 57,
+      "failure_outcomes_home_draw_away": [
+        17,
+        26,
+        14
+      ],
+      "market_correct_on_production_failures": 32
+    },
+    "2026-10-18 00:00:00+00:00": {
+      "n": 32,
+      "production": {
+        "n": 32,
+        "log_loss": 1.1365871965324104,
+        "brier": 0.6986735285151523,
+        "accuracy": 0.1875
+      },
+      "market": {
+        "n": 32,
+        "log_loss": 1.001070091866967,
+        "brier": 0.5998303372105107,
+        "accuracy": 0.53125
+      },
+      "production_minus_market": {
+        "n": 32,
+        "delta_log_loss_candidate_minus_baseline": 0.13551710466544337,
+        "candidate_better_games": 9,
+        "baseline_better_games": 23,
+        "tied_games": 0,
+        "decision_weeks": 1,
+        "weekly_bootstrap_95_ci": null,
+        "ci_status": "insufficient_weeks_minimum_8"
+      },
+      "production_mean_confidence": 0.4133003200679973,
+      "production_failures": 26,
+      "failure_outcomes_home_draw_away": [
+        7,
+        8,
+        11
+      ],
+      "market_correct_on_production_failures": 17
+    }
+  },
+  "limitations": [
+    "Inherited timing/source limitations; no independent availability certification",
+    "Current schedule/results are not frozen decision-time candidate sets",
+    "No season identifier: season comparison and cross-season stability unavailable",
+    "No fatigue/player candidate predictions: incremental feature performance not measured",
+    "Subgroups and confidence threshold are descriptive, not model selection evidence",
+    "Bins specified for exploration, not preregistered confirmatory tests.",
+    "Only two decision dates and one week; no reliable subgroup inference.",
+    "No Betman odds or real ticket history: no ROI or last-leg claim.",
+    "Association of failures is not causal attribution to injuries or tactics."
+  ],
+  "manifest_sha256": "d85ba40b0d3c0df9e67c5206323329c07a37b22cdc3485b55540221012008ba3",
+  "analysis_source_sha256": "f5ee822bec2c14deae653e29dc74730966f2349acfa25adf1298659b0ee9be13"
+}
