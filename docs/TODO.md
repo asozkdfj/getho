@@ -50,3 +50,5 @@
 | 44 | CLV 분석 실행 | `edge backtest-clv`는 football-data.co.uk에서 CSV를 받습니다. 이 개발 환경에서는 그 사이트에 접속할 수 없어 사용자 환경에서 실행합니다. 결과에 따라 2단계(시장 가격 조정 모델) 사전 등록 여부를 정합니다(ADR-030) | 사용자 실행 후 |
 | 45 | 실시간 CLV 모니터링 | `edge live-clv`(ADR-032)로 병행 기록 기간 동안 주 1회 확인. 표본이 쌓이면(수백 경기) 과거 CLV 결과와 비교해 2단계 사전 등록 여부를 정합니다 | 매주(2026-10-20~) |
 | 46 | 슈팅 변수 서비스 반영 준비 | (1) Codex QA, (2) `edge compare-shots`로 API-Football과 football-data 유효 슈팅 비교(도구 PR #27), (3) 팀별 최근 10경기 통계 확보(수집 중 + `backfill-appearances`), (4) shadow-v2 미래 경기 확인(ADR-035, 2026-11-02~2027-03-28, `edge shadow-report --protocol shadow-v2`), (5) 통과 시 사용자 승인 후 모델 0.3.0 | 2027-04 채점 후 |
+| 47 | 베트맨 가상 비교기 B단계 | append-only 가상 티켓·정산 엔진(고정 배당, 무승부·취소·정정·공제 경계, 멱등·동시 실행). 규칙 미확인 항목은 `rules_unverified`([명세](qa/2026-10-20-betman-profit-simulator-development-spec.md)) | A단계 Codex QA 후 |
+| 48 | 베트맨 규칙 확인 | `docs/betman/RULES.md`의 미확인 8개(단일 구매, 조합 수, 같은 경기 제한, 마감, 금액 단위·한도, 조합 배당 절사, 취소·무효, 과세)를 공식 출처로 확인. 이 개발 환경에서는 접속 불가 | 사용자·Codex 확인 |
