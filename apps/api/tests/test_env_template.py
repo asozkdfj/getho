@@ -6,7 +6,9 @@ from pathlib import Path
 from edge_api.config import Settings
 
 TEMPLATE = Path(__file__).resolve().parents[3] / ".env.example"
-LINES = [ln for ln in TEMPLATE.read_text().splitlines() if ln and not ln.startswith("#")]
+LINES = [
+    ln for ln in TEMPLATE.read_text(encoding="utf-8").splitlines() if ln and not ln.startswith("#")
+]
 
 
 def test_no_inline_comments():

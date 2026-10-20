@@ -84,6 +84,31 @@ def test_fixtures_with_minutes_but_no_statistics_are_completed(db_session, now):
     assert appearances == 0 and statistics > 0
 
 
+def test_a_team_whose_statistics_are_missing_is_retried(db_session, now):
+    """One team's row stored must not end the retry for the other (Codex STAT-1)."""
+    provider = MockProvider(now)
+    run_ingestion(db_session, provider, now=now)
+    original = provider.get_match_statistics
+
+    def home_only(ids):
+        seen: set[str] = set()
+        out = []
+        for row in original(ids):
+            if row.fixture_provider_id not in seen:
+                seen.add(row.fixture_provider_id)
+                out.append(row)
+        return out
+
+    provider.get_match_statistics = home_only
+    appearances, first = ingest_post_match(db_session, provider, now=now, scope=None, limit=10_000)
+    assert appearances > 0 and first > 0
+    provider.get_match_statistics = original
+    _, repaired = ingest_post_match(db_session, provider, now=now, scope=None, limit=10_000)
+    assert repaired == first  # the other team of every fixture, nothing duplicated
+    _, again = ingest_post_match(db_session, provider, now=now, scope=None, limit=10_000)
+    assert again == 0
+
+
 def test_api_football_reads_minutes_and_statistics_from_one_fetch():
     fake = FakeApiFootball()
     p = ApiFootballProvider(

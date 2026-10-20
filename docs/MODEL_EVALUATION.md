@@ -198,6 +198,15 @@ EPL(첫 번째 리그)은 튜닝·보정·승격 판단까지 자세히 평가�
 
 사전 등록 `48400b7`(첫 실행 전 커밋), 결과표 `ml/reports/backtest-shots.json`. 9개 리그 합산, 같은 운영 모델 위에 덧붙였습니다.
 
+- **재현 자료 (2026-10-20 추가, Codex 요청):**
+  - 경기별 확률: `ml/reports/backtest-shots.predictions.jsonl.gz`
+    - 22,672경기, 운영과 세 후보, 학습 시각, 결과 포함
+    - 압축 해제본 SHA-256 `e3233a28…0947`
+  - 원본: `club-football-match-data-Matches.csv`, SHA-256 `ef224cf2…4221`. 결과표의 `source.sha256`과 같습니다.
+  - 같은 원본으로 `edge backtest-shots --predictions-out`을 다시 실행했고, 결과표의 모든 수치·기준 판정·계수가 그대로 나왔습니다.
+  - 이 파일로 후속 구간 log loss를 다시 계산해도 운영 0.997576, 후보 0.992379로 같습니다.
+  - 시장 확률은 이 파일에 없습니다. 시장 비교는 결과표의 `descriptive.vs_market_follow_up`을 보세요.
+
 - **변수** (`edge_ml.shots`): 팀의 최근 10경기(예측 시점보다 킥오프 + 3시간 전에 끝난 리그 경기만) 유효 슈팅으로 만듭니다.
   - `sot`: 유효 슈팅을 얼마나 만들고 허용했는지(리그 평균 대비)
   - `finishing`: 유효 슈팅에 비해 골을 얼마나 더 넣고 더 허용했는지(운이 섞인 결정력)

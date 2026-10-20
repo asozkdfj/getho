@@ -8,7 +8,13 @@ import pytest
 from sqlalchemy import select
 
 from edge_api.config import Settings
-from edge_api.db.models import MatchStatistic, Prediction, ShadowForecast
+from edge_api.db.models import (
+    Fixture,
+    FixtureObservation,
+    MatchStatistic,
+    Prediction,
+    ShadowForecast,
+)
 from edge_api.services.picks import publish_daily_pick
 from edge_api.services.shadow_v2 import shadow_v2_report, shot_histories
 from edge_ingestion.providers import MockProvider
@@ -106,6 +112,104 @@ def test_statistics_stored_after_the_decision_are_not_used(session_factory, with
         assert np.allclose(again.features(team, pick_now, "sot_and_finishing"), x_before)
         later = shot_histories(s, "mock", league, pick_now + timedelta(hours=2))[fixture.league_id]
         assert not np.allclose(later.features(team, pick_now, "sot_and_finishing"), x_before)
+
+
+def _observe(s, f, at, **state):
+    """Store a new state of ``f`` at ``at`` in the fixture row and its history."""
+    from conftest import set_test_wall_clock
+
+    for k, v in state.items():
+        setattr(f, k, v)
+    set_test_wall_clock(s, at)
+    s.add(
+        FixtureObservation(
+            fixture_id=f.id,
+            provider="mock",
+            status=f.status,
+            kickoff_at=f.kickoff_at,
+            home_score=f.home_score,
+            away_score=f.away_score,
+        )
+    )
+    s.flush()
+
+
+def _counted_match(s, fixture, pick_now):
+    """A finished match of the fixture's home team that its shot history counts."""
+    return s.scalars(
+        select(Fixture)
+        .join(MatchStatistic, MatchStatistic.fixture_id == Fixture.id)
+        .where(
+            Fixture.league_id == fixture.league_id,
+            Fixture.home_team_id == fixture.home_team_id,
+            Fixture.status == "finished",
+            Fixture.kickoff_at < pick_now - timedelta(days=1),
+        )
+        .order_by(Fixture.kickoff_at.desc())
+    ).first()
+
+
+def test_a_later_score_correction_does_not_change_an_earlier_decision(
+    session_factory, with_statistics, now
+):
+    """Scores as observed by the decision, not the current row (Codex SHOT-1)."""
+    with session_factory() as s:
+        pick_now, fixture = _pick_time(s, now)
+        league, team = {fixture.league_id}, str(fixture.home_team_id)
+        x_before = shot_histories(s, "mock", league, pick_now)[fixture.league_id].features(
+            team, pick_now, "sot_and_finishing"
+        )
+        match = _counted_match(s, fixture, pick_now)
+        _observe(
+            s,
+            match,
+            pick_now + timedelta(hours=1),
+            home_score=match.home_score + 3,
+            away_score=match.away_score,
+        )
+        again = shot_histories(s, "mock", league, pick_now)[fixture.league_id]
+        assert np.allclose(again.features(team, pick_now, "sot_and_finishing"), x_before)
+        later = shot_histories(s, "mock", league, pick_now + timedelta(hours=2))
+        x_later = later[fixture.league_id].features(team, pick_now, "sot_and_finishing")
+        assert not np.allclose(x_later, x_before)
+
+
+def test_a_result_not_yet_observed_at_the_decision_is_left_out(
+    session_factory, with_statistics, now
+):
+    """Finished in the current row, but the decision saw it as not finished."""
+    with session_factory() as s:
+        pick_now, fixture = _pick_time(s, now)
+        league, team = {fixture.league_id}, str(fixture.home_team_id)
+        x_before = shot_histories(s, "mock", league, pick_now)[fixture.league_id].features(
+            team, pick_now, "sot_and_finishing"
+        )
+        match = _counted_match(s, fixture, pick_now)
+        final = {"status": match.status, "home_score": match.home_score}
+        # reopened before the decision, final again only after it
+        _observe(s, match, pick_now - timedelta(hours=1), status="live")
+        _observe(s, match, pick_now + timedelta(hours=1), **final)
+        at_decision = shot_histories(s, "mock", league, pick_now)[fixture.league_id]
+        # the window of the last 10 matches reaches one match further back
+        assert not np.allclose(at_decision.features(team, pick_now, "sot_and_finishing"), x_before)
+        after = shot_histories(s, "mock", league, pick_now + timedelta(hours=2))
+        x_after = after[fixture.league_id].features(team, pick_now, "sot_and_finishing")
+        assert np.allclose(x_after, x_before)
+
+
+def test_the_kickoff_known_at_the_decision_is_used(session_factory, with_statistics, now):
+    """A match moved after the decision keeps the kickoff the decision knew."""
+    with session_factory() as s:
+        pick_now, fixture = _pick_time(s, now)
+        league, team = {fixture.league_id}, str(fixture.home_team_id)
+        x_before = shot_histories(s, "mock", league, pick_now)[fixture.league_id].features(
+            team, pick_now, "sot_and_finishing"
+        )
+        match = _counted_match(s, fixture, pick_now)
+        # recorded later as having kicked off after the decision
+        _observe(s, match, pick_now + timedelta(hours=1), kickoff_at=pick_now + timedelta(days=1))
+        again = shot_histories(s, "mock", league, pick_now)[fixture.league_id]
+        assert np.allclose(again.features(team, pick_now, "sot_and_finishing"), x_before)
 
 
 def test_report_is_provisional_and_withholds_the_decision(session_factory, with_statistics, now):

@@ -53,7 +53,9 @@ def test_experiment_runs_and_reports_all_gates(tmp_path):
         b for b in report["descriptive"]["bands_follow_up"]["production"] if b["band"][0] >= 0.6
     ]
     assert sum(b["n"] for b in strong) < report["follow_up"]["n_matches"]  # follow-up only
-    assert json.loads((tmp_path / "out.json").read_text())["experiment"].startswith("top_outcome")
+    assert json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))["experiment"].startswith(
+        "top_outcome"
+    )
 
 
 def test_walk_forward_never_uses_the_target_season():

@@ -244,10 +244,18 @@ def ingest_post_match(
     source: str = "ingest",
 ) -> tuple[int, int]:
     """Player minutes and team statistics (shots, shots on target, xG) of
-    finished fixtures still missing either, from one fetch of their details.
+    finished fixtures still missing either (statistics of either team), from
+    one fetch of their details.
     Returns (appearances inserted, statistics rows inserted)."""
     no_minutes = ~exists().where(PlayerAppearance.fixture_id == Fixture.id)
-    no_stats = ~exists().where(MatchStatistic.fixture_id == Fixture.id)
+
+    def no_stats_for(team: Any) -> Any:
+        return ~exists().where(
+            MatchStatistic.fixture_id == Fixture.id, MatchStatistic.team_id == team
+        )
+
+    # each team on its own: one team's row stored must not end the retry for the other
+    no_stats = no_stats_for(Fixture.home_team_id) | no_stats_for(Fixture.away_team_id)
     rows = session.execute(
         _scoped(select(Fixture.provider_id, Fixture.id), scope)
         .where(

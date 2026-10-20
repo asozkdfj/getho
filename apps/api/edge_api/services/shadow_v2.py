@@ -38,38 +38,51 @@ from edge_ml.shadow_v2 import (
 from edge_ml.shots import MIN_MATCHES, RESULT_DELAY, ShotHistory
 
 HISTORY_DAYS = 450  # enough for 10 matches per team and 300 league matches
+KICKOFF_MARGIN_DAYS = 30
 
 
 def shot_histories(
     session: Session, provider: str, league_ids: set[int], at: datetime
 ) -> dict[int, ShotHistory]:
-    """Per league: finished matches before ``at`` - 3 h whose statistics for both
-    teams were stored by ``at``."""
+    """Per league: matches that, by what was stored at ``at``, had finished with a
+    result and kicked off before ``at`` - 3 h, and whose statistics for both
+    teams were stored by ``at``. Status, kickoff and score come from the latest
+    fixture observation stored by ``at`` (a later correction is not used; a
+    fixture with no observation by then is left out), not the current row."""
     fixtures = session.scalars(
         select(Fixture).where(
             Fixture.provider == provider,
             Fixture.league_id.in_(league_ids),
-            Fixture.status == FixtureStatus.FINISHED.value,
-            Fixture.home_score.is_not(None),
-            Fixture.away_score.is_not(None),
-            Fixture.kickoff_at < at - RESULT_DELAY,
-            Fixture.kickoff_at >= at - timedelta(days=HISTORY_DAYS),
+            # a margin for kickoffs moved since: the observation decides
+            Fixture.kickoff_at >= at - timedelta(days=HISTORY_DAYS + KICKOFF_MARGIN_DAYS),
+            Fixture.kickoff_at < at + timedelta(days=KICKOFF_MARGIN_DAYS),
         )
     ).all()
+    known = {
+        o.fixture_id: o
+        for o in queries.latest_observations(session, [f.id for f in fixtures], as_of=at)
+        if o.status == FixtureStatus.FINISHED.value
+        and o.home_score is not None
+        and o.away_score is not None
+        and at - timedelta(days=HISTORY_DAYS) <= o.kickoff_at < at - RESULT_DELAY
+    }
     stats: dict[int, dict[int, Any]] = defaultdict(dict)
-    for s in queries.latest_statistics(session, [f.id for f in fixtures], as_of=at):
+    for s in queries.latest_statistics(session, list(known), as_of=at):
         stats[s.fixture_id][s.team_id] = s
     out: dict[int, ShotHistory] = {lid: ShotHistory() for lid in league_ids}
     for f in fixtures:
+        o = known.get(f.id)
+        if o is None:
+            continue
         h, a = stats[f.id].get(f.home_team_id), stats[f.id].get(f.away_team_id)
         if h is None or a is None or h.shots_on_target is None or a.shots_on_target is None:
             continue
         out[f.league_id].add(
-            f.kickoff_at,
+            o.kickoff_at,
             str(f.home_team_id),
             str(f.away_team_id),
-            f.home_score,
-            f.away_score,
+            o.home_score,
+            o.away_score,
             float(h.shots_on_target),
             float(a.shots_on_target),
         )

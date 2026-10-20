@@ -9,7 +9,7 @@ from edge_ml.combination import MAX_LEGS, MIN_LEGS
 from edge_ml.core import Outcome
 
 CONTRACTS = Path(__file__).resolve().parents[3] / "packages/contracts"
-INDEX_TS = (CONTRACTS / "src/index.ts").read_text()
+INDEX_TS = (CONTRACTS / "src/index.ts").read_text(encoding="utf-8")
 
 
 def _ts_array(name: str) -> list[str]:
@@ -24,7 +24,7 @@ def test_fixture_statuses_match():
 
 def test_outcomes_match():
     assert _ts_array("OUTCOMES") == [o.value for o in Outcome]
-    schema = json.loads((CONTRACTS / "openapi.json").read_text())
+    schema = json.loads((CONTRACTS / "openapi.json").read_text(encoding="utf-8"))
     assert schema["components"]["schemas"]["Outcome"]["enum"] == [o.value for o in Outcome]
 
 

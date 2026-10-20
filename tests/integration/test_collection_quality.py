@@ -53,7 +53,9 @@ def test_report_covers_runs_decision_and_inputs(session_factory, seeded, now):
         assert today["fixtures_at_decision"] == len(fixtures) > 0
         assert today["with_prediction"] == len([p for p in preds.values() if p.created_at <= now])
         assert today["with_odds"] == len(market_odds_at(s, ids, s_.bookmaker, now))
-        assert sum(c["fixtures"] for c in today["leagues"].values()) <= len(fixtures)
+        assert sum(c["fixtures"] for c in today["leagues"]) <= len(fixtures)
+        keys = {"league_id", "provider_id", "country", "name"}
+        assert all(keys <= set(c) for c in today["leagues"])
         assert today["shadow"]["recorded"] + today["shadow"]["excluded"] == len(
             queries.fixtures_between(s, ld.start_utc, ld.end_utc, "mock")
         )
@@ -98,3 +100,43 @@ def test_cli_prints_the_report(session_factory, seeded, now, monkeypatch, capsys
     report = json.loads(capsys.readouterr().out)
     assert report["summary"]["days"] == 1 and report["expected_interval_minutes"] == 30
     get_settings.cache_clear()
+
+
+def test_leagues_sharing_a_name_are_counted_apart(monkeypatch):
+    """Grouped by league id, not the display name (Codex CQ-1)."""
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from edge_api.config import Settings
+    from edge_api.services import collection_quality as quality
+
+    at = datetime(2026, 10, 19, tzinfo=UTC)
+    fixtures = [
+        SimpleNamespace(
+            id=i,
+            league_id=i,
+            kickoff_at=at + timedelta(hours=2),
+            league=SimpleNamespace(provider_id=str(38 + i), name="Premier League", country=c),
+        )
+        for i, c in ((1, "England"), (2, "Kenya"))
+    ]
+    session = MagicMock()
+    session.scalars.return_value.first.return_value = None
+    session.execute.return_value.all.return_value = []
+    monkeypatch.setattr(quality, "_runs", lambda *a: {})
+    monkeypatch.setattr(quality.queries, "fixtures_between", lambda *a: fixtures)
+    monkeypatch.setattr(quality.queries, "latest_predictions_by_fixture", lambda *a, **k: {})
+    monkeypatch.setattr(quality, "market_odds_at", lambda *a: {})
+    monkeypatch.setattr(
+        quality,
+        "coverage_on",
+        lambda *a, **k: {"absences": {}, "lineups_in": 0, "regulars_known": 0},
+    )
+    report = quality.quality_on(
+        session, Settings(data_provider="mock"), at.date(), now=at, interval=INTERVAL
+    )
+    assert [(c["country"], c["fixtures"]) for c in report["leagues"]] == [
+        ("England", 1),
+        ("Kenya", 1),
+    ]

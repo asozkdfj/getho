@@ -136,11 +136,16 @@ def predictions_before_kickoff(
 
 
 def latest_observations(
-    session: Session, fixture_ids: Sequence[int]
+    session: Session, fixture_ids: Sequence[int], *, as_of: datetime | None = None
 ) -> Sequence[FixtureObservation]:
-    """The newest stored observation of each fixture."""
+    """The newest stored observation of each fixture; with ``as_of``, the newest
+    one stored by then (what a decision at that time knew). Fixtures without
+    one are absent."""
     if not fixture_ids:
         return []
+    conditions = [FixtureObservation.fixture_id.in_(fixture_ids)]
+    if as_of is not None:
+        conditions.append(FixtureObservation.created_at <= as_of)
     ranked = (
         select(
             FixtureObservation.id,
@@ -151,7 +156,7 @@ def latest_observations(
             )
             .label("rn"),
         )
-        .where(FixtureObservation.fixture_id.in_(fixture_ids))
+        .where(*conditions)
         .subquery()
     )
     return session.scalars(

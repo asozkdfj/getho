@@ -30,7 +30,13 @@ import numpy as np
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, aliased
 
-from edge_api.db.models import Fixture, FixtureStatus, OddsSnapshot, ShadowForecast
+from edge_api.db.models import (
+    Fixture,
+    FixtureObservation,
+    FixtureStatus,
+    OddsSnapshot,
+    ShadowForecast,
+)
 from edge_ml.clv import partial_slope, plain_slope
 from edge_ml.market import devig
 from edge_ml.shadow import EVALUATION_START, PROTOCOL
@@ -78,39 +84,50 @@ def _closing(session: Session, books: dict[int, str]) -> dict[int, OddsSnapshot]
 
 
 class _BaseRates:
-    """Home/draw/away frequencies of a league's fixtures finished before a time."""
+    """Home/draw/away frequencies of a league's results as a decision at a given
+    time knew them: the latest fixture observation stored by then, finished
+    with a score and kicked off at least 3 h before (a later correction or a
+    result stored after the decision is not used)."""
 
     def __init__(self, session: Session, provider: str, league_ids: set[int]) -> None:
         rows = session.execute(
-            select(Fixture.league_id, Fixture.kickoff_at, Fixture.home_score, Fixture.away_score)
-            .where(
-                Fixture.provider == provider,
-                Fixture.league_id.in_(league_ids),
-                Fixture.status == FixtureStatus.FINISHED.value,
-                Fixture.home_score.is_not(None),
-                Fixture.away_score.is_not(None),
+            select(
+                Fixture.league_id,
+                FixtureObservation.fixture_id,
+                FixtureObservation.created_at,
+                FixtureObservation.status,
+                FixtureObservation.kickoff_at,
+                FixtureObservation.home_score,
+                FixtureObservation.away_score,
             )
-            .order_by(Fixture.kickoff_at)
+            .join(Fixture, Fixture.id == FixtureObservation.fixture_id)
+            .where(Fixture.provider == provider, Fixture.league_id.in_(league_ids))
+            .order_by(FixtureObservation.created_at, FixtureObservation.id)
         ).all()
-        self.times: dict[int, list[datetime]] = defaultdict(list)
-        self.cum: dict[int, list[np.ndarray]] = defaultdict(list)
-        for league, kickoff, hs, as_ in rows:
-            k = 0 if hs > as_ else (1 if hs == as_ else 2)
-            last = self.cum[league][-1] if self.cum[league] else np.zeros(3)
-            step = last.copy()
-            step[k] += 1
-            self.times[league].append(kickoff)
-            self.cum[league].append(step)
+        # league -> fixture -> (stored-at times, states) in storage order
+        self.history: dict[int, dict[int, tuple[list[datetime], list[tuple]]]] = defaultdict(dict)
+        for league, fixture, stored, *state in rows:
+            times, states = self.history[league].setdefault(fixture, ([], []))
+            times.append(stored)
+            states.append(tuple(state))
+        self._cache: dict[tuple[int, datetime], np.ndarray | None] = {}
 
     def at(self, league: int, before: datetime) -> np.ndarray | None:
-        # a result counts once the match is over; kickoff + 3 h is a safe bound
-        i = bisect.bisect_left(self.times[league], before) - 1
-        while i >= 0 and (before - self.times[league][i]).total_seconds() < 3 * 3600:
-            i -= 1
-        if i < 0:
-            return None
-        counts = self.cum[league][i]
-        return counts / counts.sum() if counts.sum() >= MIN_BASE_MATCHES else None
+        key = (league, before)
+        if key not in self._cache:
+            counts = np.zeros(3)
+            for times, states in self.history[league].values():
+                i = bisect.bisect_right(times, before) - 1
+                if i < 0:
+                    continue
+                status, kickoff, hs, as_ = states[i]
+                # a result counts once the match is over; kickoff + 3 h is a safe bound
+                over = (before - kickoff).total_seconds() >= 3 * 3600
+                if status == FixtureStatus.FINISHED.value and None not in (hs, as_) and over:
+                    counts[0 if hs > as_ else (1 if hs == as_ else 2)] += 1
+            total = counts.sum()
+            self._cache[key] = counts / total if total >= MIN_BASE_MATCHES else None
+        return self._cache[key]
 
 
 def _prices(o: OddsSnapshot) -> tuple[float, float, float]:
