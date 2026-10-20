@@ -1,5 +1,14 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-21 — 최신 main·PR #37 독립 QA / Codex
+
+- [QA 보고서](../qa/2026-10-21-independent-review.md): main 3f7a546, PR #37 e47a1ee.
+- Python 변경 범위 62 PASS / 새 Betman as-of 반례 1 FAIL; 별도 CQ 1 PASS.
+- 웹 111 PASS, typecheck/lint/build 및 Python Ruff PASS. 이전 SHOT-1/STAT-1/CQ-1 해결 재검증.
+- 신규 P1 매핑 시점 누수, P2 테마 2건·리그 선정 조건 불일치. 최종 NEEDS_CHANGES.
+- xG 저장 예측/paired CI 재계산 일치. 원본 학습/실API/브라우저 수동 검증 미실행.
+- PR #31/#32/#35/#36/#37에 결과 댓글 게시. 운영 기능 코드 변경 없음.
+
 ## 2026-10-20 — 리그별 오류 이질성 / Codex
 
 - [리그 분석](../qa/2026-10-20-league-error-analysis.md): 9개 리그·27개 리그×시즌을
