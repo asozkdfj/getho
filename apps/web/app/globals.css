@@ -983,8 +983,7 @@ table.glossary th[scope="row"] {
   padding-top: 20px;
   box-shadow: var(--shadow);
   background:
-    radial-gradient(120% 60% at 100% 0%, var(--accent-soft), transparent 60%),
-    var(--surface);
+    radial-gradient(120% 60% at 100% 0%, var(--accent-soft), transparent 60%), var(--surface);
 }
 .pick-card::before {
   content: "";
