@@ -53,11 +53,11 @@ def _run(cache: Path, season: str, capsys, out: Path) -> dict:
 
 
 def test_frozen_map_matches_the_report_and_the_protocol():
-    report = json.loads((REPO / "ml/reports/backtest-calibration.json").read_text())
+    report = json.loads((REPO / "ml/reports/backtest-calibration.json").read_text(encoding="utf-8"))
     frozen = report["frozen_map_for_confirmation"]
     assert (frozen["a"], frozen["b"]) == (cc.FROZEN_A, cc.FROZEN_B)
     assert report["standard_gate"]["validation_gain"] == cc.EXPLORATORY_VALIDATION_GAIN
-    doc = (REPO / cc.PROTOCOL).read_text()
+    doc = (REPO / cc.PROTOCOL).read_text(encoding="utf-8")
     assert re.search(rf"a = {cc.FROZEN_A:.6f}, b = {cc.FROZEN_B:.6f}", doc)
     assert "2026-10-19 00:00 UTC" in doc and "2,500" in doc
 
@@ -81,7 +81,7 @@ def test_no_metric_is_reported_before_the_season_is_complete(tmp_path, capsys, m
         "expected": 12,
         "complete": False,
     }
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     for leak in ("log_loss", "brier", "hit_rate", "decision", "metrics"):
         assert leak not in text
 
@@ -100,7 +100,7 @@ def test_complete_season_is_scored_inside_the_window(tmp_path, capsys, monkeypat
     assert decision["standard_gate"]["passed"] is False
     assert set(decision["calibration_criteria"]["checks"]) == {"C1", "C2", "C3"}
     assert decision["deployed"] is False
-    report = json.loads(out.read_text())
+    report = json.loads(out.read_text(encoding="utf-8"))
     assert report["mode"] == "confirmatory"
     assert report["data"]["en.1"]["files"][-1]["season"] == "2026-27"
     assert len(report["data"]["en.1"]["files"][-1]["sha256"]) == 64

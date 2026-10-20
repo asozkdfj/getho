@@ -11,7 +11,7 @@ DOC = Path(__file__).resolve().parents[2] / "docs/experiments/shadow-v2-2026.md"
 
 
 def test_protocol_constants_match_the_document():
-    doc = DOC.read_text()
+    doc = DOC.read_text(encoding="utf-8")
     assert "2026-11-02 ~ 2027-03-28" in doc and "**1,500**" in doc
     assert shadow_v2.EVALUATION_START.isoformat() == "2026-11-02"
     assert shadow_v2.EVALUATION_END.isoformat() == "2027-03-28"

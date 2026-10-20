@@ -173,7 +173,7 @@ def test_cli_end_to_end_from_cached_files(tmp_path, capsys):
     assert summary["follow_up"]["b_model"] == pytest.approx(0.3, abs=0.01)
     assert summary["follow_up"]["b_base"] == pytest.approx(0.0, abs=0.01)
     assert summary["reading"]["model_has_information_beyond_early_market"] is True
-    report = json.loads(out.read_text())
+    report = json.loads(out.read_text(encoding="utf-8"))
     assert report["unmatched"] == {"en.1 2019-20": 1}
     assert report["reading"]["decision"] == "none (measurement only)"
     assert set(report["source"]["files_sha256"]) == {f"en.1 {s}" for s in clv_backtest.SEASONS}

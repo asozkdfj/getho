@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 from sqlalchemy import select
 
-from edge_api.db.models import Fixture, OddsSnapshot, ShadowForecast
-from edge_api.services.live_clv import live_clv_report
+from edge_api.db.models import Fixture, FixtureObservation, OddsSnapshot, ShadowForecast
+from edge_api.services.live_clv import _BaseRates, live_clv_report
 from edge_api.services.picks import publish_daily_pick
 from edge_ml.clv import partial_slope, plain_slope
 from tests.integration.test_picks import _pick_time, settings
@@ -115,3 +115,44 @@ def test_partial_slope_does_not_credit_a_no_information_forecast():
     assert plain_slope(model, early, truth, days, 1)["beta"] > 0.1
     partial = partial_slope(model, base, early, truth, days, 1)
     assert partial["b_forecast_ci95"][0] < 0 < partial["b_forecast_ci95"][1]
+
+
+def test_base_rates_use_results_as_observed_at_the_decision(session_factory, seeded, now):
+    """A score corrected after the decision does not change its base rate (Codex SHOT-1)."""
+    from conftest import set_test_wall_clock
+
+    with session_factory() as s:
+        _, rows = _decide(s, now)
+        r = rows[0]
+        league = s.get(Fixture, r.fixture_id).league_id
+        before = _BaseRates(s, "mock", {league}).at(league, r.decided_at)
+        assert before is not None
+        draws = s.scalars(
+            select(Fixture).where(
+                Fixture.league_id == league,
+                Fixture.status == "finished",
+                Fixture.home_score == Fixture.away_score,
+                Fixture.kickoff_at < r.decided_at - timedelta(days=1),
+            )
+        ).all()
+        assert draws
+        set_test_wall_clock(s, r.decided_at + timedelta(hours=1))
+        for f in draws:  # every draw corrected to a home win, after the decision
+            f.home_score += 1
+            s.add(
+                FixtureObservation(
+                    fixture_id=f.id,
+                    provider="mock",
+                    status=f.status,
+                    kickoff_at=f.kickoff_at,
+                    home_score=f.home_score,
+                    away_score=f.away_score,
+                )
+            )
+        s.flush()
+        rates = _BaseRates(s, "mock", {league})
+        assert np.allclose(rates.at(league, r.decided_at), before)
+        later = rates.at(league, r.decided_at + timedelta(hours=2))
+        assert later[1] < before[1] and later[0] > before[0]
+        # a result stored only after the decision does not count either
+        assert rates.at(league, now - timedelta(minutes=1)) is None

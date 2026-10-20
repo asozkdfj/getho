@@ -88,13 +88,15 @@ def quality_on(
     }
     odds = market_odds_at(session, ids, settings.bookmaker, at)
     ages = sorted((at - o.captured_at).total_seconds() / 3600 for o in odds.values())
-    leagues: dict[str, Counter[str]] = {}
+    # by league id: different leagues can share a name ("Premier League")
+    leagues: dict[int, Counter[str]] = {}
     for f in fixtures:
-        c = leagues.setdefault(f.league.name, Counter())
+        c = leagues.setdefault(f.league_id, Counter())
         c["fixtures"] += 1
         c["with_prediction"] += f.id in preds
         c["with_odds"] += f.id in odds
-    top = sorted(leagues.items(), key=lambda kv: -kv[1]["fixtures"])[:TOP_LEAGUES]
+    names = {f.league_id: f.league for f in fixtures}
+    top = sorted(leagues.items(), key=lambda kv: (-kv[1]["fixtures"], kv[0]))[:TOP_LEAGUES]
     shadow = dict(
         session.execute(
             select(ShadowForecast.status, func.count())
@@ -126,7 +128,16 @@ def quality_on(
             "max": round(ages[-1], 2) if ages else None,
             "over_max_age": sum(a > settings.odds_max_age for a in ages),
         },
-        "leagues": {name: dict(c) for name, c in top},
+        "leagues": [
+            {
+                "league_id": lid,
+                "provider_id": names[lid].provider_id,
+                "country": names[lid].country,
+                "name": names[lid].name,
+                **c,
+            }
+            for lid, c in top
+        ],
         "player_info": {k: player[k] for k in ("absences", "lineups_in", "regulars_known")},
         "shadow": {
             "recorded": shadow.get("recorded", 0),
