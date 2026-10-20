@@ -357,6 +357,11 @@ class MockProvider(FootballDataProvider):
     def get_league_history(self, league: LeagueData) -> list[FixtureData]:
         return list(self._fixtures.get(league.provider_id, []))
 
+    def get_season_fixtures(self, league_provider_id: str, year: int) -> list[FixtureData]:
+        return [
+            f for f in self._fixtures.get(league_provider_id, []) if f.season.startswith(str(year))
+        ]
+
     def get_fixtures_by_ids(self, fixture_provider_ids: list[str]) -> list[FixtureData]:
         return [self._by_id[i] for i in dict.fromkeys(fixture_provider_ids) if i in self._by_id]
 

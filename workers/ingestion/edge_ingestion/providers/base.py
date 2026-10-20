@@ -175,6 +175,11 @@ class FootballDataProvider(ABC):
     def get_odds(self, fixtures: Mapping[str, datetime]) -> list[OddsData]:
         """Odds captured so far for these fixtures (provider_id -> kickoff time)."""
 
+    def get_season_fixtures(self, league_provider_id: str, year: int) -> list[FixtureData]:
+        """Every fixture of one league season, e.g. for research exports of past
+        seasons (optional; providers without it return nothing)."""
+        return []
+
     def get_fixtures_by_ids(self, fixture_provider_ids: list[str]) -> list[FixtureData]:
         """Current state of specific fixtures, e.g. ones the rolling date window no
         longer returns because they were moved to another day (optional)."""
