@@ -280,6 +280,12 @@ class ApiFootballProvider(FootballDataProvider):
             out.extend(f for f in map(self._parse_fixture, payload["response"]) if f)
         return out
 
+    def get_season_fixtures(self, league_provider_id: str, year: int) -> list[FixtureData]:
+        payload = self._get(
+            "/fixtures", {"league": league_provider_id, "season": year, "timezone": "UTC"}
+        )
+        return [f for f in map(self._parse_fixture, payload["response"]) if f]
+
     def _parse_fixture(self, item: Mapping[str, Any]) -> FixtureData | None:
         try:
             fx, teams, goals = item["fixture"], item["teams"], item.get("goals") or {}

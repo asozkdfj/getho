@@ -249,6 +249,13 @@ def main(argv: list[str] | None = None) -> int:
     cs.add_argument("--cache-dir", type=Path, default=Path(".cache/history"))
     cs.add_argument("--now", help="ISO-8601 UTC reference time (default: current time)")
     cs.add_argument("--out", type=Path, help="write the JSON report here")
+    ex = sub.add_parser(
+        "export-match-stats",
+        help="past seasons' shots and xG to CSV, from the provider (no DB reads or writes)",
+    )
+    ex.add_argument("--leagues", required=True, help="provider league ids, comma-separated")
+    ex.add_argument("--seasons", required=True, help="season start years, e.g. 2023,2024")
+    ex.add_argument("--out", type=Path, help="CSV file (default: standard output)")
     xg = sub.add_parser("check-xg", help="which leagues return post-match xG (no DB writes)")
     xg.add_argument("--days", type=int, default=3, help="finished fixtures of the last N days")
     xg.add_argument("--limit", type=int, default=40, help="fixtures to fetch details for")
@@ -312,6 +319,27 @@ def main(argv: list[str] | None = None) -> int:
         if args.out:
             args.out.write_text(text + "\n")
         print(text)
+        return 0
+
+    if args.command == "export-match-stats":
+        from edge_ingestion.history_export import export_match_stats
+
+        settings = get_settings()
+        configure_logging(settings.log_level)  # logs go to stderr, the CSV to stdout
+        provider = get_provider(settings.data_provider, settings=settings, reference_time=utcnow())
+        result = export_match_stats(
+            provider,
+            [x.strip() for x in args.leagues.split(",") if x.strip()],
+            [int(x) for x in args.seasons.split(",") if x.strip()],
+        )
+        if args.out:
+            args.out.write_text(result.csv(), encoding="utf-8")
+        else:
+            sys.stdout.write(result.csv())
+        summary: dict[str, Any] = {"command": args.command, "per_season": result.per_season}
+        if isinstance(provider, ApiFootballProvider):
+            summary["requests_used"] = provider.requests_made
+        print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
         return 0
 
     if args.command == "check-xg":
