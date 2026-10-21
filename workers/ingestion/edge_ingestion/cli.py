@@ -37,6 +37,7 @@ from edge_ingestion import (
     draw_backtest,
     fatigue_backtest,
     goal_markets_backtest,
+    league_verification,
     lineup_backtest,
     market_backtest,
     shots_backtest,
@@ -221,6 +222,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     xg_backtest.add_arguments(
         sub.add_parser("backtest-xg", help="does xG form improve on the shot-based candidate?")
+    )
+    league_verification.add_arguments(
+        sub.add_parser("verify-leagues", help="score more leagues with the verified rule")
     )
     goal_markets_backtest.add_arguments(
         sub.add_parser("backtest-goal-markets", help="over/under 2.5 and Asian handicap")
@@ -434,6 +438,12 @@ def main(argv: list[str] | None = None) -> int:
         report = calibration_confirmatory.run(args)
         calibration_confirmatory.write(report, args.out)
         print(json.dumps(calibration_confirmatory.summary(report), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "verify-leagues":
+        configure_logging(get_settings().log_level)
+        report = league_verification.run(args)
+        print(json.dumps(league_verification.summary(report), ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "backtest-xg":

@@ -1,0 +1,850 @@
+{
+  "generated_at": "2026-10-20T23:50:00.169093+00:00",
+  "experiment": "league_verification_europe_v1",
+  "protocol": "`edge verify-leagues` - score more leagues with the \"verified\" rule (research).\n\nSelection, fixed 2026-10-20 before any league was scored: the divisions of the\nClub Football Match Data file (football-data.co.uk results, the file the shots\nexperiment uses) whose three test seasons 2023-24, 2024-25 and 2025-26 each\nhold at least 90% of the division's usual season. That gives the 11 leagues in\nEXTRA_LEAGUES. Left out: National League (2024-25 incomplete), Greek Super\nLeague (seasons missing), and the calendar-year leagues of the file (their data\nstops in early 2025).\n\nSame rule as the 10 verified leagues (backtest_cli.league_summary, ADR-013):\nwalk-forward production model, warm-up 2018-19..2022-23, test from 2023-24,\nverified = at least 300 test matches AND the 95% CI of its log-loss gain over the\nbase rate above 0. The de-margined Bet365 market on the same test matches is\nreported for context (not part of the rule).\n\nAddendum 2026-10-21 (after Codex QA; the rule above is unchanged and is now\nchecked in code instead of by eye): the \"usual season\" of a league is its most\ncommon season match count in 2018-19..2025-26 (ties: the larger count, the\nstricter choice). A league is eligible only if each test season holds >= 90% of\nit. Checked this way, Scottish Premiership (2024-25 at 87.7%), Scottish\nChampionship (88.3%) and Ligue 2 (80.5%, 18 teams from 2024-25) are not eligible;\nthe first run had listed them by mistake. All 11 stay in the report as\nexploratory rows; only eligible leagues can be verified.\n\nThis writes a separate report. It does not change which leagues the service\ntreats as verified (that comes from the imported production backtest report);\napplying it widens the Today's Pick candidates, so it needs Codex QA and the\nuser's approval first.\n",
+  "production_model": {
+    "version": "0.2.0",
+    "feature_set": "poisson_strength_v1+elo_supremacy_v1+newcomer_prior_v1"
+  },
+  "rule": {
+    "min_test_matches": 300,
+    "test_from": "2023-24",
+    "verified_if": "test_matches >= min AND gain_vs_base_rate.ci_low > 0"
+  },
+  "source": {
+    "url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/Matches.csv",
+    "sha256": "ef224cf2c252f07a842b3bcfd4ba5c718c25cedd8937ffa174a74b86b5ba4221"
+  },
+  "applied_to_service": false,
+  "eligible": [
+    "en.3",
+    "en.4",
+    "es.2",
+    "it.2",
+    "tr.1",
+    "be.1",
+    "sc.3",
+    "sc.4"
+  ],
+  "verified": [
+    "en.3",
+    "en.4",
+    "it.2",
+    "tr.1",
+    "be.1",
+    "sc.3"
+  ],
+  "leagues": [
+    {
+      "code": "en.3",
+      "name": "League One",
+      "country": "England",
+      "provider_ids": {
+        "api_football": "41"
+      },
+      "n_matches": 4261,
+      "test_matches": 1653,
+      "test_first_kickoff": "2023-08-05T14:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0710628290272302,
+          "brier": 0.648056808228483,
+          "accuracy": 0.4379915305505142,
+          "ece": 0.006407707969801835
+        },
+        "elo_only": {
+          "log_loss": 1.0368356522647402,
+          "brier": 0.6230648725109196,
+          "accuracy": 0.49304295220810646,
+          "ece": 0.016531700332782166
+        },
+        "production": {
+          "log_loss": 1.0406119229498985,
+          "brier": 0.6251823299628652,
+          "accuracy": 0.4839685420447671,
+          "ece": 0.016824867741101007
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.030450906077331714,
+        "ci_low": 0.01750371120749036,
+        "ci_high": 0.04204951146637521
+      },
+      "verified": true,
+      "division": "E2",
+      "matches_per_season": {
+        "2018-19": 552,
+        "2019-20": 400,
+        "2020-21": 552,
+        "2021-22": 552,
+        "2022-23": 552,
+        "2023-24": 552,
+        "2024-25": 549,
+        "2025-26": 552
+      },
+      "selection": {
+        "usual_season_matches": 552,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9946,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 1653,
+        "market": {
+          "log_loss": 1.0195489953689976,
+          "brier": 0.610983872299564,
+          "accuracy": 0.5009074410163339,
+          "ece": 0.020043708470730757
+        },
+        "production": {
+          "log_loss": 1.0406119229498985,
+          "brier": 0.6251823299628652,
+          "accuracy": 0.4839685420447671,
+          "ece": 0.016824867741101007
+        }
+      }
+    },
+    {
+      "code": "en.4",
+      "name": "League Two",
+      "country": "England",
+      "provider_ids": {
+        "api_football": "42"
+      },
+      "n_matches": 4300,
+      "test_matches": 1652,
+      "test_first_kickoff": "2023-08-05T14:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0765615360889518,
+          "brier": 0.6515825632844946,
+          "accuracy": 0.43099273607748184,
+          "ece": 0.011841779859421808
+        },
+        "elo_only": {
+          "log_loss": 1.0590946096219684,
+          "brier": 0.6393419675447027,
+          "accuracy": 0.4533898305084746,
+          "ece": 0.014714361804818934
+        },
+        "production": {
+          "log_loss": 1.0597492975151226,
+          "brier": 0.6393547799571851,
+          "accuracy": 0.45883777239709445,
+          "ece": 0.021859307004975077
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.016812238573829245,
+        "ci_low": 0.005020243886417752,
+        "ci_high": 0.027943248606119197
+      },
+      "verified": true,
+      "division": "E3",
+      "matches_per_season": {
+        "2018-19": 552,
+        "2019-20": 440,
+        "2020-21": 552,
+        "2021-22": 552,
+        "2022-23": 552,
+        "2023-24": 552,
+        "2024-25": 548,
+        "2025-26": 552
+      },
+      "selection": {
+        "usual_season_matches": 552,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9928,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 1652,
+        "market": {
+          "log_loss": 1.0423715652235377,
+          "brier": 0.6277702920439139,
+          "accuracy": 0.4727602905569007,
+          "ece": 0.015925832725819794
+        },
+        "production": {
+          "log_loss": 1.0597492975151226,
+          "brier": 0.6393547799571851,
+          "accuracy": 0.45883777239709445,
+          "ece": 0.021859307004975077
+        }
+      }
+    },
+    {
+      "code": "es.2",
+      "name": "Segunda División",
+      "country": "Spain",
+      "provider_ids": {
+        "api_football": "141"
+      },
+      "n_matches": 3696,
+      "test_matches": 1386,
+      "test_first_kickoff": "2023-08-11T17:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0670355748864997,
+          "brier": 0.6444745021888063,
+          "accuracy": 0.4588744588744589,
+          "ece": 0.02104072096205552
+        },
+        "elo_only": {
+          "log_loss": 1.0521898516385204,
+          "brier": 0.6339534837477631,
+          "accuracy": 0.4523809523809524,
+          "ece": 0.03291710348568849
+        },
+        "production": {
+          "log_loss": 1.0558715314038953,
+          "brier": 0.6361194126364245,
+          "accuracy": 0.4603174603174603,
+          "ece": 0.027273103544300886
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.011164043482604273,
+        "ci_low": -0.0020713100050502257,
+        "ci_high": 0.023446620947223093
+      },
+      "verified": false,
+      "division": "SP2",
+      "matches_per_season": {
+        "2018-19": 462,
+        "2019-20": 462,
+        "2020-21": 462,
+        "2021-22": 462,
+        "2022-23": 462,
+        "2023-24": 462,
+        "2024-25": 462,
+        "2025-26": 462
+      },
+      "selection": {
+        "usual_season_matches": 462,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 1.0,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": false,
+      "market_context": {
+        "n_matches": 1386,
+        "market": {
+          "log_loss": 1.0305180122027544,
+          "brier": 0.6193991182581666,
+          "accuracy": 0.48484848484848486,
+          "ece": 0.022328077154320027
+        },
+        "production": {
+          "log_loss": 1.0558715314038953,
+          "brier": 0.6361194126364245,
+          "accuracy": 0.4603174603174603,
+          "ece": 0.027273103544300886
+        }
+      }
+    },
+    {
+      "code": "it.2",
+      "name": "Serie B",
+      "country": "Italy",
+      "provider_ids": {
+        "api_football": "136"
+      },
+      "n_matches": 3002,
+      "test_matches": 1140,
+      "test_first_kickoff": "2023-08-18T18:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.08530416047008,
+          "brier": 0.6577284835206376,
+          "accuracy": 0.40614035087719297,
+          "ece": 0.004682709027310032
+        },
+        "elo_only": {
+          "log_loss": 1.0699814369611367,
+          "brier": 0.6463277428680942,
+          "accuracy": 0.4263157894736842,
+          "ece": 0.04207596999363106
+        },
+        "production": {
+          "log_loss": 1.070288319239648,
+          "brier": 0.6466239875977778,
+          "accuracy": 0.4236842105263158,
+          "ece": 0.044218618058762225
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.015015841230432286,
+        "ci_low": 0.0005029026709495241,
+        "ci_high": 0.029458735337157094
+      },
+      "verified": true,
+      "division": "I2",
+      "matches_per_season": {
+        "2018-19": 342,
+        "2019-20": 380,
+        "2020-21": 380,
+        "2021-22": 380,
+        "2022-23": 380,
+        "2023-24": 380,
+        "2024-25": 380,
+        "2025-26": 380
+      },
+      "selection": {
+        "usual_season_matches": 380,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 1.0,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 1139,
+        "market": {
+          "log_loss": 1.0422286748561442,
+          "brier": 0.6271781492518057,
+          "accuracy": 0.45127304653204564,
+          "ece": 0.0349563382698815
+        },
+        "production": {
+          "log_loss": 1.0705171500300479,
+          "brier": 0.646785966829663,
+          "accuracy": 0.4231782265144864,
+          "ece": 0.044424299246395384
+        }
+      }
+    },
+    {
+      "code": "fr.2",
+      "name": "Ligue 2",
+      "country": "France",
+      "provider_ids": {
+        "api_football": "62"
+      },
+      "n_matches": 2789,
+      "test_matches": 990,
+      "test_first_kickoff": "2023-08-05T13:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0823426355864392,
+          "brier": 0.6554107982209159,
+          "accuracy": 0.4212121212121212,
+          "ece": 0.009350497033222141
+        },
+        "elo_only": {
+          "log_loss": 1.0691777182254691,
+          "brier": 0.6458590984096857,
+          "accuracy": 0.44343434343434346,
+          "ece": 0.012892928494843404
+        },
+        "production": {
+          "log_loss": 1.0725246311610732,
+          "brier": 0.6475509796908208,
+          "accuracy": 0.4404040404040404,
+          "ece": 0.01929036298371222
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.00981800442536598,
+        "ci_low": -0.004681325534441883,
+        "ci_high": 0.024879548378749283
+      },
+      "verified": false,
+      "division": "F2",
+      "matches_per_season": {
+        "2018-19": 380,
+        "2019-20": 280,
+        "2020-21": 380,
+        "2021-22": 380,
+        "2022-23": 379,
+        "2023-24": 379,
+        "2024-25": 306,
+        "2025-26": 305
+      },
+      "selection": {
+        "usual_season_matches": 380,
+        "test_season_coverage": {
+          "2023-24": 0.9974,
+          "2024-25": 0.8053,
+          "2025-26": 0.8026
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25, 2025-26"
+      },
+      "verified_rule_only": false,
+      "market_context": {
+        "n_matches": 990,
+        "market": {
+          "log_loss": 1.0505126507410494,
+          "brier": 0.6321509814151824,
+          "accuracy": 0.46060606060606063,
+          "ece": 0.012919268478944177
+        },
+        "production": {
+          "log_loss": 1.0725246311610732,
+          "brier": 0.6475509796908208,
+          "accuracy": 0.4404040404040404,
+          "ece": 0.01929036298371222
+        }
+      }
+    },
+    {
+      "code": "tr.1",
+      "name": "Süper Lig",
+      "country": "Turkey",
+      "provider_ids": {
+        "api_football": "203"
+      },
+      "n_matches": 2754,
+      "test_matches": 1000,
+      "test_first_kickoff": "2023-08-11T18:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0688673557229535,
+          "brier": 0.6458835593912541,
+          "accuracy": 0.452,
+          "ece": 0.00833073410572029
+        },
+        "elo_only": {
+          "log_loss": 0.9858444918989362,
+          "brier": 0.586573718088548,
+          "accuracy": 0.519,
+          "ece": 0.04908750674821497
+        },
+        "production": {
+          "log_loss": 0.9831548934316451,
+          "brier": 0.5843891392518764,
+          "accuracy": 0.524,
+          "ece": 0.04301164583556617
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.08571246229130867,
+        "ci_low": 0.06255026934739356,
+        "ci_high": 0.10846947658836809
+      },
+      "verified": true,
+      "division": "T1",
+      "matches_per_season": {
+        "2018-19": 306,
+        "2019-20": 306,
+        "2020-21": 420,
+        "2021-22": 380,
+        "2022-23": 342,
+        "2023-24": 380,
+        "2024-25": 314,
+        "2025-26": 306
+      },
+      "selection": {
+        "usual_season_matches": 306,
+        "test_season_coverage": {
+          "2023-24": 1.2418,
+          "2024-25": 1.0261,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 1000,
+        "market": {
+          "log_loss": 0.9470960364276401,
+          "brier": 0.5606092014573947,
+          "accuracy": 0.562,
+          "ece": 0.043923362856187205
+        },
+        "production": {
+          "log_loss": 0.9831548934316451,
+          "brier": 0.5843891392518764,
+          "accuracy": 0.524,
+          "ece": 0.04301164583556617
+        }
+      }
+    },
+    {
+      "code": "be.1",
+      "name": "Jupiler Pro League",
+      "country": "Belgium",
+      "provider_ids": {
+        "api_football": "144"
+      },
+      "n_matches": 2325,
+      "test_matches": 935,
+      "test_first_kickoff": "2023-07-28T18:45:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.080910490025108,
+          "brier": 0.6540506317592982,
+          "accuracy": 0.4299465240641711,
+          "ece": 0.01970503325276196
+        },
+        "elo_only": {
+          "log_loss": 1.0170826009067575,
+          "brier": 0.6079612766231475,
+          "accuracy": 0.5037433155080214,
+          "ece": 0.041692869503067685
+        },
+        "production": {
+          "log_loss": 1.0145113884935317,
+          "brier": 0.6066230785093722,
+          "accuracy": 0.48770053475935826,
+          "ece": 0.031072227610826602
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.0663991015315764,
+        "ci_low": 0.04561677010188818,
+        "ci_high": 0.08676989131612706
+      },
+      "verified": true,
+      "division": "B1",
+      "matches_per_season": {
+        "2018-19": 240,
+        "2019-20": 232,
+        "2020-21": 306,
+        "2021-22": 306,
+        "2022-23": 306,
+        "2023-24": 312,
+        "2024-25": 312,
+        "2025-26": 311
+      },
+      "selection": {
+        "usual_season_matches": 306,
+        "test_season_coverage": {
+          "2023-24": 1.0196,
+          "2024-25": 1.0196,
+          "2025-26": 1.0163
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 935,
+        "market": {
+          "log_loss": 0.9994625584273288,
+          "brier": 0.5964256918400757,
+          "accuracy": 0.5101604278074866,
+          "ece": 0.02945834943909751
+        },
+        "production": {
+          "log_loss": 1.0145113884935317,
+          "brier": 0.6066230785093722,
+          "accuracy": 0.48770053475935826,
+          "ece": 0.031072227610826602
+        }
+      }
+    },
+    {
+      "code": "sc.1",
+      "name": "Premiership",
+      "country": "Scotland",
+      "provider_ids": {
+        "api_football": "179"
+      },
+      "n_matches": 1747,
+      "test_matches": 656,
+      "test_first_kickoff": "2023-08-05T11:30:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.070583874380271,
+          "brier": 0.6472220278393598,
+          "accuracy": 0.44664634146341464,
+          "ece": 0.011829559284792132
+        },
+        "elo_only": {
+          "log_loss": 0.9747882096020255,
+          "brier": 0.5783006696370505,
+          "accuracy": 0.524390243902439,
+          "ece": 0.038232220807445254
+        },
+        "production": {
+          "log_loss": 0.976457905881423,
+          "brier": 0.5788491096866072,
+          "accuracy": 0.5259146341463414,
+          "ece": 0.0350363167776962
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.09412596849884786,
+        "ci_low": 0.0665457576667515,
+        "ci_high": 0.12092306484936285
+      },
+      "verified": false,
+      "division": "SC0",
+      "matches_per_season": {
+        "2018-19": 228,
+        "2019-20": 179,
+        "2020-21": 228,
+        "2021-22": 228,
+        "2022-23": 228,
+        "2023-24": 228,
+        "2024-25": 200,
+        "2025-26": 228
+      },
+      "selection": {
+        "usual_season_matches": 228,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.8772,
+          "2025-26": 1.0
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25"
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 656,
+        "market": {
+          "log_loss": 0.9567961537928955,
+          "brier": 0.5657274915644334,
+          "accuracy": 0.5304878048780488,
+          "ece": 0.032986130476361265
+        },
+        "production": {
+          "log_loss": 0.976457905881423,
+          "brier": 0.5788491096866072,
+          "accuracy": 0.5259146341463414,
+          "ece": 0.0350363167776962
+        }
+      }
+    },
+    {
+      "code": "sc.2",
+      "name": "Championship",
+      "country": "Scotland",
+      "provider_ids": {
+        "api_football": "180"
+      },
+      "n_matches": 1331,
+      "test_matches": 519,
+      "test_first_kickoff": "2023-08-04T18:45:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0880453064901159,
+          "brier": 0.6594190553847796,
+          "accuracy": 0.4046242774566474,
+          "ece": 0.009583331088890585
+        },
+        "elo_only": {
+          "log_loss": 1.064948968267153,
+          "brier": 0.6428741590976633,
+          "accuracy": 0.4508670520231214,
+          "ece": 0.0352110038375317
+        },
+        "production": {
+          "log_loss": 1.0624915722316581,
+          "brier": 0.640893348199039,
+          "accuracy": 0.44508670520231214,
+          "ece": 0.0293361016733078
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.025553734258457913,
+        "ci_low": 0.004576910977215487,
+        "ci_high": 0.04723119709765947
+      },
+      "verified": false,
+      "division": "SC1",
+      "matches_per_season": {
+        "2018-19": 180,
+        "2019-20": 272,
+        "2021-22": 180,
+        "2022-23": 180,
+        "2023-24": 180,
+        "2024-25": 159,
+        "2025-26": 180
+      },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.8833,
+          "2025-26": 1.0
+        },
+        "eligible": false,
+        "reason": "below 90% of a usual season: 2024-25"
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 519,
+        "market": {
+          "log_loss": 1.0405229842534793,
+          "brier": 0.6265692539670171,
+          "accuracy": 0.4682080924855491,
+          "ece": 0.03454339418254926
+        },
+        "production": {
+          "log_loss": 1.0624915722316581,
+          "brier": 0.640893348199039,
+          "accuracy": 0.44508670520231214,
+          "ece": 0.0293361016733078
+        }
+      }
+    },
+    {
+      "code": "sc.3",
+      "name": "League One",
+      "country": "Scotland",
+      "provider_ids": {
+        "api_football": "183"
+      },
+      "n_matches": 1313,
+      "test_matches": 524,
+      "test_first_kickoff": "2023-08-05T14:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.0819277029400929,
+          "brier": 0.6557439089807953,
+          "accuracy": 0.41030534351145037,
+          "ece": 0.01465214465583018
+        },
+        "elo_only": {
+          "log_loss": 1.0409794532519787,
+          "brier": 0.6270483077089138,
+          "accuracy": 0.46564885496183206,
+          "ece": 0.02225411887639297
+        },
+        "production": {
+          "log_loss": 1.037403925053768,
+          "brier": 0.6248892920937738,
+          "accuracy": 0.4675572519083969,
+          "ece": 0.026522990438034504
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.04452377788632451,
+        "ci_low": 0.021222644568214,
+        "ci_high": 0.06789347733002166
+      },
+      "verified": true,
+      "division": "SC2",
+      "matches_per_season": {
+        "2018-19": 180,
+        "2019-20": 249,
+        "2021-22": 180,
+        "2022-23": 180,
+        "2023-24": 180,
+        "2024-25": 164,
+        "2025-26": 180
+      },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9111,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": true,
+      "market_context": {
+        "n_matches": 524,
+        "market": {
+          "log_loss": 1.00878147429885,
+          "brier": 0.6052023989961265,
+          "accuracy": 0.5057251908396947,
+          "ece": 0.03343190305677309
+        },
+        "production": {
+          "log_loss": 1.037403925053768,
+          "brier": 0.6248892920937738,
+          "accuracy": 0.4675572519083969,
+          "ece": 0.026522990438034504
+        }
+      }
+    },
+    {
+      "code": "sc.4",
+      "name": "League Two",
+      "country": "Scotland",
+      "provider_ids": {
+        "api_football": "184"
+      },
+      "n_matches": 1316,
+      "test_matches": 529,
+      "test_first_kickoff": "2023-08-05T14:00:00+00:00",
+      "models": {
+        "base_rate": {
+          "log_loss": 1.085307747578656,
+          "brier": 0.656497381119503,
+          "accuracy": 0.43289224952741023,
+          "ece": 0.03190611110399043
+        },
+        "elo_only": {
+          "log_loss": 1.0738201365593418,
+          "brier": 0.6487136842435005,
+          "accuracy": 0.42533081285444235,
+          "ece": 0.029220217488270774
+        },
+        "production": {
+          "log_loss": 1.071345172398483,
+          "brier": 0.6471209337825048,
+          "accuracy": 0.4215500945179584,
+          "ece": 0.03728764589776131
+        }
+      },
+      "gain_vs_base_rate": {
+        "mean": 0.0139625751801729,
+        "ci_low": -0.00532243029616385,
+        "ci_high": 0.031351527218253294
+      },
+      "verified": false,
+      "division": "SC3",
+      "matches_per_season": {
+        "2018-19": 180,
+        "2019-20": 247,
+        "2021-22": 180,
+        "2022-23": 180,
+        "2023-24": 180,
+        "2024-25": 169,
+        "2025-26": 180
+      },
+      "selection": {
+        "usual_season_matches": 180,
+        "test_season_coverage": {
+          "2023-24": 1.0,
+          "2024-25": 0.9389,
+          "2025-26": 1.0
+        },
+        "eligible": true,
+        "reason": null
+      },
+      "verified_rule_only": false,
+      "market_context": {
+        "n_matches": 529,
+        "market": {
+          "log_loss": 1.0590509790021734,
+          "brier": 0.6388060344841768,
+          "accuracy": 0.44045368620037806,
+          "ece": 0.033538865182592914
+        },
+        "production": {
+          "log_loss": 1.071345172398483,
+          "brier": 0.6471209337825048,
+          "accuracy": 0.4215500945179584,
+          "ece": 0.03728764589776131
+        }
+      }
+    }
+  ]
+}
