@@ -1,0 +1,133 @@
+{
+  "status": "DESCRIPTIVE_ONLY_NO_RETUNING_OR_PROMOTION",
+  "segments": {
+    "2024-25": {
+      "n": 2913,
+      "metrics": {
+        "production": {
+          "n": 2913,
+          "log_loss": 0.989725192230662,
+          "brier": 0.5903880562792818,
+          "accuracy": 0.5169927909371782
+        },
+        "sot_and_finishing": {
+          "n": 2913,
+          "log_loss": 0.9842968442631131,
+          "brier": 0.5871355025065345,
+          "accuracy": 0.5217988328184002
+        },
+        "xg_and_finishing": {
+          "n": 2913,
+          "log_loss": 0.9823121410900303,
+          "brier": 0.5859047856719839,
+          "accuracy": 0.5248884311706145
+        },
+        "sot_finishing_plus_xg": {
+          "n": 2913,
+          "log_loss": 0.9818642457720469,
+          "brier": 0.5856059676122816,
+          "accuracy": 0.5262615859938208
+        }
+      },
+      "changed_top_outcome": 95,
+      "corrected_errors": 39,
+      "introduced_errors": 26,
+      "changed_but_both_wrong": 30,
+      "ll_improved_games": 1623,
+      "ll_worsened_games": 1290,
+      "outcome_ll_contributions": {
+        "0": -0.0015123843732291386,
+        "1": 0.0009649605615564817,
+        "2": -0.0018851746793936979
+      },
+      "draw_auc": {
+        "production": 0.5597315456927108,
+        "sot_and_finishing": 0.5632273077515796,
+        "xg_and_finishing": 0.5645335182616736,
+        "sot_finishing_plus_xg": 0.565770997071968
+      },
+      "changed_metrics": {
+        "sot_and_finishing": {
+          "n": 95,
+          "log_loss": 1.1108135866191038,
+          "brier": 0.6743095659212526,
+          "accuracy": 0.2736842105263158
+        },
+        "sot_finishing_plus_xg": {
+          "n": 95,
+          "log_loss": 1.0995078183287557,
+          "brier": 0.665666176301821,
+          "accuracy": 0.4105263157894737
+        }
+      }
+    },
+    "2025-26": {
+      "n": 2916,
+      "metrics": {
+        "production": {
+          "n": 2916,
+          "log_loss": 1.0029032916485678,
+          "brier": 0.5989528646184612,
+          "accuracy": 0.5089163237311386
+        },
+        "sot_and_finishing": {
+          "n": 2916,
+          "log_loss": 0.9998648286877292,
+          "brier": 0.5971626308716389,
+          "accuracy": 0.5061728395061729
+        },
+        "xg_and_finishing": {
+          "n": 2916,
+          "log_loss": 1.001350073367095,
+          "brier": 0.5980793065950206,
+          "accuracy": 0.507201646090535
+        },
+        "sot_finishing_plus_xg": {
+          "n": 2916,
+          "log_loss": 1.00018116493512,
+          "brier": 0.5973268530716231,
+          "accuracy": 0.5082304526748971
+        }
+      },
+      "changed_top_outcome": 111,
+      "corrected_errors": 47,
+      "introduced_errors": 41,
+      "changed_but_both_wrong": 23,
+      "ll_improved_games": 1496,
+      "ll_worsened_games": 1420,
+      "outcome_ll_contributions": {
+        "0": 0.00038597000087648185,
+        "1": 0.0008314228933343408,
+        "2": -0.0009010566468200984
+      },
+      "draw_auc": {
+        "production": 0.5435743814949542,
+        "sot_and_finishing": 0.5449914345517006,
+        "xg_and_finishing": 0.5444989595815035,
+        "sot_finishing_plus_xg": 0.5434254438250626
+      },
+      "changed_metrics": {
+        "sot_and_finishing": {
+          "n": 111,
+          "log_loss": 1.0718775791036363,
+          "brier": 0.6498559006877568,
+          "accuracy": 0.36936936936936937
+        },
+        "sot_finishing_plus_xg": {
+          "n": 111,
+          "log_loss": 1.0698140719384426,
+          "brier": 0.6484605383183423,
+          "accuracy": 0.42342342342342343
+        }
+      }
+    }
+  },
+  "predictions_sha256": "fcb5e69a51ccf5fce338c2de9089ba98ed4562a1154d596298467faba2ce5f26",
+  "script_sha256": "7efbafbc39877947e05aa26b6c6a2ef68edf798927156c0bcca428f8ea6cfcb8",
+  "limitations": [
+    "Already explored periods; no new holdout, no candidate changes.",
+    "No source CSV replay; xG availability uses kickoff+3h proxy.",
+    "Outcome decomposition is retrospective, not a usable selection rule.",
+    "No significance claims for subgroup counts or AUC differences."
+  ]
+}
