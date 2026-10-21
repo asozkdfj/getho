@@ -10,6 +10,7 @@ from edge_api.api.routes import (
     highlights,
     leagues,
     performance,
+    personal_picks,
     picks,
     research,
     review,
@@ -44,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(combinations.router)
     app.include_router(review.router)
     app.include_router(research.router)
+    app.include_router(personal_picks.router)
     return app
 
 

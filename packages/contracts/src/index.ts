@@ -59,6 +59,15 @@ export type Research = Schemas["ResearchOut"];
 export type ResearchDay = Schemas["ResearchDayOut"];
 export type LiveClv = Schemas["LiveClvOut"];
 export type ShadowProgress = Schemas["ShadowProgressOut"];
+export type PersonalPickIn = Schemas["PersonalPickIn"];
+export type PersonalPickRevisionIn = Schemas["PersonalPickRevisionIn"];
+export type PersonalPick = Schemas["PersonalPickOut"];
+export type PersonalPickDetail = Schemas["PersonalPickDetailOut"];
+export type PersonalPickList = Schemas["PersonalPickListOut"];
+export type PersonalPickRevision = Schemas["PersonalPickRevisionOut"];
+export type PickAnalysis = Schemas["PickAnalysisOut"];
+export type PickTeamNewsSide = Schemas["PickTeamNewsSideOut"];
+export type PickSourceType = PersonalPickRevision["source_type"];
 
 export type Outcome = Schemas["Outcome"];
 export const OUTCOMES = ["HOME", "DRAW", "AWAY"] as const satisfies readonly Outcome[];

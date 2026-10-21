@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -14,15 +15,21 @@ from edge_api.schemas import LeagueRefOut
 from edge_ml.model import FEATURE_SET, MODEL_VERSION
 
 
-def verified_league_ids(session: Session, provider: str) -> frozenset[str]:
+def verified_league_ids(
+    session: Session, provider: str, as_of: datetime | None = None
+) -> frozenset[str]:
     """Provider league ids whose accuracy the latest backtest of the current model
-    measured on real results (and found better than the base-rate baseline)."""
+    measured on real results (and found better than the base-rate baseline).
+    With ``as_of``, only a backtest stored by then counts."""
+    where = [
+        ModelEvaluation.model_version == MODEL_VERSION,
+        ModelEvaluation.feature_set == FEATURE_SET,
+    ]
+    if as_of is not None:
+        where.append(ModelEvaluation.created_at <= as_of)
     ev = session.scalars(
         select(ModelEvaluation)
-        .where(
-            ModelEvaluation.model_version == MODEL_VERSION,
-            ModelEvaluation.feature_set == FEATURE_SET,
-        )
+        .where(*where)
         .order_by(ModelEvaluation.created_at.desc(), ModelEvaluation.id.desc())
         .limit(1)
     ).first()

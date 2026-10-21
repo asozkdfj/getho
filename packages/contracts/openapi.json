@@ -2319,6 +2319,643 @@
         "title": "PerformanceOut",
         "type": "object"
       },
+      "PersonalPickDetailOut": {
+        "properties": {
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "current": {
+            "$ref": "#/components/schemas/PersonalPickRevisionOut"
+          },
+          "edited_after_kickoff": {
+            "title": "Edited After Kickoff",
+            "type": "boolean"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalPickRevisionOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "kickoff_at": {
+            "description": "Current kickoff (may differ if rescheduled)",
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "league": {
+            "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "pick_id": {
+            "title": "Pick Id",
+            "type": "string"
+          },
+          "prospective_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last revision stored before kickoff: the pre-match record. None when every revision was entered after kickoff.",
+            "title": "Prospective Revision"
+          },
+          "revisions": {
+            "title": "Revisions",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Current fixture status (read now, not frozen)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pick_id",
+          "fixture_id",
+          "league",
+          "home_team",
+          "away_team",
+          "kickoff_at",
+          "status",
+          "home_score",
+          "away_score",
+          "current",
+          "revisions",
+          "prospective_revision",
+          "edited_after_kickoff",
+          "history"
+        ],
+        "title": "PersonalPickDetailOut",
+        "type": "object"
+      },
+      "PersonalPickIn": {
+        "properties": {
+          "decision_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When you decided (must include a time zone). Empty: the server clock at storage. Must be before kickoff and not in the future.",
+            "title": "Decision At"
+          },
+          "entry_odds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 1.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Decimal odds you took (optional)",
+            "title": "Entry Odds"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "description": "Client-made key; resending the same request stores nothing new",
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "self_reported_purchase": {
+            "default": false,
+            "description": "You say you bought it (not verified by the service)",
+            "title": "Self Reported Purchase",
+            "type": "boolean"
+          },
+          "stake_krw": {
+            "anyOf": [
+              {
+                "maximum": 100000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stake Krw"
+          },
+          "user_probability": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1.0,
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your own probability (optional)",
+            "title": "User Probability"
+          },
+          "user_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Reason"
+          }
+        },
+        "required": [
+          "selection",
+          "idempotency_key",
+          "fixture_id"
+        ],
+        "title": "PersonalPickIn",
+        "type": "object"
+      },
+      "PersonalPickListOut": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Picks by the source type of their current revision",
+            "title": "Counts",
+            "type": "object"
+          },
+          "note": {
+            "default": "내 픽은 모델 성과와 따로 저장합니다. 경기 시작 후 입력하거나 고친 기록은 사후 자기보고로 표시하고 사전 기록과 섞어 세지 않아요.",
+            "title": "Note",
+            "type": "string"
+          },
+          "picks": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalPickOut"
+            },
+            "title": "Picks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "picks",
+          "counts"
+        ],
+        "title": "PersonalPickListOut",
+        "type": "object"
+      },
+      "PersonalPickOut": {
+        "properties": {
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "away_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "current": {
+            "$ref": "#/components/schemas/PersonalPickRevisionOut"
+          },
+          "edited_after_kickoff": {
+            "title": "Edited After Kickoff",
+            "type": "boolean"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "home_team": {
+            "$ref": "#/components/schemas/TeamOut"
+          },
+          "kickoff_at": {
+            "description": "Current kickoff (may differ if rescheduled)",
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "league": {
+            "$ref": "#/components/schemas/LeagueRefOut"
+          },
+          "pick_id": {
+            "title": "Pick Id",
+            "type": "string"
+          },
+          "prospective_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last revision stored before kickoff: the pre-match record. None when every revision was entered after kickoff.",
+            "title": "Prospective Revision"
+          },
+          "revisions": {
+            "title": "Revisions",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Current fixture status (read now, not frozen)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pick_id",
+          "fixture_id",
+          "league",
+          "home_team",
+          "away_team",
+          "kickoff_at",
+          "status",
+          "home_score",
+          "away_score",
+          "current",
+          "revisions",
+          "prospective_revision",
+          "edited_after_kickoff"
+        ],
+        "title": "PersonalPickOut",
+        "type": "object"
+      },
+      "PersonalPickRevisionIn": {
+        "properties": {
+          "base_revision": {
+            "description": "The revision this change is based on (refused with 409 if stale)",
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "decision_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When you decided (must include a time zone). Empty: the server clock at storage. Must be before kickoff and not in the future.",
+            "title": "Decision At"
+          },
+          "entry_odds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 1.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Decimal odds you took (optional)",
+            "title": "Entry Odds"
+          },
+          "idempotency_key": {
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "self_reported_purchase": {
+            "default": false,
+            "description": "You say you bought it (not verified by the service)",
+            "title": "Self Reported Purchase",
+            "type": "boolean"
+          },
+          "stake_krw": {
+            "anyOf": [
+              {
+                "maximum": 100000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stake Krw"
+          },
+          "user_probability": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1.0,
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your own probability (optional)",
+            "title": "User Probability"
+          },
+          "user_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Reason"
+          }
+        },
+        "required": [
+          "selection",
+          "idempotency_key",
+          "base_revision"
+        ],
+        "title": "PersonalPickRevisionIn",
+        "type": "object"
+      },
+      "PersonalPickRevisionOut": {
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/PickAnalysisOut"
+          },
+          "decision_at": {
+            "format": "date-time",
+            "title": "Decision At",
+            "type": "string"
+          },
+          "entry_odds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Odds"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "self_reported_purchase": {
+            "title": "Self Reported Purchase",
+            "type": "boolean"
+          },
+          "source_type": {
+            "enum": [
+              "prospective_record",
+              "retrospective_self_report"
+            ],
+            "title": "Source Type",
+            "type": "string"
+          },
+          "stake_krw": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stake Krw"
+          },
+          "time_evidence": {
+            "enum": [
+              "server_clock",
+              "user_stated"
+            ],
+            "title": "Time Evidence",
+            "type": "string"
+          },
+          "user_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Probability"
+          },
+          "user_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Reason"
+          }
+        },
+        "required": [
+          "revision",
+          "recorded_at",
+          "decision_at",
+          "time_evidence",
+          "source_type",
+          "selection",
+          "entry_odds",
+          "stake_krw",
+          "user_probability",
+          "user_reason",
+          "self_reported_purchase",
+          "analysis"
+        ],
+        "title": "PersonalPickRevisionOut",
+        "type": "object"
+      },
+      "PickAnalysisOut": {
+        "description": "Frozen when the revision was stored, from what the database held at\n``as_of`` (the decision time). Never recomputed.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "away_team": {
+            "title": "Away Team",
+            "type": "string"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "home_team": {
+            "title": "Home Team",
+            "type": "string"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "league_name": {
+            "title": "League Name",
+            "type": "string"
+          },
+          "league_verified": {
+            "title": "League Verified",
+            "type": "boolean"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickMarketViewOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/PickMissingOut"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickModelViewOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickPriceViewOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "team_news": {
+            "$ref": "#/components/schemas/PickTeamNewsOut"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Codes; see the web page for their wording",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "version",
+          "as_of",
+          "computed_at",
+          "selection",
+          "home_team",
+          "away_team",
+          "league_name",
+          "league_verified",
+          "kickoff_at",
+          "model",
+          "market",
+          "price",
+          "team_news",
+          "warnings",
+          "missing"
+        ],
+        "title": "PickAnalysisOut",
+        "type": "object"
+      },
       "PickBacktestOut": {
         "properties": {
           "dataset": {
@@ -2752,6 +3389,211 @@
         "title": "PickHistorySummaryOut",
         "type": "object"
       },
+      "PickMarketViewOut": {
+        "properties": {
+          "age_minutes": {
+            "description": "Minutes between the odds capture and the decision",
+            "title": "Age Minutes",
+            "type": "number"
+          },
+          "bookmaker": {
+            "title": "Bookmaker",
+            "type": "string"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "fair_probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut"
+          },
+          "model_minus_market": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Model minus market probability of your selection (a difference of opinion, not a verdict)",
+            "title": "Model Minus Market"
+          },
+          "odds_snapshot_id": {
+            "title": "Odds Snapshot Id",
+            "type": "integer"
+          },
+          "selection_fair_probability": {
+            "title": "Selection Fair Probability",
+            "type": "number"
+          },
+          "selection_odds": {
+            "title": "Selection Odds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "odds_snapshot_id",
+          "bookmaker",
+          "captured_at",
+          "age_minutes",
+          "selection_odds",
+          "fair_probabilities",
+          "selection_fair_probability",
+          "model_minus_market"
+        ],
+        "title": "PickMarketViewOut",
+        "type": "object"
+      },
+      "PickMissingOut": {
+        "properties": {
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item",
+          "reason"
+        ],
+        "title": "PickMissingOut",
+        "type": "object"
+      },
+      "PickModelViewOut": {
+        "properties": {
+          "agrees_with_top": {
+            "title": "Agrees With Top",
+            "type": "boolean"
+          },
+          "failure_outcomes": {
+            "description": "The two results that make the pick fail, each with its probability",
+            "items": {
+              "$ref": "#/components/schemas/PickOutcomeProbabilityOut"
+            },
+            "title": "Failure Outcomes",
+            "type": "array"
+          },
+          "failure_probability": {
+            "description": "1 - selection probability",
+            "title": "Failure Probability",
+            "type": "number"
+          },
+          "input_data_as_of": {
+            "format": "date-time",
+            "title": "Input Data As Of",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "prediction_created_at": {
+            "format": "date-time",
+            "title": "Prediction Created At",
+            "type": "string"
+          },
+          "prediction_id": {
+            "title": "Prediction Id",
+            "type": "integer"
+          },
+          "probabilities": {
+            "$ref": "#/components/schemas/ProbabilitiesOut"
+          },
+          "selection_probability": {
+            "title": "Selection Probability",
+            "type": "number"
+          },
+          "top_outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "top_probability": {
+            "title": "Top Probability",
+            "type": "number"
+          }
+        },
+        "required": [
+          "prediction_id",
+          "model_version",
+          "prediction_created_at",
+          "input_data_as_of",
+          "probabilities",
+          "selection_probability",
+          "failure_probability",
+          "failure_outcomes",
+          "top_outcome",
+          "top_probability",
+          "agrees_with_top"
+        ],
+        "title": "PickModelViewOut",
+        "type": "object"
+      },
+      "PickOutcomeProbabilityOut": {
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "probability": {
+            "title": "Probability",
+            "type": "number"
+          }
+        },
+        "required": [
+          "outcome",
+          "probability"
+        ],
+        "title": "PickOutcomeProbabilityOut",
+        "type": "object"
+      },
+      "PickPriceViewOut": {
+        "properties": {
+          "break_even_probability": {
+            "description": "1 / entry odds",
+            "title": "Break Even Probability",
+            "type": "number"
+          },
+          "entry_odds": {
+            "title": "Entry Odds",
+            "type": "number"
+          },
+          "market_assumption_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "p_market_fair x odds - 1: the same estimate on the de-margined market",
+            "title": "Market Assumption Return"
+          },
+          "model_assumption_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "p_model x odds - 1: an estimate that holds only if the model is right",
+            "title": "Model Assumption Return"
+          }
+        },
+        "required": [
+          "entry_odds",
+          "break_even_probability",
+          "model_assumption_return",
+          "market_assumption_return"
+        ],
+        "title": "PickPriceViewOut",
+        "type": "object"
+      },
       "PickResultOut": {
         "properties": {
           "actual_outcome": {
@@ -2808,6 +3650,100 @@
           "recorded_at"
         ],
         "title": "PickResultOut",
+        "type": "object"
+      },
+      "PickTeamNewsOut": {
+        "properties": {
+          "away": {
+            "$ref": "#/components/schemas/PickTeamNewsSideOut"
+          },
+          "home": {
+            "$ref": "#/components/schemas/PickTeamNewsSideOut"
+          },
+          "lineups_announced": {
+            "title": "Lineups Announced",
+            "type": "boolean"
+          },
+          "snapshot_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Snapshot Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lineups_announced",
+          "home",
+          "away"
+        ],
+        "title": "PickTeamNewsOut",
+        "type": "object"
+      },
+      "PickTeamNewsSideOut": {
+        "properties": {
+          "absences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Absences",
+            "type": "array"
+          },
+          "absences_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absences Captured At"
+          },
+          "absences_status": {
+            "enum": [
+              "reported",
+              "none_reported",
+              "unknown"
+            ],
+            "title": "Absences Status",
+            "type": "string"
+          },
+          "lineup_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineup Captured At"
+          },
+          "missing_regulars": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Regulars",
+            "type": "array"
+          },
+          "regulars_known": {
+            "title": "Regulars Known",
+            "type": "boolean"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_name",
+          "absences_status",
+          "regulars_known"
+        ],
+        "title": "PickTeamNewsSideOut",
         "type": "object"
       },
       "PredictionOut": {
@@ -5031,6 +5967,237 @@
         "summary": "Performance",
         "tags": [
           "performance"
+        ]
+      }
+    },
+    "/personal-picks": {
+      "get": {
+        "operationId": "list_picks_personal_picks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalPickListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Picks",
+        "tags": [
+          "personal-picks"
+        ]
+      },
+      "post": {
+        "description": "Record your own 1X2 pick. The pre-match analysis is frozen from what was\nknown at the decision time; resending the same ``idempotency_key`` returns the\nstored pick without storing a second one.",
+        "operationId": "create_pick_personal_picks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalPickIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalPickDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Pick",
+        "tags": [
+          "personal-picks"
+        ]
+      }
+    },
+    "/personal-picks/{pick_id}": {
+      "get": {
+        "description": "The pick with every revision (oldest first).",
+        "operationId": "get_pick_personal_picks__pick_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pick_id",
+            "required": true,
+            "schema": {
+              "title": "Pick Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalPickDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pick",
+        "tags": [
+          "personal-picks"
+        ]
+      }
+    },
+    "/personal-picks/{pick_id}/revisions": {
+      "post": {
+        "description": "Change a pick: stored as a new revision, the earlier ones stay. A revision\nstored after kickoff is a retrospective self-report.",
+        "operationId": "revise_pick_personal_picks__pick_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pick_id",
+            "required": true,
+            "schema": {
+              "title": "Pick Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalPickRevisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalPickDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Revise Pick",
+        "tags": [
+          "personal-picks"
         ]
       }
     },

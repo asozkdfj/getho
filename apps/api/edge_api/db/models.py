@@ -621,3 +621,68 @@ class BetmanAlias(Base):
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"))
     method: Mapped[str] = mapped_column(String(8), default="manual")
     created_at: Mapped[datetime] = _ts(server_default=func.now())
+
+
+class PersonalPick(Base):
+    """One revision of a pick the user made themselves (append-only).
+
+    ``pick_key`` names the pick across revisions; ``revision`` counts from 1 and
+    a change is a new row. ``source_type`` is set by the server, never by the
+    user: a revision stored before the kickoff (as known when stored) is a
+    ``prospective_record``; one stored at or after kickoff is a
+    ``retrospective_self_report`` and never counts as a pre-match record.
+    ``self_reported_purchase`` is what the user said, not a verified purchase.
+    ``analysis`` is frozen when the row is stored, from what the database held
+    at ``decision_at``; it is never recomputed, so later predictions, odds,
+    line-ups or results cannot change it.
+    """
+
+    __tablename__ = "personal_picks"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="idempotency_key"),
+        UniqueConstraint("pick_key", "revision", name="revision"),
+        CheckConstraint("revision >= 1", name="revision_positive"),
+        CheckConstraint("market_type = '1X2'", name="market_type"),
+        CheckConstraint("selection IN ('HOME', 'DRAW', 'AWAY')", name="selection"),
+        CheckConstraint(
+            "source_type IN ('prospective_record', 'retrospective_self_report')",
+            name="source_type",
+        ),
+        CheckConstraint(
+            "(source_type = 'prospective_record') = (recorded_at < kickoff_at)",
+            name="source_type_by_time",
+        ),
+        CheckConstraint("time_evidence IN ('server_clock', 'user_stated')", name="time_evidence"),
+        CheckConstraint("decision_at <= recorded_at", name="decided_before_recorded"),
+        CheckConstraint("decision_at < kickoff_at", name="decided_before_kickoff"),
+        CheckConstraint("entry_odds IS NULL OR entry_odds > 1", name="entry_odds"),
+        CheckConstraint("stake_krw IS NULL OR stake_krw >= 0", name="stake_krw"),
+        CheckConstraint(
+            "user_probability IS NULL OR (user_probability > 0 AND user_probability < 1)",
+            name="user_probability",
+        ),
+        Index("ix_personal_picks_fixture", "fixture_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pick_key: Mapped[str] = mapped_column(String(36))
+    revision: Mapped[int] = mapped_column(Integer)
+    idempotency_key: Mapped[str] = mapped_column(String(64))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
+    kickoff_at: Mapped[datetime] = _ts()
+    market_type: Mapped[str] = mapped_column(String(8), default="1X2")
+    selection: Mapped[str] = mapped_column(String(8))
+    decision_at: Mapped[datetime] = _ts()
+    time_evidence: Mapped[str] = mapped_column(String(16))
+    recorded_at: Mapped[datetime] = _ts()
+    source_type: Mapped[str] = mapped_column(String(32))
+    self_reported_purchase: Mapped[bool] = mapped_column(Boolean, default=False)
+    entry_odds: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    stake_krw: Mapped[int | None] = mapped_column(Integer)
+    user_probability: Mapped[float | None] = mapped_column(Float)
+    user_reason: Mapped[str | None] = mapped_column(String(500))
+    analysis_version: Mapped[str] = mapped_column(String(32))
+    analysis: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+    fixture: Mapped[Fixture] = relationship()

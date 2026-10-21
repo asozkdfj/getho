@@ -8,6 +8,8 @@ import type {
   LeagueList,
   LeagueSummary,
   Performance,
+  PersonalPickDetail,
+  PersonalPickList,
   PickHistory,
   Prediction,
   Research,
@@ -111,6 +113,20 @@ export function fetchPerformance() {
 
 export function fetchResearch(days = 7) {
   return getJson<Research>(`/research?days=${days}`);
+}
+
+export function fetchPersonalPicks() {
+  return getJson<PersonalPickList>("/personal-picks");
+}
+
+/** Returns null when there is no such pick (404). */
+export async function fetchPersonalPick(id: string): Promise<PersonalPickDetail | null> {
+  try {
+    return await getJson<PersonalPickDetail>(`/personal-picks/${encodeURIComponent(id)}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
 }
 
 export function fetchDataStatus() {

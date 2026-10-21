@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 from edge_ml.core import Outcome
 
@@ -832,4 +832,188 @@ class ResearchOut(ApiModel):
         "운영 모델·픽을 바꾸지 않는 연구용 기록입니다. "
         "병행 기록의 성적은 평가 기간이 끝나기 전에는 보여 주지 않습니다"
         "(결과를 보고 규칙을 바꾸지 않기 위해)."
+    )
+
+
+# --- personal picks (the user's own picks; never mixed into model performance) ---
+
+PickSourceType = Literal["prospective_record", "retrospective_self_report"]
+IdempotencyKey = Annotated[str, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
+
+
+class PersonalPickFields(ApiModel):
+    selection: Outcome
+    decision_at: AwareDatetime | None = Field(
+        default=None,
+        description="When you decided (must include a time zone). Empty: the server clock "
+        "at storage. Must be before kickoff and not in the future.",
+    )
+    entry_odds: float | None = Field(
+        default=None, gt=1.0, le=1000.0, description="Decimal odds you took (optional)"
+    )
+    stake_krw: int | None = Field(default=None, ge=0, le=100_000_000)
+    user_probability: float | None = Field(
+        default=None, gt=0.0, lt=1.0, description="Your own probability (optional)"
+    )
+    user_reason: str | None = Field(default=None, max_length=500)
+    self_reported_purchase: bool = Field(
+        default=False, description="You say you bought it (not verified by the service)"
+    )
+
+    @field_validator("entry_odds")
+    @classmethod
+    def _two_decimals(cls, v: float | None) -> float | None:
+        # stored as NUMERIC(8, 2): refuse rather than silently round a price
+        if v is not None and abs(round(v, 2) - v) > 1e-9:
+            raise ValueError("entry_odds has at most two decimals")
+        return v
+
+
+class PersonalPickIn(PersonalPickFields):
+    idempotency_key: IdempotencyKey = Field(
+        description="Client-made key; resending the same request stores nothing new"
+    )
+    fixture_id: int
+
+
+class PersonalPickRevisionIn(PersonalPickFields):
+    idempotency_key: IdempotencyKey
+    base_revision: int = Field(
+        ge=1, description="The revision this change is based on (refused with 409 if stale)"
+    )
+
+
+class PickMissingOut(ApiModel):
+    item: str
+    reason: str
+
+
+class PickOutcomeProbabilityOut(ApiModel):
+    outcome: Outcome
+    probability: float
+
+
+class PickModelViewOut(ApiModel):
+    prediction_id: int
+    model_version: str
+    prediction_created_at: datetime
+    input_data_as_of: datetime
+    probabilities: ProbabilitiesOut
+    selection_probability: float
+    failure_probability: float = Field(description="1 - selection probability")
+    failure_outcomes: list[PickOutcomeProbabilityOut] = Field(
+        description="The two results that make the pick fail, each with its probability"
+    )
+    top_outcome: Outcome
+    top_probability: float
+    agrees_with_top: bool
+
+
+class PickMarketViewOut(ApiModel):
+    odds_snapshot_id: int
+    bookmaker: str
+    captured_at: datetime
+    age_minutes: float = Field(description="Minutes between the odds capture and the decision")
+    selection_odds: float
+    fair_probabilities: ProbabilitiesOut
+    selection_fair_probability: float
+    model_minus_market: float | None = Field(
+        description="Model minus market probability of your selection (a difference of "
+        "opinion, not a verdict)"
+    )
+
+
+class PickPriceViewOut(ApiModel):
+    entry_odds: float
+    break_even_probability: float = Field(description="1 / entry odds")
+    model_assumption_return: float | None = Field(
+        description="p_model x odds - 1: an estimate that holds only if the model is right"
+    )
+    market_assumption_return: float | None = Field(
+        description="p_market_fair x odds - 1: the same estimate on the de-margined market"
+    )
+
+
+class PickTeamNewsSideOut(ApiModel):
+    team_name: str
+    absences_status: Literal["reported", "none_reported", "unknown"]
+    absences: list[str] = Field(default_factory=list)
+    absences_captured_at: datetime | None = None
+    lineup_captured_at: datetime | None = None
+    missing_regulars: list[str] = Field(default_factory=list)
+    regulars_known: bool
+
+
+class PickTeamNewsOut(ApiModel):
+    lineups_announced: bool
+    home: PickTeamNewsSideOut
+    away: PickTeamNewsSideOut
+    snapshot_ids: list[int] = Field(default_factory=list)
+
+
+class PickAnalysisOut(ApiModel):
+    """Frozen when the revision was stored, from what the database held at
+    ``as_of`` (the decision time). Never recomputed."""
+
+    version: str
+    as_of: datetime
+    computed_at: datetime
+    selection: Outcome
+    home_team: str
+    away_team: str
+    league_name: str
+    league_verified: bool
+    kickoff_at: datetime
+    model: PickModelViewOut | None
+    market: PickMarketViewOut | None
+    price: PickPriceViewOut | None
+    team_news: PickTeamNewsOut
+    warnings: list[str] = Field(description="Codes; see the web page for their wording")
+    missing: list[PickMissingOut]
+
+
+class PersonalPickRevisionOut(ApiModel):
+    revision: int
+    recorded_at: datetime
+    decision_at: datetime
+    time_evidence: Literal["server_clock", "user_stated"]
+    source_type: PickSourceType
+    selection: Outcome
+    entry_odds: float | None
+    stake_krw: int | None
+    user_probability: float | None
+    user_reason: str | None
+    self_reported_purchase: bool
+    analysis: PickAnalysisOut
+
+
+class PersonalPickOut(ApiModel):
+    pick_id: str
+    fixture_id: int
+    league: LeagueRefOut
+    home_team: TeamOut
+    away_team: TeamOut
+    kickoff_at: datetime = Field(description="Current kickoff (may differ if rescheduled)")
+    status: str = Field(description="Current fixture status (read now, not frozen)")
+    home_score: int | None
+    away_score: int | None
+    current: PersonalPickRevisionOut
+    revisions: int
+    prospective_revision: int | None = Field(
+        description="Last revision stored before kickoff: the pre-match record. "
+        "None when every revision was entered after kickoff."
+    )
+    edited_after_kickoff: bool
+
+
+class PersonalPickDetailOut(PersonalPickOut):
+    history: list[PersonalPickRevisionOut]
+
+
+class PersonalPickListOut(ApiModel):
+    picks: list[PersonalPickOut]
+    counts: dict[str, int] = Field(description="Picks by the source type of their current revision")
+    note: str = (
+        "내 픽은 모델 성과와 따로 저장합니다. 경기 시작 후 입력하거나 고친 기록은 "
+        "사후 자기보고로 표시하고 사전 기록과 섞어 세지 않아요."
     )
