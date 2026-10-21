@@ -468,3 +468,51 @@ def test_example_file_parses(now):
     rows = parse(path.read_text(encoding="utf-8"), "csv", now=now)
     assert [r.key.event_number for r in rows] == [1, 2]
     assert all(r.observed_at is None for r in rows)  # a template, never observed prices
+
+
+# ------------------------------------------------------------------ as of (Codex BETMAN-TIME-1)
+def test_a_later_mapping_decision_does_not_change_a_past_report(session_factory, seeded, now):
+    from conftest import set_test_wall_clock
+
+    with session_factory() as s:
+        _, key = _mapped_price(s, now, observed_at=now.isoformat())
+        at = now + timedelta(minutes=1)
+        before = betman.status_report(s, at)
+        assert before["selections"]["purchasable"] == 3
+        set_test_wall_clock(s, now + timedelta(hours=1))
+        betman.manual_reject(s, key, "later correction")
+        assert betman.status_report(s, at) == before
+        later = betman.status_report(s, now + timedelta(hours=2))
+        assert later["selections"] == {"purchasable": 0, "blocked": 3}
+        assert later["events"][0]["mapping"]["status"] == "rejected"
+
+
+def test_an_event_first_mapped_later_is_not_purchasable_in_the_past(session_factory, seeded, now):
+    from conftest import set_test_wall_clock
+
+    with session_factory() as s:
+        f = _upcoming(s, now)[0]
+        _load(s, now, _csv(_row(f, 1, observed_at=now.isoformat())))
+        key = EventKey("proto", "2026-81", 1)
+        at = now + timedelta(minutes=1)
+        before = betman.status_report(s, at)
+        assert before["events"][0]["mapping"]["status"] == "unmatched"
+        set_test_wall_clock(s, now + timedelta(hours=1))
+        betman.manual_map(s, "mock", betman.event_info(s, key), f.id, learn_aliases=True)
+        past = betman.status_report(s, at)
+        assert past == before and past["selections"]["purchasable"] == 0
+        assert betman.status_report(s, now + timedelta(hours=2))["selections"]["purchasable"] == 3
+
+
+def test_a_mapping_stored_after_the_moment_blocks_even_if_passed_in(session_factory, seeded, now):
+    from conftest import set_test_wall_clock
+
+    with session_factory() as s:
+        f = _upcoming(s, now)[0]
+        _load(s, now, _csv(_row(f, 1, observed_at=now.isoformat())))
+        key = EventKey("proto", "2026-81", 1)
+        set_test_wall_clock(s, now + timedelta(hours=1))
+        m = betman.manual_map(s, "mock", betman.event_info(s, key), f.id)
+        price = betman.latest_prices(s, now + timedelta(minutes=1))[(key, "HOME")]
+        blockers = betman.purchase_blockers(price, m, now + timedelta(minutes=1))
+        assert blockers == ["mapped_after_decision"]

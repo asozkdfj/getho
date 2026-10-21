@@ -16,31 +16,49 @@ export function nextTheme(current: Theme): Theme {
   return ORDER[(ORDER.indexOf(current) + 1) % ORDER.length]!;
 }
 
+function valid(value: string | null | undefined): Theme {
+  return value === "light" || value === "dark" ? value : "system";
+}
+
+/** The theme on screen: data-theme on <html> is the source of truth, so the
+ * switch keeps cycling even when storage is blocked. */
 export function readTheme(): Theme {
-  try {
-    const t = window.localStorage.getItem(THEME_KEY);
-    return t === "light" || t === "dark" ? t : "system";
-  } catch {
-    return "system";
-  }
+  return valid(document.documentElement.getAttribute("data-theme"));
+}
+
+function render(theme: Theme): void {
+  const root = document.documentElement;
+  if (theme === "system") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
 }
 
 const listeners = new Set<() => void>();
 
+/** A change made in another tab: apply the stored choice here too. */
+function onStorage(event?: { key: string | null }): void {
+  if (event && event.key !== null && event.key !== THEME_KEY) return;
+  let stored: Theme;
+  try {
+    stored = valid(window.localStorage.getItem(THEME_KEY));
+  } catch {
+    return; // storage unreadable: keep what this page shows
+  }
+  render(stored);
+  listeners.forEach((l) => l());
+}
+
 /** For useSyncExternalStore: notified when the theme changes here or in another tab. */
 export function subscribeTheme(listener: () => void): () => void {
+  if (listeners.size === 0) window.addEventListener("storage", onStorage);
   listeners.add(listener);
-  window.addEventListener("storage", listener);
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", listener);
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
 
 export function applyTheme(theme: Theme): void {
-  const root = document.documentElement;
-  if (theme === "system") root.removeAttribute("data-theme");
-  else root.setAttribute("data-theme", theme);
+  render(theme);
   try {
     if (theme === "system") window.localStorage.removeItem(THEME_KEY);
     else window.localStorage.setItem(THEME_KEY, theme);
