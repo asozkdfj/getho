@@ -37,6 +37,7 @@ TABLES = (
     "model_evaluations, ingestion_runs, "
     "team_news_snapshots, player_appearances, match_statistics, "
     "betman_odds_snapshots, betman_imports, betman_event_mappings, betman_aliases, "
+    "personal_picks, "
     "predictions, odds_snapshots, fixtures, teams, leagues, model_versions"
 )
 

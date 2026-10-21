@@ -1718,3 +1718,41 @@ table.glossary th[scope="row"] {
   background: var(--surface);
   color: var(--text);
 }
+
+/* personal pick form */
+.field {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.field > span,
+.field > legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0;
+}
+.pick-form input:not([type="checkbox"]),
+.pick-form select,
+.pick-form textarea {
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  min-height: 44px;
+  width: 100%;
+}
+.pick-form .inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.pick-form .inline input[type="datetime-local"] {
+  width: auto;
+}

@@ -190,6 +190,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/personal-picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Picks */
+        get: operations["list_picks_personal_picks_get"];
+        put?: never;
+        /**
+         * Create Pick
+         * @description Record your own 1X2 pick. The pre-match analysis is frozen from what was
+         *     known at the decision time; resending the same ``idempotency_key`` returns the
+         *     stored pick without storing a second one.
+         */
+        post: operations["create_pick_personal_picks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal-picks/{pick_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pick
+         * @description The pick with every revision (oldest first).
+         */
+        get: operations["get_pick_personal_picks__pick_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal-picks/{pick_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revise Pick
+         * @description Change a pick: stored as a new revision, the earlier ones stay. A revision
+         *     stored after kickoff is a retrospective self-report.
+         */
+        post: operations["revise_pick_personal_picks__pick_id__revisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/picks/history": {
         parameters: {
             query?: never;
@@ -1121,6 +1185,248 @@ export interface components {
              */
             note: string;
         };
+        /** PersonalPickDetailOut */
+        PersonalPickDetailOut: {
+            /** Away Score */
+            away_score: number | null;
+            away_team: components["schemas"]["TeamOut"];
+            current: components["schemas"]["PersonalPickRevisionOut"];
+            /** Edited After Kickoff */
+            edited_after_kickoff: boolean;
+            /** Fixture Id */
+            fixture_id: number;
+            /** History */
+            history: components["schemas"]["PersonalPickRevisionOut"][];
+            /** Home Score */
+            home_score: number | null;
+            home_team: components["schemas"]["TeamOut"];
+            /**
+             * Kickoff At
+             * Format: date-time
+             * @description Current kickoff (may differ if rescheduled)
+             */
+            kickoff_at: string;
+            league: components["schemas"]["LeagueRefOut"];
+            /** Pick Id */
+            pick_id: string;
+            /**
+             * Prospective Revision
+             * @description Last revision stored before kickoff: the pre-match record. None when every revision was entered after kickoff.
+             */
+            prospective_revision: number | null;
+            /** Revisions */
+            revisions: number;
+            /**
+             * Status
+             * @description Current fixture status (read now, not frozen)
+             */
+            status: string;
+        };
+        /** PersonalPickIn */
+        PersonalPickIn: {
+            /**
+             * Decision At
+             * @description When you decided (must include a time zone). Empty: the server clock at storage. Must be before kickoff and not in the future.
+             */
+            decision_at?: string | null;
+            /**
+             * Entry Odds
+             * @description Decimal odds you took (optional)
+             */
+            entry_odds?: number | null;
+            /** Fixture Id */
+            fixture_id: number;
+            /**
+             * Idempotency Key
+             * @description Client-made key; resending the same request stores nothing new
+             */
+            idempotency_key: string;
+            selection: components["schemas"]["Outcome"];
+            /**
+             * Self Reported Purchase
+             * @description You say you bought it (not verified by the service)
+             * @default false
+             */
+            self_reported_purchase: boolean;
+            /** Stake Krw */
+            stake_krw?: number | null;
+            /**
+             * User Probability
+             * @description Your own probability (optional)
+             */
+            user_probability?: number | null;
+            /** User Reason */
+            user_reason?: string | null;
+        };
+        /** PersonalPickListOut */
+        PersonalPickListOut: {
+            /**
+             * Counts
+             * @description Picks by the source type of their current revision
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Note
+             * @default 내 픽은 모델 성과와 따로 저장합니다. 경기 시작 후 입력하거나 고친 기록은 사후 자기보고로 표시하고 사전 기록과 섞어 세지 않아요.
+             */
+            note: string;
+            /** Picks */
+            picks: components["schemas"]["PersonalPickOut"][];
+        };
+        /** PersonalPickOut */
+        PersonalPickOut: {
+            /** Away Score */
+            away_score: number | null;
+            away_team: components["schemas"]["TeamOut"];
+            current: components["schemas"]["PersonalPickRevisionOut"];
+            /** Edited After Kickoff */
+            edited_after_kickoff: boolean;
+            /** Fixture Id */
+            fixture_id: number;
+            /** Home Score */
+            home_score: number | null;
+            home_team: components["schemas"]["TeamOut"];
+            /**
+             * Kickoff At
+             * Format: date-time
+             * @description Current kickoff (may differ if rescheduled)
+             */
+            kickoff_at: string;
+            league: components["schemas"]["LeagueRefOut"];
+            /** Pick Id */
+            pick_id: string;
+            /**
+             * Prospective Revision
+             * @description Last revision stored before kickoff: the pre-match record. None when every revision was entered after kickoff.
+             */
+            prospective_revision: number | null;
+            /** Revisions */
+            revisions: number;
+            /**
+             * Status
+             * @description Current fixture status (read now, not frozen)
+             */
+            status: string;
+        };
+        /** PersonalPickRevisionIn */
+        PersonalPickRevisionIn: {
+            /**
+             * Base Revision
+             * @description The revision this change is based on (refused with 409 if stale)
+             */
+            base_revision: number;
+            /**
+             * Decision At
+             * @description When you decided (must include a time zone). Empty: the server clock at storage. Must be before kickoff and not in the future.
+             */
+            decision_at?: string | null;
+            /**
+             * Entry Odds
+             * @description Decimal odds you took (optional)
+             */
+            entry_odds?: number | null;
+            /** Idempotency Key */
+            idempotency_key: string;
+            selection: components["schemas"]["Outcome"];
+            /**
+             * Self Reported Purchase
+             * @description You say you bought it (not verified by the service)
+             * @default false
+             */
+            self_reported_purchase: boolean;
+            /** Stake Krw */
+            stake_krw?: number | null;
+            /**
+             * User Probability
+             * @description Your own probability (optional)
+             */
+            user_probability?: number | null;
+            /** User Reason */
+            user_reason?: string | null;
+        };
+        /** PersonalPickRevisionOut */
+        PersonalPickRevisionOut: {
+            analysis: components["schemas"]["PickAnalysisOut"];
+            /**
+             * Decision At
+             * Format: date-time
+             */
+            decision_at: string;
+            /** Entry Odds */
+            entry_odds: number | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Revision */
+            revision: number;
+            selection: components["schemas"]["Outcome"];
+            /** Self Reported Purchase */
+            self_reported_purchase: boolean;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "prospective_record" | "retrospective_self_report";
+            /** Stake Krw */
+            stake_krw: number | null;
+            /**
+             * Time Evidence
+             * @enum {string}
+             */
+            time_evidence: "server_clock" | "user_stated";
+            /** User Probability */
+            user_probability: number | null;
+            /** User Reason */
+            user_reason: string | null;
+        };
+        /**
+         * PickAnalysisOut
+         * @description Frozen when the revision was stored, from what the database held at
+         *     ``as_of`` (the decision time). Never recomputed.
+         */
+        PickAnalysisOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Away Team */
+            away_team: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Home Team */
+            home_team: string;
+            /**
+             * Kickoff At
+             * Format: date-time
+             */
+            kickoff_at: string;
+            /** League Name */
+            league_name: string;
+            /** League Verified */
+            league_verified: boolean;
+            market: components["schemas"]["PickMarketViewOut"] | null;
+            /** Missing */
+            missing: components["schemas"]["PickMissingOut"][];
+            model: components["schemas"]["PickModelViewOut"] | null;
+            price: components["schemas"]["PickPriceViewOut"] | null;
+            selection: components["schemas"]["Outcome"];
+            team_news: components["schemas"]["PickTeamNewsOut"];
+            /** Version */
+            version: string;
+            /**
+             * Warnings
+             * @description Codes; see the web page for their wording
+             */
+            warnings: string[];
+        };
         /** PickBacktestOut */
         PickBacktestOut: {
             /** Dataset */
@@ -1253,6 +1559,101 @@ export interface components {
             /** Voided */
             voided: number;
         };
+        /** PickMarketViewOut */
+        PickMarketViewOut: {
+            /**
+             * Age Minutes
+             * @description Minutes between the odds capture and the decision
+             */
+            age_minutes: number;
+            /** Bookmaker */
+            bookmaker: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            fair_probabilities: components["schemas"]["ProbabilitiesOut"];
+            /**
+             * Model Minus Market
+             * @description Model minus market probability of your selection (a difference of opinion, not a verdict)
+             */
+            model_minus_market: number | null;
+            /** Odds Snapshot Id */
+            odds_snapshot_id: number;
+            /** Selection Fair Probability */
+            selection_fair_probability: number;
+            /** Selection Odds */
+            selection_odds: number;
+        };
+        /** PickMissingOut */
+        PickMissingOut: {
+            /** Item */
+            item: string;
+            /** Reason */
+            reason: string;
+        };
+        /** PickModelViewOut */
+        PickModelViewOut: {
+            /** Agrees With Top */
+            agrees_with_top: boolean;
+            /**
+             * Failure Outcomes
+             * @description The two results that make the pick fail, each with its probability
+             */
+            failure_outcomes: components["schemas"]["PickOutcomeProbabilityOut"][];
+            /**
+             * Failure Probability
+             * @description 1 - selection probability
+             */
+            failure_probability: number;
+            /**
+             * Input Data As Of
+             * Format: date-time
+             */
+            input_data_as_of: string;
+            /** Model Version */
+            model_version: string;
+            /**
+             * Prediction Created At
+             * Format: date-time
+             */
+            prediction_created_at: string;
+            /** Prediction Id */
+            prediction_id: number;
+            probabilities: components["schemas"]["ProbabilitiesOut"];
+            /** Selection Probability */
+            selection_probability: number;
+            top_outcome: components["schemas"]["Outcome"];
+            /** Top Probability */
+            top_probability: number;
+        };
+        /** PickOutcomeProbabilityOut */
+        PickOutcomeProbabilityOut: {
+            outcome: components["schemas"]["Outcome"];
+            /** Probability */
+            probability: number;
+        };
+        /** PickPriceViewOut */
+        PickPriceViewOut: {
+            /**
+             * Break Even Probability
+             * @description 1 / entry odds
+             */
+            break_even_probability: number;
+            /** Entry Odds */
+            entry_odds: number;
+            /**
+             * Market Assumption Return
+             * @description p_market_fair x odds - 1: the same estimate on the de-margined market
+             */
+            market_assumption_return: number | null;
+            /**
+             * Model Assumption Return
+             * @description p_model x odds - 1: an estimate that holds only if the model is right
+             */
+            model_assumption_return: number | null;
+        };
         /** PickResultOut */
         PickResultOut: {
             actual_outcome: components["schemas"]["Outcome"] | null;
@@ -1270,6 +1671,35 @@ export interface components {
              * Format: date-time
              */
             recorded_at: string;
+        };
+        /** PickTeamNewsOut */
+        PickTeamNewsOut: {
+            away: components["schemas"]["PickTeamNewsSideOut"];
+            home: components["schemas"]["PickTeamNewsSideOut"];
+            /** Lineups Announced */
+            lineups_announced: boolean;
+            /** Snapshot Ids */
+            snapshot_ids?: number[];
+        };
+        /** PickTeamNewsSideOut */
+        PickTeamNewsSideOut: {
+            /** Absences */
+            absences?: string[];
+            /** Absences Captured At */
+            absences_captured_at?: string | null;
+            /**
+             * Absences Status
+             * @enum {string}
+             */
+            absences_status: "reported" | "none_reported" | "unknown";
+            /** Lineup Captured At */
+            lineup_captured_at?: string | null;
+            /** Missing Regulars */
+            missing_regulars?: string[];
+            /** Regulars Known */
+            regulars_known: boolean;
+            /** Team Name */
+            team_name: string;
         };
         /** PredictionOut */
         PredictionOut: {
@@ -2188,6 +2618,181 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerformanceOut"];
+                };
+            };
+        };
+    };
+    list_picks_personal_picks_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalPickListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_pick_personal_picks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalPickIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalPickDetailOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_pick_personal_picks__pick_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pick_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalPickDetailOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revise_pick_personal_picks__pick_id__revisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pick_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalPickRevisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalPickDetailOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
