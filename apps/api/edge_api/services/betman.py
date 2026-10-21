@@ -96,17 +96,21 @@ def learn_alias(
 
 # ------------------------------------------------------------------ mappings
 def latest_mappings(
-    session: Session, keys: Sequence[EventKey]
+    session: Session, keys: Sequence[EventKey], *, as_of: datetime | None = None
 ) -> dict[EventKey, BetmanEventMapping]:
-    """The current mapping decision of each event (events without one are absent)."""
+    """The current mapping decision of each event (events without one are absent);
+    with ``as_of``, the newest decision stored by then (what that moment knew)."""
     rounds = {(k.product, k.round_id) for k in keys}
     if not rounds:
         return {}
     wanted = set(keys)
     out: dict[EventKey, BetmanEventMapping] = {}
+    conditions = [tuple_(BetmanEventMapping.product, BetmanEventMapping.round_id).in_(rounds)]
+    if as_of is not None:
+        conditions.append(BetmanEventMapping.created_at <= as_of)
     for m in session.scalars(
         select(BetmanEventMapping)
-        .where(tuple_(BetmanEventMapping.product, BetmanEventMapping.round_id).in_(rounds))
+        .where(*conditions)
         .order_by(BetmanEventMapping.created_at, BetmanEventMapping.id)
     ):
         key = EventKey(m.product, m.round_id, m.event_number)
@@ -335,12 +339,14 @@ def purchase_blockers(
     """Why this price could not have been bought at ``at`` (empty: it could).
 
     Only a price seen on Betman (not a historical proxy), stored and observed by
-    ``at``, of a verified mapped event, on sale, before the sale closed and
+    ``at``, of an event mapped by ``at``, on sale, before the sale closed and
     before kickoff, counts. Rule gaps are reported by ``rule_warnings``.
     """
     reasons = []
     if mapping is None or mapping.status != "mapped":
         reasons.append("not_mapped")
+    elif mapping.created_at > at:  # pass the mapping as of ``at`` (latest_mappings as_of)
+        reasons.append("mapped_after_decision")
     if snapshot.price_evidence != "observed" or snapshot.source_observed_at is None:
         reasons.append("historical_proxy")
     elif snapshot.source_observed_at > at:
@@ -388,7 +394,7 @@ def status_report(
     per selection the price and why it could or could not have been bought."""
     prices = latest_prices(session, at, product=product, round_id=round_id)
     keys = sorted({k for k, _ in prices}, key=lambda k: (k.product, k.round_id, k.event_number))
-    mappings = latest_mappings(session, keys)
+    mappings = latest_mappings(session, keys, as_of=at)
     events = []
     counts = {"purchasable": 0, "blocked": 0}
     for key in keys:
