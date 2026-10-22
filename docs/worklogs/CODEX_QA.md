@@ -1,5 +1,13 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-22 — PR #37–#40 통합 main QA / Codex
+
+- [독립 QA 및 개선 검토](../qa/2026-10-22-independent-review.md): main `715404d3e7e83094f6bb7c7892c230d07ce103e3`.
+- Python 변경 범위 58 PASS, 독립 신규 반례 2 FAIL; 웹 122 PASS, typecheck/lint/build PASS.
+- 이전 Betman as-of·테마·리그 선정 보정 확인. 신규 P2: 종료 경기 사전 기록 분류, 선수 정보 실제 가용 lead time 과대 계산.
+- 모델 개선: 선발/출전 시간 누수 계약, 정확도 향상과 비열등성 분리, 실제 09:00 coverage 및 동시점 시장 비교 권고.
+- 최종 NEEDS_CHANGES. Mock DB 테스트이며 실API/운영 DB/원본 ML 재학습 미실행. 기능 코드 변경 없음.
+
 ## 2026-10-21 — 사용자 선택 픽 복기 명세 검토 / Codex
 
 - [구현 검토안](../qa/2026-10-21-personal-pick-review-spec.md): 기존 /review와 베트맨 A단계 확인.
