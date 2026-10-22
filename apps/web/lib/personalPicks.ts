@@ -1,4 +1,5 @@
 import type {
+  FixtureSummary,
   Outcome,
   PersonalPickIn,
   PersonalPickRevisionIn,
@@ -218,4 +219,71 @@ export function cautionLines(a: PickAnalysis): string[] {
 
 export function selectionProbability(a: PickAnalysis): number | null {
   return a.model ? a.model.probabilities[PROB_KEY[a.selection]] : null;
+}
+
+export type PickerScope = "featured" | "verified" | "all";
+
+export interface PickerGroup {
+  league: FixtureSummary["league"];
+  fixtures: FixtureSummary[];
+}
+
+/** Matches a team (name or short name) or the league (name or country). */
+export function matchesQuery(f: FixtureSummary, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return [
+    f.home_team.name,
+    f.home_team.short_name,
+    f.away_team.name,
+    f.away_team.short_name,
+    f.league.name,
+    f.league.country,
+    f.league.country_ko,
+  ].some((s) => s.toLowerCase().includes(needle));
+}
+
+export function inScope(f: FixtureSummary, scope: PickerScope): boolean {
+  if (scope === "featured") return f.league.featured;
+  if (scope === "verified") return f.league.verified;
+  return true;
+}
+
+/** Scope that shows something: the requested one, else the next wider one. */
+export function defaultScope(fixtures: FixtureSummary[]): PickerScope {
+  if (fixtures.some((f) => f.league.featured)) return "featured";
+  if (fixtures.some((f) => f.league.verified)) return "verified";
+  return "all";
+}
+
+/**
+ * The picker's league groups: filtered by scope and search, featured leagues
+ * first, then verified ones, then by country and name; matches by kickoff.
+ */
+export function pickerGroups(
+  fixtures: FixtureSummary[],
+  query: string,
+  scope: PickerScope,
+): PickerGroup[] {
+  const groups = new Map<number, PickerGroup>();
+  for (const f of fixtures) {
+    if (!inScope(f, scope) || !matchesQuery(f, query)) continue;
+    const g = groups.get(f.league.id) ?? { league: f.league, fixtures: [] };
+    g.fixtures.push(f);
+    groups.set(f.league.id, g);
+  }
+  const rank = (g: PickerGroup) => (g.league.featured ? 0 : g.league.verified ? 1 : 2);
+  return [...groups.values()]
+    .map((g) => ({
+      ...g,
+      fixtures: [...g.fixtures].sort(
+        (a, b) => a.kickoff_at.localeCompare(b.kickoff_at) || a.id - b.id,
+      ),
+    }))
+    .sort(
+      (a, b) =>
+        rank(a) - rank(b) ||
+        a.league.country_ko.localeCompare(b.league.country_ko, "ko") ||
+        a.league.name.localeCompare(b.league.name),
+    );
 }

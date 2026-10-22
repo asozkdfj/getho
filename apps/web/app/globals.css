@@ -1756,3 +1756,34 @@ table.glossary th[scope="row"] {
 .pick-form .inline input[type="datetime-local"] {
   width: auto;
 }
+
+/* personal pick: chosen match summary */
+.chosen-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.chosen-match-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.chosen-match-info .league-mark {
+  vertical-align: -3px;
+}
+.match-picker .picker-rows {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.chosen-match-change {
+  flex: none;
+  white-space: nowrap;
+  padding: 8px 14px;
+  min-height: 40px;
+}

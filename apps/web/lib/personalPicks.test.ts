@@ -1,15 +1,18 @@
-import type { PickAnalysis } from "@edge/contracts";
+import type { FixtureSummary, PickAnalysis } from "@edge/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_FORM,
   cautionLines,
   createBody,
+  defaultScope,
   newRequestKey,
+  pickerGroups,
   revisionBody,
   riskLines,
   zonedToIso,
 } from "./personalPicks";
+import { TEST_LEAGUE } from "./testing";
 
 const side = (team_name: string) => ({
   team_name,
@@ -150,5 +153,68 @@ describe("analysis texts", () => {
     expect(lines.join("\n")).toMatch(/Chelsea 결장 정보.*미확인/);
     expect(lines.join("\n")).toMatch(/검증하지 않은 리그/);
     expect(riskLines(analysis({ model: null }))).toEqual([]);
+  });
+});
+
+describe("match picker", () => {
+  const league = (id: number, name: string, featured: boolean, verified: boolean) => ({
+    ...TEST_LEAGUE,
+    id,
+    name,
+    country: "England",
+    country_ko: "잉글랜드",
+    featured,
+    verified,
+  });
+  const fixture = (
+    id: number,
+    lg: ReturnType<typeof league>,
+    home: string,
+    away: string,
+    kickoff: string,
+  ) =>
+    ({
+      id,
+      league: lg,
+      kickoff_at: kickoff,
+      status: "scheduled",
+      home_team: { id: id * 10, name: home, short_name: home.slice(0, 3).toUpperCase() },
+      away_team: { id: id * 10 + 1, name: away, short_name: away.slice(0, 3).toUpperCase() },
+    }) as unknown as FixtureSummary;
+  const epl = league(1, "Premier League", true, true);
+  const champ = league(2, "Championship", false, true);
+  const nl = league(3, "National League", false, false);
+  const all = [
+    fixture(3, nl, "Barnet", "Wrexham", "2026-10-21T14:00:00Z"),
+    fixture(2, epl, "Chelsea", "Everton", "2026-10-21T16:30:00Z"),
+    fixture(1, epl, "Arsenal", "Leeds", "2026-10-21T12:00:00Z"),
+    fixture(4, champ, "Hull City", "Leeds United", "2026-10-21T15:00:00Z"),
+  ];
+
+  it("starts on the narrowest scope that has matches", () => {
+    expect(defaultScope(all)).toBe("featured");
+    expect(defaultScope(all.filter((f) => !f.league.featured))).toBe("verified");
+    expect(defaultScope([all[0]!])).toBe("all");
+  });
+
+  it("groups featured, then verified, then the rest, matches by kickoff", () => {
+    const groups = pickerGroups(all, "", "all");
+    expect(groups.map((g) => g.league.name)).toEqual([
+      "Premier League",
+      "Championship",
+      "National League",
+    ]);
+    expect(groups[0]!.fixtures.map((f) => f.id)).toEqual([1, 2]);
+    expect(pickerGroups(all, "", "featured").map((g) => g.league.id)).toEqual([1]);
+    expect(pickerGroups(all, "", "verified").map((g) => g.league.id)).toEqual([1, 2]);
+  });
+
+  it("searches teams and leagues, case-insensitively", () => {
+    expect(pickerGroups(all, "leeds", "all").flatMap((g) => g.fixtures.map((f) => f.id))).toEqual([
+      1, 4,
+    ]);
+    expect(pickerGroups(all, "championship", "all").map((g) => g.league.id)).toEqual([2]);
+    expect(pickerGroups(all, "잉글랜드", "all")).toHaveLength(3);
+    expect(pickerGroups(all, "nobody", "all")).toEqual([]);
   });
 });

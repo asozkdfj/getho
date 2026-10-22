@@ -2,10 +2,9 @@
 
 import { OUTCOMES, type FixtureSummary } from "@edge/contracts";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import { OUTCOME_LABEL } from "@/lib/format";
-import { groupByLeague, leagueLabel } from "@/lib/leagues";
+import { OUTCOME_LABEL, pct } from "@/lib/format";
 import {
   EMPTY_FORM,
   createBody,
@@ -14,6 +13,11 @@ import {
   type PickFormValues,
 } from "@/lib/personalPicks";
 import { formatInTz } from "@/lib/time";
+
+import { LeagueMark } from "./LeagueMark";
+import { MatchPicker } from "./MatchPicker";
+
+const PROB_KEY = { HOME: "home", DRAW: "draw", AWAY: "away" } as const;
 
 type Mode =
   | { kind: "create"; fixtures: FixtureSummary[] }
@@ -34,10 +38,6 @@ export function PersonalPickForm({ mode, tz }: { mode: Mode; tz: string }) {
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<PickFormValues>) => setValues((v) => ({ ...v, ...patch }));
 
-  const groups = useMemo(
-    () => (mode.kind === "create" ? groupByLeague(mode.fixtures) : []),
-    [mode],
-  );
   const chosen =
     mode.kind === "create" ? (mode.fixtures.find((f) => f.id === fixtureId) ?? null) : null;
   const started = chosen !== null && chosen.status !== "scheduled";
@@ -86,35 +86,54 @@ export function PersonalPickForm({ mode, tz }: { mode: Mode; tz: string }) {
     }
   }
 
+  if (mode.kind === "create" && chosen === null) {
+    return (
+      <div className="card stack pick-form">
+        <div className="field">
+          <span>경기와 내 선택 (정규시간 승무패)</span>
+          <span className="muted small">
+            경기 줄에서 홈승·무·원정승을 누르세요. 버튼 아래 숫자는 모델 확률이에요.
+          </span>
+        </div>
+        <MatchPicker
+          fixtures={mode.fixtures}
+          tz={tz}
+          value={null}
+          onChange={(c) => {
+            setFixtureId(c.fixtureId);
+            set({ selection: c.selection });
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <form className="card stack pick-form" onSubmit={submit}>
-      {mode.kind === "create" && (
-        <label className="field">
-          <span>경기</span>
-          <select
-            value={fixtureId ?? ""}
-            onChange={(e) => setFixtureId(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">경기를 고르세요</option>
-            {groups.map((g) => (
-              <optgroup key={g.league.id} label={leagueLabel(g.league)}>
-                {g.fixtures.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {formatInTz(f.kickoff_at, tz, "time")} {f.home_team.name} (홈) vs{" "}
-                    {f.away_team.name} (원정)
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-      )}
       {chosen && (
+        <div className="chosen-match">
+          <div className="chosen-match-info">
+            <span className="muted small">
+              <LeagueMark league={chosen.league} size={16} /> {chosen.league.country_ko} ·{" "}
+              {chosen.league.name} · {formatInTz(chosen.kickoff_at, tz, "datetime")}
+            </span>
+            <strong>
+              {chosen.home_team.name} <span className="muted">(홈) vs</span> {chosen.away_team.name}{" "}
+              <span className="muted">(원정)</span>
+            </strong>
+          </div>
+          <button
+            type="button"
+            className="btn secondary chosen-match-change"
+            onClick={() => setFixtureId(null)}
+          >
+            다른 경기
+          </button>
+        </div>
+      )}
+      {started && (
         <p className="muted small" style={{ margin: 0 }}>
-          홈 <strong>{chosen.home_team.name}</strong> · 원정{" "}
-          <strong>{chosen.away_team.name}</strong> · 시작{" "}
-          {formatInTz(chosen.kickoff_at, tz, "full")}
-          {started && " · 이미 시작한 경기: 사후 입력으로 저장되고 경기 전 결정 시각이 필요해요."}
+          이미 시작한 경기예요. 사후 입력으로 저장되고, 경기 전 결정 시각이 필요해요.
         </p>
       )}
 
@@ -129,6 +148,9 @@ export function PersonalPickForm({ mode, tz }: { mode: Mode; tz: string }) {
               onClick={() => set({ selection: o })}
             >
               <strong>{OUTCOME_LABEL[o]}</strong>
+              {chosen?.model_probabilities && (
+                <small>모델 {pct(chosen.model_probabilities[PROB_KEY[o]], 0)}</small>
+              )}
             </button>
           ))}
         </div>
