@@ -964,6 +964,9 @@ class PickAnalysisOut(ApiModel):
     league_name: str
     league_verified: bool
     kickoff_at: datetime
+    fixture_status: str | None = Field(
+        default=None, description="Fixture status when the revision was stored"
+    )
     model: PickModelViewOut | None
     market: PickMarketViewOut | None
     price: PickPriceViewOut | None

@@ -1401,6 +1401,11 @@ export interface components {
              * Format: date-time
              */
             computed_at: string;
+            /**
+             * Fixture Status
+             * @description Fixture status when the revision was stored
+             */
+            fixture_status?: string | null;
             /** Home Team */
             home_team: string;
             /**
