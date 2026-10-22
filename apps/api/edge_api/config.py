@@ -80,6 +80,13 @@ class Settings(BaseSettings):
     ingest_max_age_hours: float = 8.0
     min_team_matches: int = 10
 
+    # --- alerts (`edge check-alerts`, run by host cron: infra/server/alerts.sh)
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: str | None = None
+    alert_consecutive_failures: int = 2  # failed pipeline runs in a row
+    alert_pick_grace_minutes: int = 90  # after the publish hour, no pick decision yet
+    alert_remind_hours: float = 12.0  # repeat a still-firing alert this often
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:
@@ -96,6 +103,8 @@ class Settings(BaseSettings):
 
     @field_validator(
         "api_football_key",
+        "telegram_bot_token",
+        "telegram_chat_id",
         "primary_bookmaker",
         "api_football_bookmaker_id",
         "odds_lookahead_days",

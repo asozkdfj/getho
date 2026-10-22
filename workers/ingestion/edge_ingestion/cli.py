@@ -29,6 +29,7 @@ from edge_api.services.prediction_job import run_prediction_job
 from edge_api.timeutil import ensure_utc, utcnow
 from edge_api.versioning import build_info
 from edge_ingestion import (
+    alerts,
     availability_readiness,
     backtest_cli,
     betman_cli,
@@ -226,6 +227,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     league_verification.add_arguments(
         sub.add_parser("verify-leagues", help="score more leagues with the verified rule")
+    )
+    alerts.add_arguments(
+        sub.add_parser("check-alerts", help="send collection alerts to Telegram (host cron)")
     )
     availability_readiness.add_arguments(
         sub.add_parser(
@@ -445,6 +449,11 @@ def main(argv: list[str] | None = None) -> int:
         report = calibration_confirmatory.run(args)
         calibration_confirmatory.write(report, args.out)
         print(json.dumps(calibration_confirmatory.summary(report), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "check-alerts":
+        configure_logging(get_settings().log_level)
+        alerts.print_report(alerts.run(args, get_settings()))
         return 0
 
     if args.command == "availability-readiness":
