@@ -1,5 +1,13 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-22 — PR #42/#43 추가 QA / Codex
+
+- [추가 보고서](../qa/2026-10-22-alerts-and-fix-review.md): main `68da8ce`, 기존 세 지적 해결 확인.
+- 변경 범위 35 PASS, 새 반례 2 FAIL. Ruff/typecheck/OpenAPI 객체 일치 PASS.
+- P2 날짜 전환 시 거짓 픽 누락 해결 알림, P3 원정 점수만 있는 모순 관측 방어 누락.
+- 실제 전송 없음(Mock/가짜 sender). 운영 readiness·모델 학습·전체 suite 미실행.
+- 모델 후속: provider/backfill 분모, 최신 snapshot 신선도, KST 주/동률 규칙 및 최소 표본 검토.
+
 ## 2026-10-22 — PR #41 및 정확도 gate 후속 분석 / Codex
 
 - [후속 보고서](../qa/2026-10-22-availability-protocol-followup.md): PR #41 `e084b8c`, 문서 diff 검토.
