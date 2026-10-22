@@ -153,6 +153,34 @@ infra/server/backup.sh --install-cron
   mkdir -p server-backups && scp 'ubuntu@<서버 IP>:~/getho/backups/*.dump' server-backups/
   ```
 
+## 9. 수집 실패 알림 (텔레그램)
+
+수집이 연달아 실패하거나, 8시간 넘게 성공한 수집이 없거나, 09:00 픽 결정이 90분 지나도 없으면 휴대폰으로 알려 줍니다.
+고쳐지면 "해결" 메시지가 오고, 계속 문제면 12시간마다 다시 알려 줍니다. API 컨테이너나 DB가 죽어서 점검 자체를 못 하면
+서버가 직접 한 번 알려 줍니다(12시간에 한 번).
+
+1. **봇 만들기 (휴대폰 텔레그램):** `@BotFather`에게 `/newbot` → 이름 입력 → **토큰**을 받습니다.
+   토큰은 비밀번호와 같습니다. **채팅(Claude 포함)에 붙여 넣지 말고** 서버 `.env`에만 넣습니다.
+2. 만든 봇과 대화방을 열고 아무 메시지나 한 번 보냅니다(봇은 먼저 말을 걸 수 없습니다).
+3. **chat id 찾기 (서버에서):** 토큰은 화면에 남지 않게 `read -s`로 입력합니다.
+   ```bash
+   read -rs TOKEN && curl -s "https://api.telegram.org/bot$TOKEN/getUpdates" | grep -o '"chat":{"id":-\?[0-9]*' | head -1; unset TOKEN
+   ```
+   나온 숫자가 chat id입니다.
+4. **`.env`에 추가:** `nano .env`로 열어 두 줄을 넣고 저장합니다.
+   ```
+   TELEGRAM_BOT_TOKEN=<봇 토큰>
+   TELEGRAM_CHAT_ID=<chat id>
+   ```
+5. **반영하고 시험·등록:**
+   ```bash
+   infra/server/deploy.sh
+   infra/server/alerts.sh --test
+   infra/server/alerts.sh --install-cron
+   ```
+   `--test` 뒤에 휴대폰에 "알림 테스트 메시지"가 오면 됩니다. 이후 10분마다 점검하고 기록은 `backups/alerts.log`에 남습니다.
+- 서버 전체가 꺼지면(전원·네트워크) 알림을 보낼 곳이 없어 알 수 없습니다. 이 경우는 `/status/data` 배지로 확인합니다.
+
 ## 평소에 쓰는 명령 (서버의 `~/getho`에서)
 
 | 하고 싶은 것 | 명령 |
@@ -163,6 +191,7 @@ infra/server/backup.sh --install-cron
 | 수집 품질 리포트 | `infra/server/edge.sh collection-quality --start 2026-10-20 --end 2026-10-26` |
 | 병행 기록 채점(12월) | `infra/server/edge.sh shadow-report` |
 | 지금 백업 | `infra/server/backup.sh` |
+| 알림 점검 지금 실행 / 시험 메시지 | `infra/server/alerts.sh` / `infra/server/alerts.sh --test` |
 | 디스크 확인 | `df -h /` |
 
 ## 문제 해결

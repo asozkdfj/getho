@@ -18,7 +18,7 @@
 | 9 | 운영 배포(이미지 레지스트리, 마이그레이션 릴리스 단계, Sentry, structured JSON logs) | MVP는 로컬 compose가 목표입니다. production에서는 `RUN_MIGRATIONS_ON_STARTUP=false`, `SEED_ON_STARTUP=false`로 둡니다. | 공개 베타 전 |
 | 10 | Celery beat 분리 | 로컬은 `worker -B` 하나로 충분합니다. 다중 worker에서는 beat를 단일 프로세스로 분리해야 합니다. | 배포 시 |
 | 11 | SEO 페이지(`/matches/{home}-vs-{away}-{date}`, sitemap, SportsEvent 구조화 데이터) | Phase 3 범위입니다. 지금 URL은 `/fixtures/{id}`입니다. | Phase 3 |
-| 12 | 데이터 지연 알림(메일/Slack) | `ingestion_runs`와 `/status/data`, 화면 배지까지는 구현했습니다. 외부 알림 채널은 운영 환경이 정해져야 합니다. | 배포 시 |
+| 12 | ~~데이터 지연 알림~~ | 완료(2026-10-22): 텔레그램 알림(ADR-042, [SERVER.md 9단계](SERVER.md)). 메일·Slack은 필요할 때 같은 `Sender`로 추가 | – |
 | 13 | `npm audit`: `braces` (high, ESLint 플러그인 → fast-glob → micromatch 경유) | 개발 전용 lint 도구 체인이라 런타임이나 배포 이미지에는 포함되지 않습니다. 아직 패치 버전이 없습니다(`braces *`). | upstream 패치 시 `npm update` |
 | 14 | DB 레이어를 `packages/db`로 분리 | 지금은 ingestion이 `edge_api.db`를 import합니다(ADR-001). | ingestion을 별도 서비스로 분리할 때 |
 | 15 | 로그인/즐겨찾기/알림, 분석 이벤트(PostHog) | 기획서상 트래픽을 확인한 뒤 추가합니다. | Phase 3+ |
@@ -37,7 +37,7 @@
 | 31 | '차이 큼'·기대값·주목할 경기 표시 재검토 | 과거 배당 비교에서 시장이 더 정확했고 '차이 큼' 결과는 평균 −17%였습니다(ADR-017). 지금은 측정 결과를 알리는 문구만 추가했습니다. | 사용자 결정 |
 | 32 | xG 기반 전력 추정 | 득점 대신 슈팅 품질로 전력을 추정하는 후보. 공개 xG 데이터 확보가 먼저입니다. | 데이터 확보 후 |
 | 33 | 실데이터 파이프라인 실패 경로 실검증 | 일정 변경 경기 갱신, 팀 뉴스 오류 격리, 실패 실행 기록은 FakeApiFootball/Mock 테스트로만 확인했습니다([QA 기록](qa/2026-10-16-pipeline-reliability.md)). 실제 API 키로 `make check-provider`와 며칠간의 실행 기록(`fixtures_reconciled`, `overdue_unresolved`, `team_news.error`)을 확인해야 합니다. | API 키가 있는 환경에서 |
-| 34 | 수집 실패 알림 | 실패 실행은 `ingestion_runs`에 남고 `/status/data`에 보이지만, 연속 실패나 `overdue_unresolved` 증가를 알려주는 채널은 없습니다(#12와 같은 이유). | 배포 시 |
+| 34 | ~~수집 실패 알림~~ | 완료(2026-10-22): 연속 실패·수집 지연·픽 결정 누락을 10분마다 점검(ADR-042). 남은 것: 서버 전체 다운은 외부 감시가 없어 알 수 없음 | – |
 | 35 | 지난 픽 성과를 정책·모델 버전별로 나누기 | 지금은 실데이터 픽이 없어 합계만 보여 줍니다. 픽마다 `policy.version`과 모델 버전이 남아 있어 나눌 수 있습니다. | 실데이터 픽이 쌓이고 정책·모델이 바뀔 때 |
 | 36 | 언더/오버·핸디캡 재측정 | 운영 모델로는 표시 조건 미달(ADR-020). 점수 분포 모델을 바꾸면 `edge backtest-goal-markets`로 같은 기준을 다시 적용합니다. | 점수 분포 모델 변경 시 |
 | 37 | 조건부 자동 조합(예: 배당 5배 이상 중 가장 확률 높은 조합) | 분석 확률이 부풀려집니다(과거 19% vs 실제 15%). 시장 확률과 같은 방식의 과거 적중률·수익률을 함께 보여 주는 보완 장치를 먼저 만들고, 국내 배당과의 차이도 다뤄야 합니다(ADR-021). | 사용자 결정 후 다음 단계 |

@@ -686,3 +686,28 @@ class PersonalPick(Base):
     analysis: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
     fixture: Mapped[Fixture] = relationship()
+
+
+class AlertEvent(Base):
+    """An alert state change or reminder that was (or failed to be) delivered.
+
+    Append-only: the latest row per ``key`` is the alert's current state.
+    ``state`` is ``firing`` or ``resolved``; ``delivered`` says whether the
+    channel accepted the message (a failed delivery is retried next check).
+    """
+
+    __tablename__ = "alert_events"
+    __table_args__ = (
+        CheckConstraint("state IN ('firing', 'resolved')", name="state"),
+        Index("ix_alert_events_key_created", "key", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(16))
+    message: Mapped[str] = mapped_column(String(2000))
+    detail: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    channel: Mapped[str] = mapped_column(String(16))
+    delivered: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _ts(server_default=func.now())
