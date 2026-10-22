@@ -1,0 +1,73 @@
+{
+  "status": "DESCRIPTIVE_ONLY_NOT_AVAILABILITY_CANDIDATE_OR_PROMOTION",
+  "source_sha256": "fcb5e69a51ccf5fce338c2de9089ba98ed4562a1154d596298467faba2ce5f26",
+  "script_sha256": "195f391bb6cc8c828f5e62ba7bfa066681b42ab2bad06d25c43ce75ae8b8ff89",
+  "seed": 20261022,
+  "draws": 4000,
+  "blocks": "UTC ISO kickoff week; decision timestamp unavailable; timing proxy",
+  "tie_break": "HOME, AWAY, DRAW (existing QA convention; preregister for new study)",
+  "segments": {
+    "2024-25": {
+      "sot_and_finishing": {
+        "n": 2913,
+        "utc_kickoff_weeks": 38,
+        "corrected": 68,
+        "introduced": 54,
+        "accuracy_delta": 0.004806041881222108,
+        "weekly_paired_95_ci": [
+          -0.0010406188702213705,
+          0.010767452645647744
+        ],
+        "illustrative_noninferiority_lower_gt_minus_001": true,
+        "illustrative_improvement_lower_gt_zero": false
+      },
+      "sot_finishing_plus_xg": {
+        "n": 2913,
+        "utc_kickoff_weeks": 38,
+        "corrected": 82,
+        "introduced": 55,
+        "accuracy_delta": 0.009268795056642637,
+        "weekly_paired_95_ci": [
+          0.003062945175911936,
+          0.015646743936675128
+        ],
+        "illustrative_noninferiority_lower_gt_minus_001": true,
+        "illustrative_improvement_lower_gt_zero": true
+      }
+    },
+    "2025-26": {
+      "sot_and_finishing": {
+        "n": 2916,
+        "utc_kickoff_weeks": 39,
+        "corrected": 60,
+        "introduced": 68,
+        "accuracy_delta": -0.0027434842249657062,
+        "weekly_paired_95_ci": [
+          -0.01001379563388796,
+          0.0052970323222680535
+        ],
+        "illustrative_noninferiority_lower_gt_minus_001": false,
+        "illustrative_improvement_lower_gt_zero": false
+      },
+      "sot_finishing_plus_xg": {
+        "n": 2916,
+        "utc_kickoff_weeks": 39,
+        "corrected": 82,
+        "introduced": 84,
+        "accuracy_delta": -0.0006858710562414266,
+        "weekly_paired_95_ci": [
+          -0.0070472004942076965,
+          0.005577145362851989
+        ],
+        "illustrative_noninferiority_lower_gt_minus_001": true,
+        "illustrative_improvement_lower_gt_zero": false
+      }
+    }
+  },
+  "limitations": [
+    "Already examined periods and candidates; no untouched holdout.",
+    "No source training replay or availability candidate predictions.",
+    "Illustrations are not adoption decisions; LL/Brier gates still apply.",
+    "Eight-week guard is not a power calculation; zero discordance is degenerate."
+  ]
+}

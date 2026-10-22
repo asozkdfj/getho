@@ -1,5 +1,13 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-22 — PR #41 및 정확도 gate 후속 분석 / Codex
+
+- [후속 보고서](../qa/2026-10-22-availability-protocol-followup.md): PR #41 `e084b8c`, 문서 diff 검토.
+- −1%p 조건은 비열등성이며 무악화/향상과 구분하도록 P2 문구 수정 요청. 기준값 유지.
+- 기존 예측 2,913/2,916경기 paired 주 단위 CI 계산. 후속 슈팅+xG는 −2적중이어도 비열등성 예시는 통과.
+- 테스트 2 PASS, Ruff PASS. 기존 탐색 자료·kickoff 주 대리 평가이며 선수 후보 채택 근거 아님.
+- 이전 기능 P2 수정은 아직 main에 없음. 운영 코드·모델·평가 기준 변경 없음.
+
 ## 2026-10-22 — PR #37–#40 통합 main QA / Codex
 
 - [독립 QA 및 개선 검토](../qa/2026-10-22-independent-review.md): main `715404d3e7e83094f6bb7c7892c230d07ce103e3`.
