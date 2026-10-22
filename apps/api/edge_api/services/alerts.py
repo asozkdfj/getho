@@ -21,7 +21,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -144,10 +144,49 @@ def _action(c: Condition, last: AlertEvent | None, now: datetime, remind: timede
     if c.firing:
         if last is None or last.state == "resolved" or not last.delivered:
             return "firing"
+        if last.detail.get("pick_date") != c.detail.get("pick_date"):
+            return "firing"  # a new pick day is missing too: a new incident
         return "firing" if now - last.created_at >= remind else None
     if last is not None and (last.state == "firing" or not last.delivered):
         return "resolved"
     return None
+
+
+def _closed_pick_day(
+    session: Session, settings: Settings, c: Condition, last: AlertEvent
+) -> Condition:
+    """How a missing-pick incident of an earlier pick day ends (Codex QA ALERT-DAY-1).
+
+    The check only looks at the current pick day, so it stops firing when the
+    day turns over, during the new day's grace period. That is not the old day's
+    pick being recorded: say "recorded" only if a row for that day now exists,
+    otherwise say the day passed without a decision."""
+    day = last.detail.get("pick_date")
+    if not day or day == c.detail.get("pick_date"):
+        return c
+    decided = (
+        session.scalars(
+            select(DailyPick.id)
+            .where(
+                DailyPick.provider == settings.data_provider,
+                DailyPick.pick_date == date.fromisoformat(day),
+            )
+            .limit(1)
+        ).first()
+        is not None
+    )
+    resolved = (
+        f"{day} 오늘의 픽 결정이 기록됐어요."
+        if decided
+        else f"{day} 오늘의 픽 결정 없이 그날이 지났어요. worker 로그를 확인하세요."
+    )
+    return Condition(
+        key=c.key,
+        firing=False,
+        message=c.message,
+        resolved=resolved,
+        detail={"pick_date": day, "closed": "decided" if decided else "expired"},
+    )
 
 
 def _text(c: Condition, state: str, now: datetime, tz: str) -> str:
@@ -170,6 +209,8 @@ def check(
     for c in evaluate(session, settings, now):
         last = _latest(session, c.key)
         state = _action(c, last, now, remind)
+        if state == "resolved" and last is not None:
+            c = _closed_pick_day(session, settings, c, last)
         row: dict[str, Any] = {"key": c.key, "firing": c.firing, "action": state}
         if state is not None:
             text = _text(c, state, now, settings.pick_tz)

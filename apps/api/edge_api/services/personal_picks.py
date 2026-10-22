@@ -290,7 +290,8 @@ def _check_not_started(session: Session, fixture: Fixture, now: datetime) -> Non
             # a postponed match moved back to the schedule is fine; one seen live
             # or finished, or with a score, has started
             FixtureObservation.status.in_([FixtureStatus.LIVE.value, FixtureStatus.FINISHED.value])
-            | FixtureObservation.home_score.is_not(None),
+            | FixtureObservation.home_score.is_not(None)
+            | FixtureObservation.away_score.is_not(None),
         )
         .limit(1)
     ).first()

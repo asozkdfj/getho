@@ -481,3 +481,23 @@ def test_an_observed_start_blocks_a_pre_match_record(client, session_factory, no
     ok = client.post("/personal-picks", json=_body(other.id, key="key-0002"))
     assert ok.status_code == 200, ok.text
     assert ok.json()["current"]["analysis"]["fixture_status"] == "scheduled"
+
+
+def test_an_away_only_score_observation_blocks_a_pre_match_record(client, session_factory, now):
+    """Codex QA PICK-SCORE-2: either team's score observed means the match started."""
+    from edge_api.db.models import FixtureObservation
+
+    with session_factory() as s:
+        fixture, _ = _upcoming_with_prediction(s, now)
+        s.add(
+            FixtureObservation(
+                fixture_id=fixture.id,
+                provider="mock",
+                status="scheduled",
+                kickoff_at=fixture.kickoff_at,
+                home_score=None,
+                away_score=1,
+            )
+        )
+        s.commit()
+    assert client.post("/personal-picks", json=_body(fixture.id)).status_code == 422

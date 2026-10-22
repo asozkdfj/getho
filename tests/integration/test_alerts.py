@@ -188,3 +188,76 @@ def test_telegram_sender_posts_and_never_leaks_the_token():
     delivered, error = telegram_sender(settings, fails)("x")
     assert delivered is False and token not in error and "T" * 30 not in error
     assert telegram_sender(settings, lambda *a: 401)("x") == (False, "HTTP 401")
+
+
+# ------------------------------------------------------------------ Codex QA ALERT-DAY-1
+
+
+def _day_turn(s, out, before, after):
+    from conftest import set_test_wall_clock
+
+    set_test_wall_clock(s, before)
+    first = _by_key(check(s, SETTINGS, before, out))["pick_missing"]
+    set_test_wall_clock(s, after)
+    return first, _by_key(check(s, SETTINGS, after, out))["pick_missing"]
+
+
+def test_new_pick_day_does_not_claim_the_old_pick_was_recorded(session_factory, seeded):
+    from datetime import UTC, datetime
+
+    before = datetime(2026, 10, 22, 23, 50, tzinfo=UTC)  # 08:50 KST, still the 22nd's day
+    after = before + timedelta(minutes=20)  # 09:10 KST: the 23rd's day, in its grace period
+    with session_factory() as s:
+        assert s.scalar(select(func.count()).select_from(DailyPick)) == 0
+        first, second = _day_turn(s, Outbox(), before, after)
+        assert first["action"] == "firing" and "2026-10-22" in first["message"]
+        assert second["action"] == "resolved"
+        assert "결정 없이 그날이 지났어요" in second["message"]
+        assert "기록됐어요" not in second["message"]
+        last = s.scalars(
+            select(AlertEvent)
+            .where(AlertEvent.key == "pick_missing")
+            .order_by(AlertEvent.id.desc())
+        ).first()
+        assert last.detail == {"pick_date": "2026-10-22", "closed": "expired"}
+
+
+def test_an_old_day_decided_late_is_reported_as_recorded(session_factory, seeded):
+    from datetime import UTC, date, datetime
+
+    before = datetime(2026, 10, 22, 23, 50, tzinfo=UTC)
+    with session_factory() as s:
+        out = Outbox()
+        from conftest import set_test_wall_clock
+
+        set_test_wall_clock(s, before)
+        assert _by_key(check(s, SETTINGS, before, out))["pick_missing"]["action"] == "firing"
+        s.add(
+            DailyPick(
+                provider="mock",
+                pick_date=date(2026, 10, 22),
+                tz="Asia/Seoul",
+                status="no_qualifying_match",
+                evidence={},
+                policy={},
+            )
+        )
+        s.flush()
+        after = before + timedelta(minutes=20)
+        set_test_wall_clock(s, after)
+        row = _by_key(check(s, SETTINGS, after, out))["pick_missing"]
+        assert (
+            row["action"] == "resolved"
+            and "2026-10-22 오늘의 픽 결정이 기록됐어요" in row["message"]
+        )
+
+
+def test_a_new_missing_day_is_a_new_incident(session_factory, seeded):
+    from datetime import UTC, datetime
+
+    before = datetime(2026, 10, 22, 23, 50, tzinfo=UTC)
+    after = before + timedelta(hours=2)  # 10:50 KST on the 23rd: past its grace period too
+    with session_factory() as s:
+        first, second = _day_turn(s, Outbox(), before, after)
+        assert first["action"] == "firing" and second["action"] == "firing"
+        assert "2026-10-23" in second["message"]
