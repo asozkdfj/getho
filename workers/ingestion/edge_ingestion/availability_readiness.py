@@ -16,11 +16,13 @@ Past matches (line-up time, replayable)
 
 Live collection (morning availability, forward only)
   Absence reports carry when they were captured, so only fixtures collected
-  live can say what was known at 09:00. For those: fixtures whose two teams
-  had an absence report before kickoff (and how early), and fixtures whose two
-  official line-ups were captured before kickoff (and how early). Past absence
-  lists without a capture time cannot be replayed honestly, so they are not
-  counted as morning data.
+  live can say what was known at 09:00. A report counts from when it was both
+  captured and stored. For those: fixtures whose two teams had an absence
+  report before kickoff (and how early), whether both were in by the 09:00
+  decision of the fixture's pick day (and how old), and fixtures whose two
+  official line-ups were in before kickoff (and how early). Past absence lists
+  without a capture time cannot be replayed honestly, so they are not counted
+  as morning data.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from typing import Any
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from edge_api.config import Settings
 from edge_api.db.models import (
     Fixture,
     FixtureStatus,
@@ -45,6 +48,7 @@ from edge_api.db.models import (
     TeamNewsSnapshot,
 )
 from edge_api.services.leagues import verified_league_ids
+from edge_api.services.picks import local_day
 from edge_ml.lineups import MIN_MATCHES
 
 # Minutes stored within this time after kickoff count as collected live.
@@ -71,22 +75,58 @@ def _sheets(session: Session, provider: str) -> dict[tuple[int, int], tuple[int,
 
 
 def _first_captured(session: Session, kind: TeamNewsKind) -> dict[tuple[int, int], datetime]:
-    """(fixture, team) -> first capture before kickoff of a ``kind`` snapshot."""
+    """(fixture, team) -> first moment a ``kind`` snapshot was available before
+    kickoff. A snapshot is available once it was both captured and stored (the
+    later of the two): one captured early but stored late was not usable early
+    (Codex QA AVAIL-TIME-1)."""
+    available = func.greatest(TeamNewsSnapshot.captured_at, TeamNewsSnapshot.created_at)
     rows = session.execute(
-        select(
-            TeamNewsSnapshot.fixture_id,
-            TeamNewsSnapshot.team_id,
-            func.min(TeamNewsSnapshot.captured_at),
-        )
+        select(TeamNewsSnapshot.fixture_id, TeamNewsSnapshot.team_id, func.min(available))
         .join(Fixture, Fixture.id == TeamNewsSnapshot.fixture_id)
-        .where(
-            TeamNewsSnapshot.kind == kind.value,
-            TeamNewsSnapshot.captured_at < Fixture.kickoff_at,
-            TeamNewsSnapshot.created_at < Fixture.kickoff_at,
-        )
+        .where(TeamNewsSnapshot.kind == kind.value, available < Fixture.kickoff_at)
         .group_by(TeamNewsSnapshot.fixture_id, TeamNewsSnapshot.team_id)
     )
     return {(fid, tid): at for fid, tid, at in rows}
+
+
+def _at_decision(
+    fixtures: list[Fixture],
+    first: dict[tuple[int, int], datetime],
+    since: datetime | None,
+    settings: Settings,
+) -> dict[str, Any]:
+    """Absences known by the 09:00 decision of each fixture's pick day.
+
+    Counted for decisions from ``since`` (the first absence report ever
+    captured: collection had not started before); per league, as collection is
+    scoped to leagues. ``age`` is how old the later team's first report was at
+    the decision."""
+    if since is None:
+        return {"since": None, "fixtures": 0, "both_teams": 0, "leagues": []}
+    per: dict[str, dict[str, Any]] = {}
+    ages: list[float] = []
+    for f in fixtures:
+        decision = local_day(f.kickoff_at, settings).publish_at
+        if decision < since:
+            continue
+        row = per.setdefault(
+            f.league.provider_id,
+            {"league": f"{f.league.country} - {f.league.name}", "fixtures": 0, "both_teams": 0},
+        )
+        row["fixtures"] += 1
+        home, away = first.get((f.id, f.home_team_id)), first.get((f.id, f.away_team_id))
+        if home and away and max(home, away) <= decision:
+            row["both_teams"] += 1
+            ages.append((decision - max(home, away)).total_seconds() / 3600)
+    leagues = sorted(per.values(), key=lambda r: (-r["fixtures"], r["league"]))
+    return {
+        "since": since.isoformat(),
+        "decision": f"{settings.pick_publish_hour:02d}:00 {settings.pick_tz} of the pick day",
+        "fixtures": sum(r["fixtures"] for r in leagues),
+        "both_teams": sum(r["both_teams"] for r in leagues),
+        "median_age_hours": round(statistics.median(ages), 2) if ages else None,
+        "leagues": leagues,
+    }
 
 
 def _lead_hours(fixtures: list[Fixture], first: dict[tuple[int, int], datetime]) -> list[float]:
@@ -109,7 +149,8 @@ def _spread(hours: list[float]) -> dict[str, Any]:
     }
 
 
-def readiness(session: Session, provider: str) -> dict[str, Any]:
+def readiness(session: Session, provider: str, settings: Settings | None = None) -> dict[str, Any]:
+    settings = settings or Settings(data_provider=provider)
     sheets = _sheets(session, provider)
     fixtures = session.scalars(
         select(Fixture)
@@ -167,6 +208,7 @@ def readiness(session: Session, provider: str) -> dict[str, Any]:
             }
         )
 
+    absences = _first_captured(session, TeamNewsKind.ABSENCES)
     ready_verified = sum(lg["totals"]["strength_ready"] for lg in leagues if lg["verified"])
     return {
         "generated_at": datetime.now().astimezone().isoformat(),
@@ -184,9 +226,18 @@ def readiness(session: Session, provider: str) -> dict[str, Any]:
             "leagues": leagues,
         },
         "morning_live": {
-            "note": "finished fixtures; only snapshots captured and stored before kickoff",
-            "absences_both_teams": _spread(
-                _lead_hours(fixtures, _first_captured(session, TeamNewsKind.ABSENCES))
+            "note": "finished fixtures; a snapshot counts from when it was both captured "
+            "and stored",
+            "absences_both_teams": _spread(_lead_hours(fixtures, absences)),
+            "absences_at_decision": _at_decision(
+                fixtures,
+                absences,
+                session.scalar(
+                    select(func.min(TeamNewsSnapshot.captured_at)).where(
+                        TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value
+                    )
+                ),
+                settings,
             ),
             "lineups_both_teams": _spread(
                 _lead_hours(fixtures, _first_captured(session, TeamNewsKind.LINEUP))
@@ -200,7 +251,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from edge_api.db.session import session_scope
 
     with session_scope() as session:
-        report = readiness(session, get_settings().data_provider)
+        settings = get_settings()
+        report = readiness(session, settings.data_provider, settings)
     if args.out:
         args.out.write_text(
             json.dumps(report, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8"

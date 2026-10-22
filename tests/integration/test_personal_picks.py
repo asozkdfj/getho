@@ -437,3 +437,47 @@ def test_absences_stored_after_the_pick_do_not_change_it(client, session_factory
     side = out.current.analysis.team_news.home
     assert side.absences_status in {"reported", "none_reported"}
     assert out.current.analysis.team_news.snapshot_ids
+
+
+# ------------------------------------------------------------------ Codex QA 10/22
+
+
+@pytest.mark.parametrize("status", ["finished", "live", "cancelled", "postponed"])
+def test_a_match_not_scheduled_cannot_be_a_pre_match_record(client, session_factory, now, status):
+    """PICK-STATE-1: kickoff still ahead but the status says otherwise -> refused."""
+    with session_factory() as s:
+        fixture, _ = _upcoming_with_prediction(s, now)
+        fixture.status = status
+        if status == "finished":
+            fixture.home_score, fixture.away_score = 1, 0
+        s.commit()
+    res = client.post("/personal-picks", json=_body(fixture.id))
+    assert res.status_code == 422, res.text
+    with session_factory() as s:
+        assert _count(s) == 0
+
+
+def test_an_observed_start_blocks_a_pre_match_record(client, session_factory, now):
+    """Status back to scheduled, but a stored observation saw it live: refused.
+    A postponement that was moved back is fine."""
+    from edge_api.db.models import FixtureObservation
+
+    with session_factory() as s:
+        fixture, _ = _upcoming_with_prediction(s, now)
+        other, _ = _upcoming_with_prediction(s, now, top="AWAY")
+        for f, status, score in ((fixture, "live", 0), (other, "postponed", None)):
+            s.add(
+                FixtureObservation(
+                    fixture_id=f.id,
+                    provider="mock",
+                    status=status,
+                    kickoff_at=f.kickoff_at,
+                    home_score=score,
+                    away_score=score,
+                )
+            )
+        s.commit()
+    assert client.post("/personal-picks", json=_body(fixture.id)).status_code == 422
+    ok = client.post("/personal-picks", json=_body(other.id, key="key-0002"))
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["current"]["analysis"]["fixture_status"] == "scheduled"

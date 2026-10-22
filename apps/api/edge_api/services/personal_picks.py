@@ -32,6 +32,8 @@ from sqlalchemy.orm import Session
 
 from edge_api.db.models import (
     Fixture,
+    FixtureObservation,
+    FixtureStatus,
     PersonalPick,
     Prediction,
     TeamNewsKind,
@@ -228,6 +230,7 @@ def analyse(
         league_name=fixture.league.name,
         league_verified=verified,
         kickoff_at=fixture.kickoff_at,
+        fixture_status=fixture.status,
         model=model,
         market=market,
         price=price,
@@ -267,6 +270,34 @@ def _decision_time(
             "(지난 경기는 경기 전 결정 시각을 입력하세요)."
         )
     return decision_at, ("user_stated" if fields.decision_at else "server_clock")
+
+
+def _check_not_started(session: Session, fixture: Fixture, now: datetime) -> None:
+    """Before kickoff a pick is a pre-match record only if nothing says the match
+    already started: the fixture must be scheduled now, and no observation stored
+    by now may show it live, finished or with a score (Codex QA PICK-STATE-1). A contradiction
+    (bad provider data, a schedule not yet corrected) is refused, not recorded."""
+    if fixture.status != FixtureStatus.SCHEDULED.value:
+        raise PickError(
+            f"경기 상태({fixture.status})와 시작 시각이 맞지 않아 경기 전 기록으로 "
+            "저장할 수 없어요. 일정·상태가 정정된 뒤 다시 시도하세요."
+        )
+    started = session.scalars(
+        select(FixtureObservation.id)
+        .where(
+            FixtureObservation.fixture_id == fixture.id,
+            FixtureObservation.created_at <= now,
+            # a postponed match moved back to the schedule is fine; one seen live
+            # or finished, or with a score, has started
+            FixtureObservation.status.in_([FixtureStatus.LIVE.value, FixtureStatus.FINISHED.value])
+            | FixtureObservation.home_score.is_not(None),
+        )
+        .limit(1)
+    ).first()
+    if started is not None:
+        raise PickError(
+            "이 경기는 시작했거나 결과가 기록된 적이 있어 경기 전 기록으로 저장할 수 없어요."
+        )
 
 
 def _by_idempotency_key(session: Session, key: str) -> PersonalPick | None:
@@ -313,6 +344,8 @@ def _new_row(
     not_before: datetime | None = None,
 ) -> PersonalPick:
     decision_at, evidence = _decision_time(fields, now, fixture.kickoff_at)
+    if now < fixture.kickoff_at:
+        _check_not_started(session, fixture, now)
     if not_before is not None and decision_at < not_before:
         raise PickError("수정의 결정 시각은 이전 기록의 결정 시각보다 앞설 수 없습니다.")
     analysis = analyse(

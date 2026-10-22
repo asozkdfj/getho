@@ -2863,6 +2863,18 @@
             "title": "Computed At",
             "type": "string"
           },
+          "fixture_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fixture status when the revision was stored",
+            "title": "Fixture Status"
+          },
           "home_team": {
             "title": "Home Team",
             "type": "string"
