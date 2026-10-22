@@ -94,20 +94,26 @@ def _at_decision(
     first: dict[tuple[int, int], datetime],
     since: datetime | None,
     settings: Settings,
+    scope: set[int],
 ) -> dict[str, Any]:
     """Absences known by the 09:00 decision of each fixture's pick day.
 
     Counted for decisions from ``since`` (the first absence report ever
-    captured: collection had not started before); per league, as collection is
-    scoped to leagues. ``age`` is how old the later team's first report was at
-    the decision."""
+    captured: collection had not started before) and only in ``scope``, the
+    leagues absences are collected for (any report ever stored); other leagues
+    are only counted (``out_of_scope_fixtures``), since 0 there means nothing.
+    ``age`` is how old the later team's first report was at the decision."""
     if since is None:
         return {"since": None, "fixtures": 0, "both_teams": 0, "leagues": []}
     per: dict[str, dict[str, Any]] = {}
     ages: list[float] = []
+    out_of_scope = 0
     for f in fixtures:
         decision = local_day(f.kickoff_at, settings).publish_at
         if decision < since:
+            continue
+        if f.league_id not in scope:
+            out_of_scope += 1
             continue
         row = per.setdefault(
             f.league.provider_id,
@@ -125,6 +131,7 @@ def _at_decision(
         "fixtures": sum(r["fixtures"] for r in leagues),
         "both_teams": sum(r["both_teams"] for r in leagues),
         "median_age_hours": round(statistics.median(ages), 2) if ages else None,
+        "out_of_scope_fixtures": out_of_scope,
         "leagues": leagues,
     }
 
@@ -238,6 +245,14 @@ def readiness(session: Session, provider: str, settings: Settings | None = None)
                     )
                 ),
                 settings,
+                set(
+                    session.scalars(
+                        select(Fixture.league_id)
+                        .join(TeamNewsSnapshot, TeamNewsSnapshot.fixture_id == Fixture.id)
+                        .where(TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value)
+                        .distinct()
+                    )
+                ),
             ),
             "lineups_both_teams": _spread(
                 _lead_hours(fixtures, _first_captured(session, TeamNewsKind.LINEUP))
