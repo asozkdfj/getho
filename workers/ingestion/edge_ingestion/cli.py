@@ -12,6 +12,7 @@ seed/ingest/predict are idempotent; running them repeatedly never duplicates row
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -275,6 +276,13 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("--leagues", required=True, help="provider league ids, comma-separated")
     ex.add_argument("--seasons", required=True, help="season start years, e.g. 2023,2024")
     ex.add_argument("--out", type=Path, help="CSV file (default: standard output)")
+    el = sub.add_parser(
+        "export-lineups",
+        help="past seasons' line-ups and player minutes to CSV, from the provider (no DB)",
+    )
+    el.add_argument("--leagues", required=True, help="provider league ids, comma-separated")
+    el.add_argument("--seasons", required=True, help="season start years, e.g. 2023,2024")
+    el.add_argument("--out", type=Path, help="CSV file (default: standard output)")
     xg = sub.add_parser("check-xg", help="which leagues return post-match xG (no DB writes)")
     xg.add_argument("--days", type=int, default=3, help="finished fixtures of the last N days")
     xg.add_argument("--limit", type=int, default=40, help="fixtures to fetch details for")
@@ -338,6 +346,32 @@ def main(argv: list[str] | None = None) -> int:
         if args.out:
             args.out.write_text(text + "\n")
         print(text)
+        return 0
+
+    if args.command == "export-lineups":
+        from edge_ingestion.lineup_export import export_lineups
+
+        settings = get_settings()
+        configure_logging(settings.log_level)  # logs go to stderr, the CSV to stdout
+        provider = get_provider(settings.data_provider, settings=settings, reference_time=utcnow())
+        lineups = export_lineups(
+            provider,
+            [x.strip() for x in args.leagues.split(",") if x.strip()],
+            [int(x) for x in args.seasons.split(",") if x.strip()],
+        )
+        text = lineups.csv()
+        if args.out:
+            args.out.write_text(text, encoding="utf-8")
+        else:
+            sys.stdout.write(text)
+        report: dict[str, Any] = {
+            "command": args.command,
+            "per_season": lineups.per_season,
+            "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        }
+        if isinstance(provider, ApiFootballProvider):
+            report["requests_used"] = provider.requests_made
+        print(json.dumps(report, ensure_ascii=False), file=sys.stderr)
         return 0
 
     if args.command == "export-match-stats":

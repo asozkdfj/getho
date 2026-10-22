@@ -141,3 +141,7 @@ def test_coverage_at_the_morning_decision(session_factory, seeded, now):
     assert cov["both_teams"] == 1
     assert cov["fixtures"] >= 2  # every finished fixture decided since the first report
     assert cov["median_age_hours"] == 4.0
+    # leagues without any absence report are counted apart, not listed as zeros
+    in_scope = {on_time.league.name, late.league.name}
+    assert all(row["league"].split(" - ", 1)[1] in in_scope for row in cov["leagues"])
+    assert cov["out_of_scope_fixtures"] > 0  # the seed has more leagues than the two above
