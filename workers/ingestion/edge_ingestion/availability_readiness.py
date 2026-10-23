@@ -131,6 +131,7 @@ def _at_decision(
         "fixtures": sum(r["fixtures"] for r in leagues),
         "both_teams": sum(r["both_teams"] for r in leagues),
         "median_age_hours": round(statistics.median(ages), 2) if ages else None,
+        "age_basis": "the later team's FIRST report (not the freshest one at the decision)",
         "out_of_scope_fixtures": out_of_scope,
         "leagues": leagues,
     }
@@ -241,7 +242,8 @@ def readiness(session: Session, provider: str, settings: Settings | None = None)
                 absences,
                 session.scalar(
                     select(func.min(TeamNewsSnapshot.captured_at)).where(
-                        TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value
+                        TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value,
+                        TeamNewsSnapshot.provider == provider,
                     )
                 ),
                 settings,
@@ -249,7 +251,10 @@ def readiness(session: Session, provider: str, settings: Settings | None = None)
                     session.scalars(
                         select(Fixture.league_id)
                         .join(TeamNewsSnapshot, TeamNewsSnapshot.fixture_id == Fixture.id)
-                        .where(TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value)
+                        .where(
+                            TeamNewsSnapshot.kind == TeamNewsKind.ABSENCES.value,
+                            TeamNewsSnapshot.provider == provider,
+                        )
                         .distinct()
                     )
                 ),
