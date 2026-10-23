@@ -1,5 +1,12 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-23 — 선수 데이터 준비 확인 / Codex
+
+- [준비 상태 보고](../qa/2026-10-23-lineup-data-readiness.md): 실험 CSV/readiness 원본 미발견, 사용자도 경로 확인 필요. INCONCLUSIVE.
+- 문서의 3,676경기는 개발 측 기록이며 독립 재현 수치가 아님. 실제 서버/API/DB 접근 없이 로컬 및 소스 확인.
+- CSV bytes hash·중복·명단 누락·시즌 집계·선행 3/10경기 대리 집계 도구 추가. 합성 테스트 4 PASS/Ruff PASS.
+- 실제 CSV 검사는 미실행. Claude 확인용 파일/manifest/전체 fixture inventory 요구 사항 기록.
+
 ## 2026-10-23 — PR #44–#46 QA / Codex
 
 - [보고서](../qa/2026-10-23-pr44-46-review.md): #45 exact Head `04ae71d`, #46 exact Head `6cb69d5` 실행. 세 PR CI success 확인.
