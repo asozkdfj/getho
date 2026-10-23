@@ -1,5 +1,13 @@
 # Codex 독립 QA 작업 기록
 
+## 2026-10-23 — PR #44–#46 QA / Codex
+
+- [보고서](../qa/2026-10-23-pr44-46-review.md): #45 exact Head `04ae71d`, #46 exact Head `6cb69d5` 실행. 세 PR CI success 확인.
+- #45 기본 웹 125 PASS, 별도 하네스 1 PASS/1 FAIL, typecheck/lint/build PASS. P2 검색 시 기존 접힌 리그가 열리지 않음.
+- #44/#46 Python 43 PASS/1 FAIL. P2 Windows CSV 바이트와 manifest SHA 불일치.
+- #46 이전 ALERT-DAY-1/PICK-SCORE-2 반례 PASS. 수정 범위 PASS, #44/#45 NEEDS_CHANGES.
+- 모델 검토: 원본 해시·CSV completeness·history warm-up·사전 등록 후 미래 shadow. 실제 서버/API/모델 학습 미실행.
+
 ## 2026-10-22 — PR #42/#43 추가 QA / Codex
 
 - [추가 보고서](../qa/2026-10-22-alerts-and-fix-review.md): main `68da8ce`, 기존 세 지적 해결 확인.
