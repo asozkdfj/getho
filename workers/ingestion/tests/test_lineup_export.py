@@ -77,3 +77,20 @@ def test_cli_writes_csv_to_stdout_and_the_summary_to_stderr(now, capsys, monkeyp
     summary = json.loads(err.strip().splitlines()[-1])
     assert summary["per_season"][f"{league.provider_id} {year}"]["finished"] > 0
     assert len(summary["sha256"]) == 64
+
+
+def test_summary_hash_matches_the_written_file(now, tmp_path, capsys, monkeypatch):
+    """Codex QA EXPORT-HASH-1: hash the exact bytes written (no CRLF rewrite)."""
+    import hashlib
+
+    from edge_api.config import Settings
+
+    monkeypatch.setattr(cli, "get_settings", lambda: Settings(data_provider="mock"))
+    league, year = _season(MockProvider(now))
+    target = tmp_path / "lineups.csv"
+    args = ["export-lineups", "--leagues", league.provider_id, "--seasons", str(year)]
+    assert cli.main([*args, "--out", str(target)]) == 0
+    summary = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    data = target.read_bytes()
+    assert summary["sha256"] == hashlib.sha256(data).hexdigest()
+    assert b"\r\n" not in data
