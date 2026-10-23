@@ -359,15 +359,19 @@ def main(argv: list[str] | None = None) -> int:
             [x.strip() for x in args.leagues.split(",") if x.strip()],
             [int(x) for x in args.seasons.split(",") if x.strip()],
         )
-        text = lineups.csv()
+        # one byte string is written and hashed, so the manifest hash matches the
+        # file on every OS (write_text would turn LF into CRLF on Windows)
+        data = lineups.csv().encode("utf-8")
         if args.out:
-            args.out.write_text(text, encoding="utf-8")
+            args.out.write_bytes(data)
         else:
-            sys.stdout.write(text)
+            sys.stdout.flush()
+            sys.stdout.buffer.write(data)
+            sys.stdout.buffer.flush()
         report: dict[str, Any] = {
             "command": args.command,
             "per_season": lineups.per_season,
-            "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "sha256": hashlib.sha256(data).hexdigest(),
         }
         if isinstance(provider, ApiFootballProvider):
             report["requests_used"] = provider.requests_made

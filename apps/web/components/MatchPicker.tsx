@@ -74,7 +74,11 @@ export function MatchPicker({
           placeholder="팀이나 리그 이름으로 찾기"
           aria-label="팀이나 리그 이름으로 경기 찾기"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            // a league folded before must not hide its search results
+            setFlipped(new Set());
+          }}
         />
         {!searching && (
           <div className="league-chips" role="group" aria-label="리그 범위">
